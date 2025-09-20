@@ -1,0 +1,37 @@
+diff --git a/node_modules/react-native-phone-number-input/lib/index.js b/node_modules/react-native-phone-number-input/lib/index.js
+index b89c388..e8f53dc 100644
+--- a/node_modules/react-native-phone-number-input/lib/index.js
++++ b/node_modules/react-native-phone-number-input/lib/index.js
+@@ -127,19 +127,19 @@ export default class PhoneInput extends PureComponent {
+     );
+   };
+ 
+-  renderFlagButton = (props) => {
+-    const { layout = "first", flagSize } = this.props;
+-    const { countryCode } = this.state;
+-    if (layout === "first") {
+-      return (
+-        <Flag
+-          countryCode={countryCode}
+-          flagSize={flagSize ? flagSize : DEFAULT_THEME.flagSize}
+-        />
+-      );
+-    }
+-    return <View />;
+-  };
++  // renderFlagButton = (props) => {
++  //   const { layout = "first", flagSize } = this.props;
++  //   const { countryCode } = this.state;
++  //   if (layout === "first") {
++  //     return (
++  //       <Flag
++  //         countryCode={countryCode}
++  //         flagSize={flagSize ? flagSize : DEFAULT_THEME.flagSize}
++  //       />
++  //     );
++  //   }
++  //   return <View />;
++  // };
+ 
+   render() {
+     const {
