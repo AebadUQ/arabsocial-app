@@ -10,7 +10,7 @@ const HomeScreen: React.FC = () => {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text>Home</Text>
+        <Text>Business</Text>
       </ScrollView>
     </SafeAreaView>
   );
