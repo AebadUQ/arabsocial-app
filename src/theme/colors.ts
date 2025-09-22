@@ -5,6 +5,7 @@ export const colors = {
   secondary:'#FFEBCC',
   textWhite:'#F6F6F6',
   text:'#191D21',
+  textLight:'#191D2180',
   placeholder:'#191D21B2',
   background:'#F6F6F6',
   error:'#E84545',

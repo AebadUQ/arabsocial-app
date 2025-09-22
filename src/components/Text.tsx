@@ -92,11 +92,9 @@ const Text: React.FC<TextProps> = ({
         };
       case 'caption':
         return {
-          fontSize: theme.typography.fontSize.v1,
+          fontSize: theme.typography.fontSize.v6,
           fontFamily: theme.typography.fontFamily.regular,
           fontWeight: theme.typography.fontWeight.normal,
-          lineHeight: theme.typography.lineHeight.normal,
-          letterSpacing: theme.typography.letterSpacing.wide,
         };
       case 'overline':
         return {
