@@ -12,7 +12,6 @@ import { Text, Button } from '../components';
 import InputField from '../components/Input';
 import PhoneInput from 'react-native-phone-number-input';
 import { useNavigation } from '@react-navigation/native';
-
 const AuthLogo = require('../assets/images/auth-logo.png');
 
 const RegisterScreen: React.FC = () => {

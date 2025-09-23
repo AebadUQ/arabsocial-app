@@ -15,7 +15,8 @@ export const typography = {
     v1:32,
     v4:16,
     v5:15,
-    v6:14
+    v6:14,
+    v7:12
   },
   
   // Line heights

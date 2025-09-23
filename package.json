@@ -14,7 +14,6 @@
     "clean:all": "rm -rf node_modules && npm install && cd ios && pod install && cd ..",
     "link-assets": "npx react-native-asset",
     "postinstall": "patch-package"
-
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.2.0",
@@ -24,6 +23,7 @@
     "@react-navigation/native": "^7.1.17",
     "@react-navigation/stack": "^7.4.8",
     "patch-package": "^8.0.0",
+    "phosphor-react-native": "^3.0.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-native": "0.81.4",

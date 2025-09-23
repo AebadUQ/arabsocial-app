@@ -98,12 +98,9 @@ const Text: React.FC<TextProps> = ({
         };
       case 'overline':
         return {
-          fontSize: theme.typography.fontSize.v1,
-          fontFamily: theme.typography.fontFamily.medium,
-          fontWeight: theme.typography.fontWeight.medium,
-          lineHeight: theme.typography.lineHeight.normal,
-          letterSpacing: theme.typography.letterSpacing.wider,
-          textTransform: 'uppercase' as const,
+          fontSize: theme.typography.fontSize.v7,
+          fontFamily: theme.typography.fontFamily.regular,
+          fontWeight: theme.typography.fontWeight.normal,
         };
       default:
         return {};
