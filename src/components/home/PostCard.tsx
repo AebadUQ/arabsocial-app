@@ -9,7 +9,7 @@ import {
   Platform,
 } from "react-native";
 import { useTheme } from "@/theme/ThemeContext";
-import { Text, Card } from "@/components";
+import { Text } from "@/components";
 import CustomBottomSheet from "@/components/BottomSheet";
 import { ChatCircle, ThumbsUp, PaperPlaneTilt } from "phosphor-react-native";
 
@@ -143,7 +143,7 @@ const PostCard: React.FC<Props> = ({ post }) => {
 
   return (
     <>
-      <Card style={styles.card}>
+      <View style={styles.card}>
         <View style={styles.userRow}>
           <UserAvatar
             size={AVATAR}
@@ -183,7 +183,7 @@ const PostCard: React.FC<Props> = ({ post }) => {
             </Text>
           </TouchableOpacity>
         </View>
-      </Card>
+      </View>
 
       <CustomBottomSheet visible={commentsVisible} onClose={() => setCommentsVisible(false)}>
         <KeyboardAvoidingView

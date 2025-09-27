@@ -1,3 +1,4 @@
+// AppNavigator.tsx
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -18,6 +19,9 @@ import BusinessScreen from '@/screens/BusinessScreen';
 import GroupsScreen from '@/screens/GroupScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 
+// NEW: Event Detail
+import EventDetailScreen from '@/screens/EventDetail';
+
 // Custom Tab Bar
 import CustomBottomSheet from '../components/CustomBottomsheet';
 
@@ -27,16 +31,19 @@ const Stack = createStackNavigator();
 //
 // Stack Navigators for each tab
 //
-
 const HomeStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="Home" component={HomeScreen} />
+    {/* 👇 allow Home -> EventDetail */}
+    <Stack.Screen name="EventDetail" component={EventDetailScreen} />
   </Stack.Navigator>
 );
 
 const EventsStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="Events" component={EventScreen} />
+    {/* 👇 allow Events -> EventDetail */}
+    <Stack.Screen name="EventDetail" component={EventDetailScreen} />
   </Stack.Navigator>
 );
 
@@ -61,15 +68,11 @@ const GroupsStack = () => (
 //
 // Bottom Tab Navigator
 //
-
 const MainTabNavigator = () => {
   const { theme } = useTheme();
-
   return (
     <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-      }}
+      screenOptions={{ headerShown: false }}
       tabBar={(props) => <CustomBottomSheet {...props} />}
     >
       <Tab.Screen name="Home" component={HomeStack} />
@@ -84,14 +87,10 @@ const MainTabNavigator = () => {
 //
 // Root App Navigator
 //
-
 const AppNavigator: React.FC = () => {
   return (
     <NavigationContainer>
-      <Stack.Navigator
-        initialRouteName="GetStarted"
-        screenOptions={{ headerShown: false }}
-      >
+      <Stack.Navigator initialRouteName="GetStarted" screenOptions={{ headerShown: false }}>
         <Stack.Screen name="GetStarted" component={GetStartedScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />

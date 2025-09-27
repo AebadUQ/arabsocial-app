@@ -2,7 +2,7 @@ import React from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeContext';
-import { Text, Button, Card } from '../components';
+import { Text, Button } from '../components';
 
 const ProfileScreen: React.FC = () => {
   const { theme } = useTheme();

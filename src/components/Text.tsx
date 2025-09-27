@@ -64,11 +64,9 @@ const Text: React.FC<TextProps> = ({
         };
       case 'h5':
         return {
-          fontSize: theme.typography.fontSize.v1,
+          fontSize: theme.typography.fontSize.v3,
           fontFamily: theme.typography.fontFamily.medium,
           fontWeight: theme.typography.fontWeight.medium,
-          lineHeight: theme.typography.lineHeight.normal,
-          letterSpacing: theme.typography.letterSpacing.normal,
         };
       case 'h6':
         return {

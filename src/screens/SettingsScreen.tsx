@@ -2,19 +2,19 @@ import React from 'react';
 import { View, StyleSheet, ScrollView, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeContext';
-import { Text, Button, Card } from '../components';
+import { Text, Button } from '../components';
 
 const SettingsScreen: React.FC = () => {
   const { theme, isDark, toggleTheme } = useTheme();
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background.primary }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.primary }]}>
       <ScrollView contentContainerStyle={styles.content}>
         <Text variant="h2" style={styles.title}>
           Settings
         </Text>
 
-        <Card variant="elevated" style={styles.section}>
+        {/* <Card variant="elevated" style={styles.section}>
           <Text variant="h5" style={styles.sectionTitle}>
             Appearance
           </Text>
@@ -121,7 +121,7 @@ const SettingsScreen: React.FC = () => {
             fullWidth
             style={styles.signOutButton}
           />
-        </View>
+        </View> */}
       </ScrollView>
     </SafeAreaView>
   );
