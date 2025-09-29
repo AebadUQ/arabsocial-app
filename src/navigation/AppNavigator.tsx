@@ -16,6 +16,7 @@ import HomeScreen from '../screens/HomeScreen';
 import EventScreen from '@/screens/EventScreen';
 import MembersScreen from '@/screens/MembersScreen';
 import BusinessScreen from '@/screens/BusinessScreen';
+import BusinessDetailScreen from '@/screens/BusinessDetail'
 import GroupsScreen from '@/screens/GroupScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 
@@ -59,6 +60,8 @@ const MembersStack = () => (
 const BusinessStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="Business" component={BusinessScreen} />
+    <Stack.Screen name="BusinessDetail" component={BusinessDetailScreen} />
+
   </Stack.Navigator>
 );
 
