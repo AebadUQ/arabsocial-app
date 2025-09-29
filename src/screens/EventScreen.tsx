@@ -196,9 +196,9 @@ const HomeScreen: React.FC = () => {
         <TouchableOpacity
           activeOpacity={0.9}
           accessibilityRole="button"
-          onPress={() => {
-            // TODO: navigate to your Promote Event flow
-          }}
+          //@ts-ignore
+          onPress={() => navigation.navigate("AddEvent")}
+
           style={styles.ctaShadow}
         >
           <LinearGradient

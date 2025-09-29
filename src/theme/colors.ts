@@ -5,6 +5,8 @@ export const colors = {
   secondary:'#FFEBCC',
   textWhite:'#F6F6F6',
   text:'#191D21',
+  darkGray:'#5F6367',
+  borderColor:'#D9D9D9',
   textLight:'#191D2180',
   placeholder:'#191D21B2',
   background:'#F6F6F6',
