@@ -8,7 +8,7 @@ const App: React.FC = () => {
   return (
     <GestureHandlerRootView style={styles.container}>
       <ThemeProvider>
-        <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+        {/* <StatusBar  translucent={false}   barStyle="dark-content" backgroundColor="#ffffff" /> */}
         <AppNavigator />
       </ThemeProvider>
     </GestureHandlerRootView>

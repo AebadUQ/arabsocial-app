@@ -11,8 +11,8 @@ import {
 import { useTheme } from "@/theme/ThemeContext";
 import { Text } from "@/components";
 import CustomBottomSheet from "@/components/BottomSheet";
-import { ChatCircle, ThumbsUp, PaperPlaneTilt } from "phosphor-react-native";
-
+// import { ChatCircle, ThumbsUp, PaperPlaneTilt } from "phosphor-react-native";
+import { ChatCircleIcon,ThumbsUpIcon,PaperPlaneIcon } from "phosphor-react-native";
 export type Reply = { id: string; user: string; text: string; avatarUri?: string };
 export type Comment = {
   id: string;
@@ -170,14 +170,14 @@ const PostCard: React.FC<Props> = ({ post }) => {
 
         <View style={styles.actions}>
           <TouchableOpacity style={styles.action} onPress={() => setLiked((v) => !v)}>
-            <ThumbsUp size={20} color={liked ? theme.colors.primary : theme.colors.text} />
+            <ThumbsUpIcon size={20} color={liked ? theme.colors.primary : theme.colors.text} />
             <Text variant="caption" color={liked ? theme.colors.primary : theme.colors.text}>
               {post.likes + (liked ? 1 : 0)}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.action} onPress={() => setCommentsVisible(true)}>
-            <ChatCircle size={20} color={theme.colors.text} />
+            <ChatCircleIcon size={20} color={theme.colors.text} />
             <Text variant="caption" color={theme.colors.text} >
               {post.commentsCount} Comments
             </Text>
@@ -290,7 +290,7 @@ const PostCard: React.FC<Props> = ({ post }) => {
                         multiline
                       />
                       <TouchableOpacity style={styles.sendBtn} onPress={() => handleSendReply(c.id)}>
-                        <PaperPlaneTilt size={18} color={theme.colors.primary} />
+                        <PaperPlaneIcon size={18} color={theme.colors.primary} />
                       </TouchableOpacity>
                     </View>
                   )}

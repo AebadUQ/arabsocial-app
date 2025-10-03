@@ -1,22 +1,14 @@
 import React, { useEffect, useRef } from 'react';
-import {
-  View,
-  Text,
-  TouchableWithoutFeedback,
-  Animated,
-  Image,
-  StyleSheet,
-} from 'react-native';
+import { View, Text, TouchableWithoutFeedback, Animated, StyleSheet } from 'react-native';
 import { theme } from '@/theme/theme';
-
-const ICON = require('../assets/icons/eye-off.png');
+import { HouseIcon,CalendarBlankIcon,UsersIcon,BuildingIcon ,ChatIcon} from 'phosphor-react-native';
 
 const tabs = [
-  { name: 'Home', label: 'Home',icon:require('@/assets/icons/events.png') },
-  { name: 'Events', label: 'Events',icon:require('@/assets/icons/events.png') },
-  { name: 'Members', label: 'Members',icon:require('@/assets/icons/events.png') },
-  { name: 'Business', label: 'Business',icon:require('@/assets/icons/events.png') },
-  { name: 'Groups', label: 'Group',icon:require('@/assets/icons/events.png') },
+  { name: 'Home', label: 'Home', icon: HouseIcon },
+  { name: 'Events', label: 'Events', icon: CalendarBlankIcon },
+  { name: 'Members', label: 'Members', icon: UsersIcon },
+  { name: 'Business', label: 'Business', icon: BuildingIcon },
+  { name: 'Groups', label: 'Group', icon: ChatIcon },
 ];
 
 const CustomBottomSheet = ({ state, descriptors, navigation }: any) => {
@@ -38,7 +30,7 @@ const CustomBottomSheet = ({ state, descriptors, navigation }: any) => {
     <View style={styles.container}>
       {tabs.map((tab, index) => {
         const isFocused = state.index === index;
-//@ts-ignore
+        //@ts-ignore
         const scale = animations[index].interpolate({
           inputRange: [0, 1],
           outputRange: [1, 1.15],
@@ -49,6 +41,8 @@ const CustomBottomSheet = ({ state, descriptors, navigation }: any) => {
             navigation.navigate(tab.name);
           }
         };
+
+        const IconComp = tab.icon;
 
         return (
           <View key={tab.name} style={styles.tabWrapper}>
@@ -63,14 +57,9 @@ const CustomBottomSheet = ({ state, descriptors, navigation }: any) => {
                   },
                 ]}
               >
-                <Image
-                  source={tab.icon}
-                  style={[
-                    styles.icon,
-                    {
-                      tintColor: isFocused ? theme.colors.primary : '#444',
-                    },
-                  ]}
+                <IconComp
+                  size={22}
+                  color={isFocused ? theme.colors.primary : '#border: 1.5px solid #191D2199'}
                 />
                 {isFocused && <Text style={styles.label}>{tab.label}</Text>}
               </Animated.View>
@@ -94,7 +83,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   tabWrapper: {
-    marginHorizontal: 6, // gap between tabs
+    marginHorizontal: 6,
   },
   tabItem: {
     flexDirection: 'row',
@@ -102,12 +91,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#fff', // no background, only border for active tab
-  },
-  icon: {
-    width: 20,
-    height: 20,
-    resizeMode: 'contain',
+    backgroundColor: '#fff',
   },
   label: {
     marginLeft: 6,
