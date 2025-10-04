@@ -140,7 +140,7 @@ const MemberCard = ({
 };
 
 // ---------- Home Screen ----------
-const HomeScreen: React.FC = () => {
+const HomeScreen: React.FC = ({navigation}:any) => {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const dimText = theme.colors?.text ?? "#111827";
@@ -195,7 +195,7 @@ const HomeScreen: React.FC = () => {
     <SafeAreaView
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
-      <TopBar />
+      <TopBar   onMenuPress={() => navigation.openDrawer()} />
 
       {/* Search + Filter */}
       <View

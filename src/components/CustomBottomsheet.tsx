@@ -1,7 +1,8 @@
+// src/components/CustomBottomSheet.tsx
 import React, { useEffect, useRef } from 'react';
 import { View, Text, TouchableWithoutFeedback, Animated, StyleSheet } from 'react-native';
 import { theme } from '@/theme/theme';
-import { HouseIcon,CalendarBlankIcon,UsersIcon,BuildingIcon ,ChatIcon} from 'phosphor-react-native';
+import { HouseIcon, CalendarBlankIcon, UsersIcon, BuildingIcon, ChatIcon } from 'phosphor-react-native';
 
 const tabs = [
   { name: 'Home', label: 'Home', icon: HouseIcon },
@@ -37,8 +38,16 @@ const CustomBottomSheet = ({ state, descriptors, navigation }: any) => {
         });
 
         const handlePress = () => {
-          if (!isFocused) {
-            navigation.navigate(tab.name);
+          // ✅ v6-correct: emit tabPress and navigate using route from state
+          const route = state.routes[index];
+          const event = navigation.emit({
+            type: 'tabPress',
+            target: route.key,
+            canPreventDefault: true,
+          });
+
+          if (!isFocused && !event.defaultPrevented) {
+            navigation.navigate(route.name);
           }
         };
 
@@ -59,7 +68,8 @@ const CustomBottomSheet = ({ state, descriptors, navigation }: any) => {
               >
                 <IconComp
                   size={22}
-                  color={isFocused ? theme.colors.primary : '#border: 1.5px solid #191D2199'}
+                  // ⚠️ color string kept as-is except invalid CSS removed
+                  color={isFocused ? theme.colors.primary : '#191D2199'}
                 />
                 {isFocused && <Text style={styles.label}>{tab.label}</Text>}
               </Animated.View>

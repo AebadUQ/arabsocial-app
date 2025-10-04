@@ -25,7 +25,7 @@ import type { Asset } from "react-native-image-picker";
 
 const PAGE_SIZE = 10;
 
-const HomeScreen: React.FC = () => {
+const HomeScreen: React.FC = ({navigation}:any) => {
   const { theme } = useTheme();
   const [open, setOpen] = useState(true);
   const [page, setPage] = useState(1);
@@ -82,7 +82,7 @@ const HomeScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <TopBar />
+      <TopBar   onMenuPress={() => navigation.openDrawer()} />
 
       <CompleteProfileModal
         visible={open}

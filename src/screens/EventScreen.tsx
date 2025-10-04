@@ -214,8 +214,7 @@ const events: Event[] = [
   },
 ];
 
-const HomeScreen: React.FC = () => {
-  const navigation = useNavigation();
+const HomeScreen: React.FC = ({navigation}:any) => {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -295,7 +294,7 @@ const HomeScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <TopBar />
+      <TopBar   onMenuPress={() => navigation.openDrawer()} />
 
       {/* Search + Filter Button Row */}
       <View style={styles.searchRow}>

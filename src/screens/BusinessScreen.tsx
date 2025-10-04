@@ -112,8 +112,7 @@ const BusinessCard = ({ item }: { item: Business }) => {
   );
 };
 
-const BusinessScreen: React.FC = () => {
-  const navigation = useNavigation();
+const BusinessScreen: React.FC = ({navigation}:any) => {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -139,7 +138,7 @@ const BusinessScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <TopBar />
+      <TopBar   onMenuPress={() => navigation.openDrawer()} />
 
       {/* Search + Filter */}
       <View style={[styles.searchRow, { paddingTop: Math.max(12, insets.top / 3) }]}>

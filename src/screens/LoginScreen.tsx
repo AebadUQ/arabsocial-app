@@ -23,12 +23,8 @@ const LoginScreen: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const handleLogin = () => {
     // @ts-ignore
-    navigation.navigate('MainTabs', {
-        screen: 'Home',
-        params: {
-          screen: 'Home', // 👈 this is the inner screen name inside HomeStack
-        },
-      });
+    navigation.replace('Main');
+
       
 
     console.log('Login pressed', { email, password });
