@@ -22,7 +22,7 @@ import SettingsScreen from '../screens/SettingsScreen';
 
 // NEW: Event Detail
 import EventDetailScreen from '@/screens/EventDetail';
-// import AddEventScreen from '@/screens/AddEvent';
+import AddEventScreen from '@/screens/AddEvent';
 
 // Custom Tab Bar
 import CustomBottomSheet from '../components/CustomBottomsheet';
@@ -45,7 +45,7 @@ const EventsStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="Events" component={EventScreen} />
     {/* 👇 allow Events -> EventDetail */}
-    {/* <Stack.Screen name="AddEvent" component={AddEventScreen} /> */}
+    <Stack.Screen name="AddEvent" component={AddEventScreen} />
 
     <Stack.Screen name="EventDetail" component={EventDetailScreen} />
   </Stack.Navigator>
