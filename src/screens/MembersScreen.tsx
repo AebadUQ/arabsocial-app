@@ -1,11 +1,12 @@
 // screens/HomeScreen.tsx
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   StyleSheet,
   View,
   TextInput,
   TouchableOpacity,
   FlatList,
+  Keyboard,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components";
@@ -13,9 +14,11 @@ import { useTheme } from "@/theme/ThemeContext";
 import {
   MagnifyingGlass as MagnifyingGlassIcon,
   SlidersHorizontal as SlidersHorizontalIcon,
+  XCircle as XCircleIcon,
 } from "phosphor-react-native";
 import Avatar from "@/components/common/Avatar";
-import Chip from "@/components/common/Chip"; // ✅ import your Chip
+import Chip from "@/components/common/Chip";
+import TopBar from "@/components/common/TopBar";
 
 type Person = {
   id: string;
@@ -24,14 +27,71 @@ type Person = {
   location: string;
 };
 
-const SAMPLE_DATA: Person[] = Array.from({ length: 8 }).map((_, i) => ({
-  id: String(i + 1),
-  title: `John Doe ${i + 1}`,
-  profession: "Software Engineer",
-  location: "UAE",
-}));
+// ✅ 10 users with different professions & locations
+const SAMPLE_DATA: Person[] = [
+  {
+    id: "1",
+    title: "Ali Khan",
+    profession: "Software Engineer",
+    location: "Karachi, Pakistan",
+  },
+  {
+    id: "2",
+    title: "Sarah Ahmed",
+    profession: "Product Designer",
+    location: "Dubai, UAE",
+  },
+  {
+    id: "3",
+    title: "John Williams",
+    profession: "Marketing Manager",
+    location: "London, UK",
+  },
+  {
+    id: "4",
+    title: "Ayesha Noor",
+    profession: "Data Analyst",
+    location: "Lahore, Pakistan",
+  },
+  {
+    id: "5",
+    title: "David Smith",
+    profession: "Financial Advisor",
+    location: "New York, USA",
+  },
+  {
+    id: "6",
+    title: "Fatima Al-Mansouri",
+    profession: "UI/UX Designer",
+    location: "Abu Dhabi, UAE",
+  },
+  {
+    id: "7",
+    title: "Mohammed Hassan",
+    profession: "Project Manager",
+    location: "Riyadh, Saudi Arabia",
+  },
+  {
+    id: "8",
+    title: "Emma Brown",
+    profession: "HR Specialist",
+    location: "Toronto, Canada",
+  },
+  {
+    id: "9",
+    title: "Omar Siddiqui",
+    profession: "Mobile Developer",
+    location: "Doha, Qatar",
+  },
+  {
+    id: "10",
+    title: "Laura Chen",
+    profession: "Business Analyst",
+    location: "Singapore",
+  },
+];
 
-// MemberCard inline
+// ---------- Member Card ----------
 const MemberCard = ({
   item,
   connected,
@@ -48,7 +108,7 @@ const MemberCard = ({
   return (
     <View style={styles.card}>
       <View style={styles.row}>
-        {/* Left */}
+        {/* Left side */}
         <View style={styles.leftWrap}>
           <Avatar />
           <View style={styles.texts}>
@@ -79,45 +139,87 @@ const MemberCard = ({
   );
 };
 
+// ---------- Home Screen ----------
 const HomeScreen: React.FC = () => {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const dimText = theme.colors?.text ?? "#111827";
 
-  // state
   const [selectedTab, setSelectedTab] = useState<"all" | "connections">("all");
   const [connectedById, setConnectedById] = useState<Record<string, boolean>>(
     {}
   );
 
+  // Search
+  const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const inputRef = useRef<TextInput>(null);
+
+  // debounce search input (250ms)
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(query.trim().toLowerCase()), 250);
+    return () => clearTimeout(t);
+  }, [query]);
+
   const handleToggle = (id: string, next: boolean) => {
     setConnectedById((prev) => ({ ...prev, [id]: next }));
   };
 
-  // filter list based on tab
+  // filter list based on tab + search
   const filteredData = useMemo(() => {
-    if (selectedTab === "connections") {
-      return SAMPLE_DATA.filter((x) => connectedById[x.id]);
-    }
-    return SAMPLE_DATA;
-  }, [selectedTab, connectedById]);
+    let base =
+      selectedTab === "connections"
+        ? SAMPLE_DATA.filter((x) => connectedById[x.id])
+        : SAMPLE_DATA;
+
+    if (!debouncedQuery) return base;
+
+    return base.filter((item) => {
+      const hay = `${item.title} ${item.profession} ${item.location}`.toLowerCase();
+      return hay.includes(debouncedQuery);
+    });
+  }, [selectedTab, connectedById, debouncedQuery]);
+
+  const clearSearch = useCallback(() => {
+    setQuery("");
+    setDebouncedQuery("");
+    inputRef.current?.clear();
+    Keyboard.dismiss();
+  }, []);
+
+  const onSubmitEditing = useCallback(() => {
+    Keyboard.dismiss();
+  }, []);
 
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
+      <TopBar />
+
       {/* Search + Filter */}
       <View
         style={[styles.searchRow, { paddingTop: Math.max(12, insets.top / 3) }]}
       >
         <View style={styles.searchBox}>
+          <MagnifyingGlassIcon size={18} weight="bold" color={dimText} />
           <TextInput
-            placeholder="Search"
-            editable={false}
+            ref={inputRef}
+            placeholder="Search by name, profession, location"
             placeholderTextColor="rgba(0,0,0,0.4)"
             style={[styles.searchInput, { color: dimText }]}
+            value={query}
+            onChangeText={setQuery}
+            returnKeyType="search"
+            onSubmitEditing={onSubmitEditing}
+            autoCorrect={false}
+            autoCapitalize="none"
           />
-          <MagnifyingGlassIcon size={18} weight="bold" color={dimText} />
+          {query.length > 0 && (
+            <TouchableOpacity onPress={clearSearch}>
+              <XCircleIcon size={18} weight="bold" color={"rgba(0,0,0,0.4)"} />
+            </TouchableOpacity>
+          )}
         </View>
 
         <TouchableOpacity activeOpacity={0.85} style={styles.filterBtn}>
@@ -125,7 +227,7 @@ const HomeScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Chips Row */}
+      {/* Tabs */}
       <View style={styles.chipRow}>
         <Chip
           label="All"
@@ -137,6 +239,11 @@ const HomeScreen: React.FC = () => {
           active={selectedTab === "connections"}
           onPress={() => setSelectedTab("connections")}
         />
+        {/* <View style={{ marginLeft: "auto" }}>
+          <Text variant="overline" color={theme.colors.textLight}>
+            {filteredData.length} results
+          </Text>
+        </View> */}
       </View>
 
       {/* List */}
@@ -151,12 +258,19 @@ const HomeScreen: React.FC = () => {
             onToggle={handleToggle}
           />
         )}
+        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <View style={{ padding: 24, alignItems: "center" }}>
+            <Text>No matches found.</Text>
+          </View>
+        }
       />
     </SafeAreaView>
   );
 };
 
+// ---------- Styles ----------
 const styles = StyleSheet.create({
   container: { flex: 1 },
   searchRow: {
@@ -181,7 +295,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
-  searchInput: { flex: 1 },
+  searchInput: { flex: 1, paddingVertical: 0 },
   filterBtn: {
     width: 50,
     height: 50,
@@ -200,6 +314,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 20,
     marginBottom: 32,
+    alignItems: "center",
   },
   listContent: {
     paddingHorizontal: 20,
