@@ -26,6 +26,7 @@ export type Event = {
   address?: string;
   city?: string;
   state?: string;
+  country?:string;
   image?: ImageSourcePropType;
   eventType: EventType;
   totalSpots?: number;
