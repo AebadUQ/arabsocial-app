@@ -1,5 +1,4 @@
-// screens/BusinessScreen.tsx
-import React, { useState } from "react";
+import React, { useMemo, useState, useRef, useCallback } from "react";
 import {
   StyleSheet,
   FlatList,
@@ -7,6 +6,7 @@ import {
   TouchableOpacity,
   TextInput,
   Image,
+  Keyboard,
 } from "react-native";
 import { Text } from "@/components";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -14,17 +14,18 @@ import { useTheme } from "@/theme/ThemeContext";
 import {
   MagnifyingGlass as MagnifyingGlassIcon,
   SlidersHorizontal as SlidersHorizontalIcon,
+  XCircle as XCircleIcon,
 } from "phosphor-react-native";
-import { theme } from "@/theme/theme";
-import { useNavigation } from "@react-navigation/native"; // 👈 add this
+import { useNavigation } from "@react-navigation/native";
+import TopBar from "@/components/common/TopBar";
 
 type Business = {
   id: string;
   name: string;
   category: string;      // e.g. "Health"
   isFeatured?: boolean;
-  image?: any;   
-  description:string        // local require(...) or { uri: string }
+  image?: any;           // local require(...) or { uri: string }
+  description: string;
 };
 
 const BUSINESSES: Business[] = [
@@ -35,39 +36,38 @@ const BUSINESSES: Business[] = [
     isFeatured: true,
     image: require("@/assets/images/event1.png"),
     description:
-    "Join fellow founders and operators for an evening of practical talks, speed networking, and chill vibes.",
- 
+      "Join fellow founders and operators for an evening of practical talks, speed networking, and chill vibes.",
   },
   {
     id: "2",
     name: "GreenLeaf Pharmacy",
     category: "Health",
     isFeatured: false,
-    image: require("@/assets/images/event2.png"), description:
-    "Join fellow founders and operators for an evening of practical talks, speed networking, and chill vibes.",
- 
+    image: require("@/assets/images/event2.png"),
+    description:
+      "Your trusted neighborhood pharmacy with expert guidance.",
   },
   {
     id: "3",
     name: "City Care Diagnostics",
     category: "Health",
     isFeatured: true,
-    image: require("@/assets/images/event1.png"), description:
-    "Join fellow founders and operators for an evening of practical talks, speed networking, and chill vibes.",
- 
+    image: require("@/assets/images/event1.png"),
+    description:
+      "Advanced diagnostic center for blood tests and imaging.",
   },
   {
     id: "4",
     name: "FitLife Nutrition",
     category: "Health",
     isFeatured: false,
-    image: require("@/assets/images/event2.png"), description:
-    "Join fellow founders and operators for an evening of practical talks, speed networking, and chill vibes.",
- 
+    image: require("@/assets/images/event2.png"),
+    description:
+      "Certified nutritionists and organic supplements for a better you.",
   },
 ];
 
-// Inline Business Card (shows Category, optional Featured)
+// Card
 const BusinessCard = ({ item }: { item: Business }) => {
   const { theme } = useTheme();
   return (
@@ -80,7 +80,7 @@ const BusinessCard = ({ item }: { item: Business }) => {
         )}
 
         {item.isFeatured && (
-          <View style={styles.badge}>
+          <View style={[styles.badge, { backgroundColor: theme.colors.primary }]}>
             <Text variant="overline" style={{ color: "#fff", fontWeight: "700" }}>
               Featured
             </Text>
@@ -97,62 +97,102 @@ const BusinessCard = ({ item }: { item: Business }) => {
             Category: {item.category}
           </Text>
         </View>
+        {!!item.description && (
+          <Text
+            variant="caption"
+            color={theme.colors.textLight}
+            style={{ marginTop: 6 }}
+            numberOfLines={2}
+          >
+            {item.description}
+          </Text>
+        )}
       </View>
     </View>
   );
 };
 
 const BusinessScreen: React.FC = () => {
-  const navigation = useNavigation(); 
-
+  const navigation = useNavigation();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
+
   const [query, setQuery] = useState("");
+  const inputRef = useRef<TextInput>(null);
   const dimText = theme.colors?.text ?? "#111827";
+
+  // Filtered list (case-insensitive; matches name/category/description)
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return BUSINESSES;
+    return BUSINESSES.filter((b) => {
+      const hay = `${b.name} ${b.category} ${b.description}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }, [query]);
+
+  const clearSearch = useCallback(() => {
+    setQuery("");
+    inputRef.current?.clear();
+    Keyboard.dismiss();
+  }, []);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      {/* Search + Filter Button Row (same UI as before) */}
+      <TopBar />
+
+      {/* Search + Filter */}
       <View style={[styles.searchRow, { paddingTop: Math.max(12, insets.top / 3) }]}>
-        {/* Search field */}
         <View style={styles.searchBox}>
+          <MagnifyingGlassIcon size={18} weight="bold" color={dimText} />
           <TextInput
+            ref={inputRef}
             value={query}
             onChangeText={setQuery}
-            placeholder="Search businesses"
+            placeholder="Search businesses (name, category, description)"
             placeholderTextColor="rgba(0,0,0,0.4)"
             style={[styles.searchInput, { color: dimText }]}
             returnKeyType="search"
           />
-          <MagnifyingGlassIcon size={18} weight="bold" color={dimText} />
+          {query.length > 0 && (
+            <TouchableOpacity onPress={clearSearch} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <XCircleIcon size={18} weight="bold" color={"rgba(0,0,0,0.4)"} />
+            </TouchableOpacity>
+          )}
         </View>
 
-        {/* Filter icon button (kept for UI parity; no chips below) */}
         <TouchableOpacity
           activeOpacity={0.8}
           style={styles.filterBtn}
           onPress={() => {
-            /* open filters modal later (optional) */
+            /* TODO: open filters modal */
           }}
         >
           <SlidersHorizontalIcon size={16} color={dimText} weight="bold" />
         </TouchableOpacity>
       </View>
 
-      {/* List of Business Cards (no chips row here) */}
+      {/* List */}
       <FlatList
-        data={BUSINESSES}
+        data={filtered}
         keyExtractor={(item) => item.id}
         contentContainerStyle={[styles.content, { paddingBottom: 16 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => (
-          <TouchableOpacity activeOpacity={0.85}    
-          //@ts-ignore       
+          <TouchableOpacity
+            activeOpacity={0.85}
+            // @ts-ignore
             onPress={() => navigation.navigate("BusinessDetail" as never, { event: item } as never)}
->
+          >
             <BusinessCard item={item} />
           </TouchableOpacity>
         )}
+        ListEmptyComponent={
+          <View style={{ padding: 24, alignItems: "center" }}>
+            <Text>No businesses match “{query}”.</Text>
+          </View>
+        }
+        keyboardShouldPersistTaps="handled"
       />
     </SafeAreaView>
   );
@@ -189,7 +229,7 @@ const styles = StyleSheet.create({
     // Android shadow
     elevation: 4,
   },
-  searchInput: { flex: 1 },
+  searchInput: { flex: 1, paddingVertical: 0 },
   filterBtn: {
     width: 50,
     height: 50,
@@ -212,7 +252,6 @@ const styles = StyleSheet.create({
     borderRadius: CARD_RADIUS,
     overflow: "hidden",
     marginBottom: 16,
-    // subtle border to match your style
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(0,0,0,0.06)",
   },
@@ -230,7 +269,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 10,
     right: 10,
-    backgroundColor: theme.colors.primary,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
