@@ -3,7 +3,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {  BellIcon, ListIcon } from 'phosphor-react-native';
-
+import { useNavigation } from '@react-navigation/native';
 type Props = {
   title?: string;
   avatarUri?: string;
@@ -21,6 +21,7 @@ const TopBar: React.FC<Props> = ({
   onBellPress,
   onAvatarPress,
 }) => {
+    const navigation = useNavigation()
   return (
       <View style={styles.bar}>
         {/* Left: Hamburger */}
@@ -31,7 +32,10 @@ const TopBar: React.FC<Props> = ({
 
         {/* Right: Bell + Avatar */}
         <View style={styles.rightGroup}>
-          <TouchableOpacity accessibilityRole="button" onPress={onBellPress} style={styles.iconBtn}>
+          <TouchableOpacity accessibilityRole="button" onPress={()=>{
+            //@ts-ignore
+            navigation.navigate('Notifications')
+          }} style={styles.iconBtn}>
             <View>
               <BellIcon size={22} weight="bold" />
               {notificationsCount > 0 && (

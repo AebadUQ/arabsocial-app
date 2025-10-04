@@ -38,6 +38,7 @@ import { House, Gear, GearIcon, InfoIcon, SignOutIcon } from 'phosphor-react-nat
 import { theme } from '@/theme/theme';
 import { Image, Text, TouchableOpacity, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import NotificationsScreen from '@/screens/NotificationScreen';
 
 const AuthLogo = require('../assets/images/auth-logo.png');
 /* -------------------------------------------
@@ -86,6 +87,7 @@ export type RootStackParamList = {
   Login: undefined;
   Register: undefined;
   Main: undefined; // Drawer root
+   Notifications: undefined; 
 };
 
 /* -------------------------------------------
@@ -344,6 +346,11 @@ const AppNavigator: React.FC = () => {
         <RootStack.Screen name="Register" component={RegisterScreen} />
         {/* Drawer that contains Tabs (including SettingsTab) */}
         <RootStack.Screen name="Main" component={RootDrawer} />
+<RootStack.Screen
+    name="Notifications"
+    component={NotificationsScreen}
+  options={{ presentation: 'transparentModal', animation: 'none', headerShown: false }} // no fade/blur
+  />
       </RootStack.Navigator>
     </NavigationContainer>
   );
