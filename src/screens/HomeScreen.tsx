@@ -170,10 +170,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     backgroundColor: "white",
     marginHorizontal: 16,
-    marginTop: 8,
+    marginVertical: 8,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: "#EEE",
+
   },
   input: {
     flex: 1,

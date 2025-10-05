@@ -75,14 +75,15 @@ const styles = StyleSheet.create({
     justifyContent:'space-between',
     alignItems: 'center',
     gap: 12,
-    marginBottom:32
+    marginBottom:32,
+    marginTop:18
   },
   leftBtn: {
     height:40,
     width:40,
     borderWidth:1,
     borderColor:'black',
-    borderRadius:'100%',
+    borderRadius:20,
     display:'flex',
     justifyContent:'center',
     alignItems:'center',
@@ -96,7 +97,7 @@ const styles = StyleSheet.create({
   iconBtn: {
 height:50,
     width:50,
-    borderRadius:'100%',
+    borderRadius:25,
     display:'flex',
     justifyContent:'center',
     alignItems:'center',

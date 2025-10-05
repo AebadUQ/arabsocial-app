@@ -8,21 +8,20 @@ import {
   TouchableOpacity,
   ViewStyle,
   TextStyle,
-  Image
 } from "react-native";
-import { useTheme } from '../theme/ThemeContext';
+import { useTheme } from "../theme/ThemeContext";
 import { theme } from "@/theme/theme";
-
+import { Eye, EyeSlash } from "phosphor-react-native";
 
 type Props = TextInputProps & {
   label?: string;
   error?: string;
-  left?: ReactNode;                 // custom left icon/component
-  right?: ReactNode;                // custom right icon/component
-  onPressRight?: () => void;        // for eye / clear button
+  left?: ReactNode;
+  right?: ReactNode;
+  onPressRight?: () => void;
   containerStyle?: ViewStyle;
   inputStyle?: TextStyle;
-  secureToggle?: boolean;           // show eye button to toggle secure
+  secureToggle?: boolean;
 };
 
 export default function InputField({
@@ -38,8 +37,9 @@ export default function InputField({
   placeholderTextColor = theme.colors.placeholder,
   ...rest
 }: Props) {
-
   const [hide, setHide] = useState(!!secureTextEntry);
+
+  const toggleVisibility = () => setHide(!hide);
 
   return (
     <View style={[styles.wrapper, containerStyle]}>
@@ -55,19 +55,25 @@ export default function InputField({
           {...rest}
         />
 
-        {/* Right adornment or secure toggle */}
+        {/* Right adornment */}
         {secureToggle ? (
           <TouchableOpacity
-            onPress={() => setHide(!hide)}
+            onPress={toggleVisibility}
             style={styles.side}
             hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
           >
-             <Image 
-              source={require('@/assets/icons/eye-off.png')}
-            />
+            {hide ? (
+              <EyeSlash size={22} color={theme.colors.primary} />
+            ) : (
+              <Eye size={22} color={theme.colors.primary} />
+            )}
           </TouchableOpacity>
         ) : right ? (
-          <TouchableOpacity onPress={onPressRight} disabled={!onPressRight} style={styles.side}>
+          <TouchableOpacity
+            onPress={onPressRight}
+            disabled={!onPressRight}
+            style={styles.side}
+          >
             {right}
           </TouchableOpacity>
         ) : null}
@@ -96,12 +102,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
 
-    // soft shadow (iOS)
     shadowColor: "#000",
     shadowOpacity: 0.08,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 3 },
-    // soft shadow (Android)
     elevation: 2,
   },
   containerError: {
