@@ -29,6 +29,7 @@ import SettingsScreen from '@/screens/SettingsScreen';
 // Details
 import EventDetailScreen from '@/screens/EventDetail';
 import AddEventScreen from '@/screens/AddEvent';
+import GroupDetailScreen from '@/screens/GroupDetailScreen'; // ✅ NEW
 
 // Custom Tab Bar
 import CustomBottomsheet from '@/components/CustomBottomsheet';
@@ -41,6 +42,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import NotificationsScreen from '@/screens/NotificationScreen';
 
 const AuthLogo = require('../assets/images/auth-logo.png');
+
 /* -------------------------------------------
  *  Type-safe param lists
  * ------------------------------------------*/
@@ -60,7 +62,13 @@ export type BusinessStackParamList = {
   Business: undefined;
   BusinessDetail: { id?: string } | undefined;
 };
-export type GroupsStackParamList = { Groups: undefined };
+
+// ✅ add GroupDetail route
+export type GroupsStackParamList = {
+  Groups: undefined;
+  GroupDetail: { group?: any; groupId?: number } | undefined;
+};
+
 export type SettingsStackParamList = { Settings: undefined };
 
 export type TabsParamList = {
@@ -69,25 +77,24 @@ export type TabsParamList = {
   MembersTab: undefined;
   BusinessTab: undefined;
   GroupsTab: undefined;
-  SettingsTab: undefined; // 👈 added
+  SettingsTab: undefined;
 };
 
 export type DrawerParamList = {
   MainTabs:
     | {
         screen?: keyof TabsParamList;
-        params?: any; // nested stack params
+        params?: any;
       }
     | undefined;
-  // ❌ Removed standalone Settings from Drawer
 };
 
 export type RootStackParamList = {
   GetStarted: undefined;
   Login: undefined;
   Register: undefined;
-  Main: undefined; // Drawer root
-   Notifications: undefined; 
+  Main: undefined;
+  Notifications: undefined;
 };
 
 /* -------------------------------------------
@@ -135,9 +142,11 @@ const BusinessStackNav = () => (
   </BusinessStack.Navigator>
 );
 
+// ✅ include GroupDetail in Groups stack
 const GroupsStackNav = () => (
   <GroupsStack.Navigator screenOptions={{ headerShown: false }}>
     <GroupsStack.Screen name="Groups" component={GroupsScreen} />
+    <GroupsStack.Screen name="GroupDetail" component={GroupDetailScreen} />
   </GroupsStack.Navigator>
 );
 
@@ -151,13 +160,12 @@ const SettingsStackNav = () => (
  *  Bottom Tabs (inside Drawer)
  * ------------------------------------------*/
 const MainTabNavigator = () => {
-  useTheme(); // keep for styling if needed
+  useTheme();
   return (
     <Tab.Navigator
       screenOptions={{ headerShown: false }}
       tabBar={(props) => <CustomBottomsheet {...props} />}
     >
-      {/* ⚠️ Use these exact names in navigate({ screen: ... }) */}
       <Tab.Screen name="HomeTab" component={HomeStackNav} options={{ title: 'Home' }} />
       <Tab.Screen name="EventsTab" component={EventsStackNav} options={{ title: 'Events' }} />
       <Tab.Screen name="MembersTab" component={MembersStackNav} options={{ title: 'Members' }} />
@@ -171,24 +179,21 @@ const MainTabNavigator = () => {
 /* -------------------------------------------
  *  Custom Drawer Content
  * ------------------------------------------*/
-// Custom Drawer Content
 function CustomDrawerContent(props: any) {
   const { navigation } = props;
 
   const handleLogout = () => {
-    // 🔒 handle logout logic here (clear tokens, etc.)
     navigation.replace('Login');
   };
 
   return (
     <LinearGradient
-      colors={['#166152', '#004334']} // ✅ gradient top → bottom
+      colors={['#166152', '#004334']}
       start={{ x: 0, y: 0 }}
       end={{ x: 0, y: 1 }}
       style={{ flex: 1 }}
     >
       <View style={{ flex: 1 }}>
-        {/* Scrollable content */}
         <DrawerContentScrollView
           {...props}
           contentContainerStyle={{
@@ -197,27 +202,13 @@ function CustomDrawerContent(props: any) {
             paddingHorizontal: 16,
           }}
         >
-          {/* Logo */}
-          <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'center',
-              marginBottom: 32,
-            }}
-          >
-            <Image
-              source={AuthLogo}
-              style={{ width: 110, height: 52, resizeMode: 'contain' }}
-            />
+          <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 32 }}>
+            <Image source={AuthLogo} style={{ width: 110, height: 52, resizeMode: 'contain' }} />
           </View>
 
-          {/* Drawer menu buttons */}
           <View style={{ gap: 20 }}>
-            {/* Settings */}
             <TouchableOpacity
-              onPress={() =>
-                navigation.navigate('MainTabs', { screen: 'SettingsTab' })
-              }
+              onPress={() => navigation.navigate('MainTabs', { screen: 'SettingsTab' })}
               activeOpacity={0.7}
               style={{
                 borderRadius: 10,
@@ -229,19 +220,10 @@ function CustomDrawerContent(props: any) {
                 justifyContent: 'space-between',
               }}
             >
-              <Text
-                style={{
-                  color: '#fff',
-                  fontSize: 16,
-                  fontWeight: '600',
-                }}
-              >
-                Settings
-              </Text>
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>Settings</Text>
               <Gear size={22} color="#fff" />
             </TouchableOpacity>
 
-            {/* Resources */}
             <TouchableOpacity
               onPress={() => navigation.navigate('MainTabs', { screen: 'GroupsTab' })}
               activeOpacity={0.7}
@@ -255,33 +237,19 @@ function CustomDrawerContent(props: any) {
                 justifyContent: 'space-between',
               }}
             >
-              <Text
-                style={{
-                  color: '#fff',
-                  fontSize: 16,
-                  fontWeight: '600',
-                }}
-              >
-                Resources
-              </Text>
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>Resources</Text>
               <InfoIcon size={22} color="#fff" />
             </TouchableOpacity>
           </View>
         </DrawerContentScrollView>
 
-        {/* Fixed Logout at Bottom */}
-        <View
-          style={{
-            paddingHorizontal: 16,
-            paddingBottom: 24,
-          }}
-        >
+        <View style={{ paddingHorizontal: 16, paddingBottom: 24 }}>
           <TouchableOpacity
             onPress={handleLogout}
             activeOpacity={0.7}
             style={{
               borderRadius: 10,
-              backgroundColor: '#156051', // red tint
+              backgroundColor: '#156051',
               paddingVertical: 14,
               paddingHorizontal: 18,
               flexDirection: 'row',
@@ -289,15 +257,7 @@ function CustomDrawerContent(props: any) {
               justifyContent: 'space-between',
             }}
           >
-            <Text
-              style={{
-                color: '#fff',
-                fontSize: 16,
-                fontWeight: '600',
-              }}
-            >
-              Logout
-            </Text>
+            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>Logout</Text>
             <SignOutIcon size={22} color="#fff" />
           </TouchableOpacity>
         </View>
@@ -306,10 +266,8 @@ function CustomDrawerContent(props: any) {
   );
 }
 
-
-
 /* -------------------------------------------
- *  Drawer wraps Tabs (no standalone Settings now)
+ *  Drawer wraps Tabs
  * ------------------------------------------*/
 const RootDrawer = () => {
   return (
@@ -324,12 +282,7 @@ const RootDrawer = () => {
         drawerInactiveTintColor: '#666',
       }}
     >
-      <Drawer.Screen
-        name="MainTabs"
-        component={MainTabNavigator}
-        options={{ title: 'Main' }}
-      />
-      {/* ❌ Removed: <Drawer.Screen name="Settings" .../> */}
+      <Drawer.Screen name="MainTabs" component={MainTabNavigator} options={{ title: 'Main' }} />
     </Drawer.Navigator>
   );
 };
@@ -344,13 +297,12 @@ const AppNavigator: React.FC = () => {
         <RootStack.Screen name="GetStarted" component={GetStartedScreen} />
         <RootStack.Screen name="Login" component={LoginScreen} />
         <RootStack.Screen name="Register" component={RegisterScreen} />
-        {/* Drawer that contains Tabs (including SettingsTab) */}
         <RootStack.Screen name="Main" component={RootDrawer} />
-<RootStack.Screen
-    name="Notifications"
-    component={NotificationsScreen}
-  options={{ presentation: 'transparentModal', animation: 'none', headerShown: false }} // no fade/blur
-  />
+        <RootStack.Screen
+          name="Notifications"
+          component={NotificationsScreen}
+          options={{ presentation: 'transparentModal', animation: 'none', headerShown: false }}
+        />
       </RootStack.Navigator>
     </NavigationContainer>
   );

@@ -4,6 +4,7 @@ export const colors = {
   primaryDark:'#004334',
   secondary:'#FFEBCC',
   textWhite:'#F6F6F6',
+  chatDark:'#373B3F',
   text:'#191D21',
   darkGray:'#5F6367',
   borderColor:'#D9D9D9',
@@ -17,6 +18,7 @@ export const colors = {
   light:'#F6F6F6',
   dark:'#191D21',
   border:'#E84545',
+
 } as const;
 
 export type ColorKeys = keyof typeof colors;
