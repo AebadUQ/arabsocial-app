@@ -48,7 +48,13 @@ const TopBar: React.FC<Props> = ({
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={onAvatarPress} style={styles.avatarWrap}>
+          <TouchableOpacity  
+
+// @ts-ignore
+onPress={() => navigation.navigate('ProfileTab')}
+
+
+ style={styles.avatarWrap}>
             {avatarUri ? (
               <Image source={{ uri: avatarUri }} style={styles.avatar} />
             ) : (

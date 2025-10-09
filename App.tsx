@@ -3,13 +3,17 @@ import { StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ThemeProvider } from './src/theme/ThemeContext';
 import AppNavigator from './src/navigation/AppNavigator';
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 
 const App: React.FC = () => {
   return (
     <GestureHandlerRootView style={styles.container}>
-      <ThemeProvider>
+          <BottomSheetModalProvider>
+      <ThemeProvider>      
+
         <AppNavigator />
       </ThemeProvider>
+        </BottomSheetModalProvider>
     </GestureHandlerRootView>
   );
 };

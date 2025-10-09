@@ -15,6 +15,7 @@ import { Eye, EyeSlash } from "phosphor-react-native";
 
 type Props = TextInputProps & {
   label?: string;
+  labelColor?: string;            // ✅ optional prop
   error?: string;
   left?: ReactNode;
   right?: ReactNode;
@@ -26,6 +27,7 @@ type Props = TextInputProps & {
 
 export default function InputField({
   label,
+  labelColor = "#FFFFFF",        // ✅ default white
   error,
   left,
   right,
@@ -38,12 +40,15 @@ export default function InputField({
   ...rest
 }: Props) {
   const [hide, setHide] = useState(!!secureTextEntry);
+  const { theme: activeTheme } = useTheme();
 
   const toggleVisibility = () => setHide(!hide);
 
   return (
     <View style={[styles.wrapper, containerStyle]}>
-      {label ? <Text style={styles.label}>{label}</Text> : null}
+      {label ? (
+        <Text style={[styles.label, { color: labelColor }]}>{label}</Text>
+      ) : null}
 
       <View style={[styles.container, error && styles.containerError]}>
         {left ? <View style={styles.side}>{left}</View> : null}
@@ -58,7 +63,7 @@ export default function InputField({
         {/* Right adornment */}
         {secureToggle ? (
           <TouchableOpacity
-            onPress={toggleVisibility}
+            onPress={() => setHide(!hide)}
             style={styles.side}
             hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
           >
@@ -89,10 +94,9 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   label: {
-    color: "#FFFFFF",
-    opacity: 0.9,
     marginBottom: 6,
     fontSize: 14,
+    fontWeight: "500",
   },
   container: {
     minHeight: 50,

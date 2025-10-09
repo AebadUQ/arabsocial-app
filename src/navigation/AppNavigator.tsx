@@ -40,6 +40,8 @@ import { theme } from '@/theme/theme';
 import { Image, Text, TouchableOpacity, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import NotificationsScreen from '@/screens/NotificationScreen';
+import ProfileScreen from '@/screens/profile/ProfileScreen';
+import ProfileEditScreen from '@/screens/profile/ProfileEditScreen';
 
 const AuthLogo = require('../assets/images/auth-logo.png');
 
@@ -78,6 +80,8 @@ export type TabsParamList = {
   BusinessTab: undefined;
   GroupsTab: undefined;
   SettingsTab: undefined;
+  ProfileTab: undefined;
+
 };
 
 export type DrawerParamList = {
@@ -96,7 +100,11 @@ export type RootStackParamList = {
   Main: undefined;
   Notifications: undefined;
 };
+export type ProfileStackParamList = {
+  Profile: undefined;
+  ProfileEdit: undefined;
 
+};
 /* -------------------------------------------
  *  Navigator instances
  * ------------------------------------------*/
@@ -110,6 +118,14 @@ const MembersStack = createStackNavigator<MembersStackParamList>();
 const BusinessStack = createStackNavigator<BusinessStackParamList>();
 const GroupsStack = createStackNavigator<GroupsStackParamList>();
 const SettingsStack = createStackNavigator<SettingsStackParamList>();
+const ProfileStack = createStackNavigator<ProfileStackParamList>();
+const ProfileStackNav = () => (
+  <ProfileStack.Navigator screenOptions={{ headerShown: false }}>
+    <ProfileStack.Screen name="Profile" component={ProfileScreen} />
+        <ProfileStack.Screen name="ProfileEdit" component={ProfileEditScreen} />
+
+  </ProfileStack.Navigator>
+);
 
 /* -------------------------------------------
  *  Stacks per Tab
@@ -117,7 +133,7 @@ const SettingsStack = createStackNavigator<SettingsStackParamList>();
 const HomeStackNav = () => (
   <HomeStack.Navigator screenOptions={{ headerShown: false }}>
     <HomeStack.Screen name="Home" component={HomeScreen} />
-    <HomeStack.Screen name="EventDetail" component={EventDetailScreen} />
+    {/* <HomeStack.Screen name="EventDetail" component={EventDetailScreen} /> */}
   </HomeStack.Navigator>
 );
 
@@ -172,6 +188,8 @@ const MainTabNavigator = () => {
       <Tab.Screen name="BusinessTab" component={BusinessStackNav} options={{ title: 'Business' }} />
       <Tab.Screen name="GroupsTab" component={GroupsStackNav} options={{ title: 'Groups' }} />
       <Tab.Screen name="SettingsTab" component={SettingsStackNav} options={{ title: 'Settings' }} />
+      <Tab.Screen name="ProfileTab" component={ProfileStackNav} options={{ title: 'Profile' }} />
+    
     </Tab.Navigator>
   );
 };

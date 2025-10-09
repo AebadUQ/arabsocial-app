@@ -7,7 +7,7 @@ import EventScreen from '../screens/EventScreen';
 import MembersScreen from '../screens/MembersScreen'
 import BusinessScreen from '../screens/BusinessScreen';
 import GroupScreen from '../screens/GroupScreen'
-import ProfileScreen from '../screens/ProfileScreen';
+import ProfileScreen from '../screens/profile/ProfileScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 
 const Tab = createBottomTabNavigator();
