@@ -16,33 +16,29 @@
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		AAF7B42F4ED14DCDBDBDE742 /* Manrope-ExtraBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B7AE4709C7194488A9B59205 /* Manrope-ExtraBold.ttf */; };
-		B4E690562E938DAB007B07CD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B4E690552E938DAB007B07CD /* Assets.xcassets */; };
+		BABD3A9A35BC1A48A92B2F47 /* Pods_ArabSocial.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9312C71C76A17B3987CFB753 /* Pods_ArabSocial.framework */; };
 		D9F11556C6D0428EAEA0F1B6 /* Manrope-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 084F24EDAC5348DEBA01490F /* Manrope-Medium.ttf */; };
 		E4E5942192984222B8EA914F /* Manrope-ExtraLight.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 6ABA1F4EBC4F4E90B50F197A /* Manrope-ExtraLight.ttf */; };
-		FA7EF9BE4F9149CC3E4FC8EA /* Pods_ArabSocialDev.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C4751E2E0E6B6992C6D3E770 /* Pods_ArabSocialDev.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		084F24EDAC5348DEBA01490F /* Manrope-Medium.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Manrope-Medium.ttf"; path = "../src/assets/fonts/Manrope-Medium.ttf"; sourceTree = "<group>"; };
-		13B07F961A680F5B00A75B9A /* ArabSocialDev.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ArabSocialDev.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		084F24EDAC5348DEBA01490F /* Manrope-Medium.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Manrope-Medium.ttf"; path = "../src/assets/fonts/Manrope-Medium.ttf"; sourceTree = "<group>"; };
+		13B07F961A680F5B00A75B9A /* ArabSocial.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ArabSocial.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = ArabSocial/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = ArabSocial/Info.plist; sourceTree = "<group>"; };
 		13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = ArabSocial/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		3086472EE8DB44BA9A2A4C96 /* Manrope-Light.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Manrope-Light.ttf"; path = "../src/assets/fonts/Manrope-Light.ttf"; sourceTree = "<group>"; };
-		6960D7A431B745F1A60B560C /* Manrope-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Manrope-Bold.ttf"; path = "../src/assets/fonts/Manrope-Bold.ttf"; sourceTree = "<group>"; };
-		6ABA1F4EBC4F4E90B50F197A /* Manrope-ExtraLight.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Manrope-ExtraLight.ttf"; path = "../src/assets/fonts/Manrope-ExtraLight.ttf"; sourceTree = "<group>"; };
+		3086472EE8DB44BA9A2A4C96 /* Manrope-Light.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Manrope-Light.ttf"; path = "../src/assets/fonts/Manrope-Light.ttf"; sourceTree = "<group>"; };
+		6960D7A431B745F1A60B560C /* Manrope-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Manrope-Bold.ttf"; path = "../src/assets/fonts/Manrope-Bold.ttf"; sourceTree = "<group>"; };
+		6ABA1F4EBC4F4E90B50F197A /* Manrope-ExtraLight.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Manrope-ExtraLight.ttf"; path = "../src/assets/fonts/Manrope-ExtraLight.ttf"; sourceTree = "<group>"; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = ArabSocial/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = ArabSocial/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		834D4D45A5D8928703F327E3 /* Pods-ArabSocial.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ArabSocial.debug.xcconfig"; path = "Target Support Files/Pods-ArabSocial/Pods-ArabSocial.debug.xcconfig"; sourceTree = "<group>"; };
-		A772CA2ADA1C49449FDC11F9 /* Manrope-SemiBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Manrope-SemiBold.ttf"; path = "../src/assets/fonts/Manrope-SemiBold.ttf"; sourceTree = "<group>"; };
-		B4E690552E938DAB007B07CD /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		B7AE4709C7194488A9B59205 /* Manrope-ExtraBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Manrope-ExtraBold.ttf"; path = "../src/assets/fonts/Manrope-ExtraBold.ttf"; sourceTree = "<group>"; };
-		C4751E2E0E6B6992C6D3E770 /* Pods_ArabSocialDev.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_ArabSocialDev.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		9312C71C76A17B3987CFB753 /* Pods_ArabSocial.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_ArabSocial.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		A772CA2ADA1C49449FDC11F9 /* Manrope-SemiBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Manrope-SemiBold.ttf"; path = "../src/assets/fonts/Manrope-SemiBold.ttf"; sourceTree = "<group>"; };
+		B7AE4709C7194488A9B59205 /* Manrope-ExtraBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Manrope-ExtraBold.ttf"; path = "../src/assets/fonts/Manrope-ExtraBold.ttf"; sourceTree = "<group>"; };
 		C8A9B3D4DD1E54309A8D1EEE /* Pods-ArabSocial.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ArabSocial.release.xcconfig"; path = "Target Support Files/Pods-ArabSocial/Pods-ArabSocial.release.xcconfig"; sourceTree = "<group>"; };
-		D76F34D6F8E58E6125DABC05 /* Pods-ArabSocialDev.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ArabSocialDev.release.xcconfig"; path = "Target Support Files/Pods-ArabSocialDev/Pods-ArabSocialDev.release.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
-		F5ED3A0F0FE7163922B976C9 /* Pods-ArabSocialDev.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ArabSocialDev.debug.xcconfig"; path = "Target Support Files/Pods-ArabSocialDev/Pods-ArabSocialDev.debug.xcconfig"; sourceTree = "<group>"; };
-		F91C31BBF9AA48BDA144B6C8 /* Manrope-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Manrope-Regular.ttf"; path = "../src/assets/fonts/Manrope-Regular.ttf"; sourceTree = "<group>"; };
+		F91C31BBF9AA48BDA144B6C8 /* Manrope-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Manrope-Regular.ttf"; path = "../src/assets/fonts/Manrope-Regular.ttf"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -50,7 +46,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				FA7EF9BE4F9149CC3E4FC8EA /* Pods_ArabSocialDev.framework in Frameworks */,
+				BABD3A9A35BC1A48A92B2F47 /* Pods_ArabSocial.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -60,7 +56,6 @@
 		13B07FAE1A68108700A75B9A /* ArabSocial */ = {
 			isa = PBXGroup;
 			children = (
-				B4E690552E938DAB007B07CD /* Assets.xcassets */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				761780EC2CA45674006654EE /* AppDelegate.swift */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
@@ -74,7 +69,7 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				C4751E2E0E6B6992C6D3E770 /* Pods_ArabSocialDev.framework */,
+				9312C71C76A17B3987CFB753 /* Pods_ArabSocial.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -104,7 +99,7 @@
 		83CBBA001A601CBA00E9B192 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				13B07F961A680F5B00A75B9A /* ArabSocialDev.app */,
+				13B07F961A680F5B00A75B9A /* ArabSocial.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -114,8 +109,6 @@
 			children = (
 				834D4D45A5D8928703F327E3 /* Pods-ArabSocial.debug.xcconfig */,
 				C8A9B3D4DD1E54309A8D1EEE /* Pods-ArabSocial.release.xcconfig */,
-				F5ED3A0F0FE7163922B976C9 /* Pods-ArabSocialDev.debug.xcconfig */,
-				D76F34D6F8E58E6125DABC05 /* Pods-ArabSocialDev.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -132,14 +125,15 @@
 				A772CA2ADA1C49449FDC11F9 /* Manrope-SemiBold.ttf */,
 			);
 			name = Resources;
+			path = "";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		13B07F861A680F5B00A75B9A /* ArabSocialDev */ = {
+		13B07F861A680F5B00A75B9A /* ArabSocial */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "ArabSocialDev" */;
+			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "ArabSocial" */;
 			buildPhases = (
 				673E635FA618D5CF21344246 /* [CP] Check Pods Manifest.lock */,
 				13B07F871A680F5B00A75B9A /* Sources */,
@@ -153,9 +147,9 @@
 			);
 			dependencies = (
 			);
-			name = ArabSocialDev;
+			name = ArabSocial;
 			productName = ArabSocial;
-			productReference = 13B07F961A680F5B00A75B9A /* ArabSocialDev.app */;
+			productReference = 13B07F961A680F5B00A75B9A /* ArabSocial.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -171,7 +165,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "ArabSocialDev" */;
+			buildConfigurationList = 83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "ArabSocial" */;
 			compatibilityVersion = "Xcode 12.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -184,7 +178,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				13B07F861A680F5B00A75B9A /* ArabSocialDev */,
+				13B07F861A680F5B00A75B9A /* ArabSocial */,
 			);
 		};
 /* End PBXProject section */
@@ -198,7 +192,6 @@
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				1492A9DB218AC7ADE06CC3B7 /* PrivacyInfo.xcprivacy in Resources */,
 				2016B41216694F4BB2A1A781 /* Manrope-Bold.ttf in Resources */,
-				B4E690562E938DAB007B07CD /* Assets.xcassets in Resources */,
 				AAF7B42F4ED14DCDBDBDE742 /* Manrope-ExtraBold.ttf in Resources */,
 				E4E5942192984222B8EA914F /* Manrope-ExtraLight.ttf in Resources */,
 				2A029B4D2C084B93817B90DE /* Manrope-Light.ttf in Resources */,
@@ -242,7 +235,7 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(DERIVED_FILE_DIR)/Pods-ArabSocialDev-checkManifestLockResult.txt",
+				"$(DERIVED_FILE_DIR)/Pods-ArabSocial-checkManifestLockResult.txt",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -255,15 +248,15 @@
 			files = (
 			);
 			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-ArabSocialDev/Pods-ArabSocialDev-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+				"${PODS_ROOT}/Target Support Files/Pods-ArabSocial/Pods-ArabSocial-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-ArabSocialDev/Pods-ArabSocialDev-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+				"${PODS_ROOT}/Target Support Files/Pods-ArabSocial/Pods-ArabSocial-frameworks-${CONFIGURATION}-output-files.xcfilelist",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-ArabSocialDev/Pods-ArabSocialDev-frameworks.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-ArabSocial/Pods-ArabSocial-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		FFE8220C5E78214746D692B2 /* [CP] Copy Pods Resources */ = {
@@ -272,15 +265,15 @@
 			files = (
 			);
 			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-ArabSocialDev/Pods-ArabSocialDev-resources-${CONFIGURATION}-input-files.xcfilelist",
+				"${PODS_ROOT}/Target Support Files/Pods-ArabSocial/Pods-ArabSocial-resources-${CONFIGURATION}-input-files.xcfilelist",
 			);
 			name = "[CP] Copy Pods Resources";
 			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-ArabSocialDev/Pods-ArabSocialDev-resources-${CONFIGURATION}-output-files.xcfilelist",
+				"${PODS_ROOT}/Target Support Files/Pods-ArabSocial/Pods-ArabSocial-resources-${CONFIGURATION}-output-files.xcfilelist",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-ArabSocialDev/Pods-ArabSocialDev-resources.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-ArabSocial/Pods-ArabSocial-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -299,17 +292,13 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = F5ED3A0F0FE7163922B976C9 /* Pods-ArabSocialDev.debug.xcconfig */;
+			baseConfigurationReference = 834D4D45A5D8928703F327E3 /* Pods-ArabSocial.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				"ASSETCATALOG_COMPILER_APPICON_NAME[sdk=iphoneos*]" = AppIcon;
-				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = CCS9S3U8UA;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = ArabSocial/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = ArabSocialDev;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -322,8 +311,7 @@
 					"-lc++",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.$(PRODUCT_NAME:rfc1034identifier)";
-				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = com.vinncorp.arabsocial;
-				PRODUCT_NAME = ArabSocialDev;
+				PRODUCT_NAME = ArabSocial;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
@@ -332,16 +320,12 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = D76F34D6F8E58E6125DABC05 /* Pods-ArabSocialDev.release.xcconfig */;
+			baseConfigurationReference = C8A9B3D4DD1E54309A8D1EEE /* Pods-ArabSocial.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				"ASSETCATALOG_COMPILER_APPICON_NAME[sdk=iphoneos*]" = AppIcon;
-				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = CCS9S3U8UA;
 				INFOPLIST_FILE = ArabSocial/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = ArabSocialDev;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -354,8 +338,7 @@
 					"-lc++",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.$(PRODUCT_NAME:rfc1034identifier)";
-				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = com.vinncorp.arabsocial;
-				PRODUCT_NAME = ArabSocialDev;
+				PRODUCT_NAME = ArabSocial;
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
 			};
@@ -534,7 +517,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "ArabSocialDev" */ = {
+		13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "ArabSocial" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				13B07F941A680F5B00A75B9A /* Debug */,
@@ -543,7 +526,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "ArabSocialDev" */ = {
+		83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "ArabSocial" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				83CBBA201A601CBA00E9B192 /* Debug */,

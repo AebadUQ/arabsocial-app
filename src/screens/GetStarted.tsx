@@ -11,13 +11,20 @@ const GetStartedScreen: React.FC = () => {
 
   const handleGetStarted = () => {
     // @ts-ignore
-    navigation.navigate && navigation.navigate('Login'); // Replace 'Login' if different
+    navigation.navigate && navigation.navigate('Login');
   };
 
   return (
     <>
       <StatusBar barStyle="dark-content" backgroundColor={theme.colors.background} />
       <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        {/* Background Image */}
+        <Image
+          source={require('../assets/images/vector.png')}
+          style={StyleSheet.absoluteFillObject}
+          resizeMode="cover"
+        />
+
         <View style={styles.inner}>
           {/* Centered Logo */}
           <Image
@@ -39,6 +46,7 @@ const GetStartedScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    position: 'relative',
   },
   inner: {
     flex: 1,

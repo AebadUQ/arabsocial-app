@@ -11,37 +11,33 @@ require Pod::Executable.execute_command('node', ['-p',
 platform :ios, min_ios_version_supported
 prepare_react_native_project!
 
-# RN 0.81.x + Reanimated: use STATIC frameworks
+# Always use STATIC frameworks with RN 0.81.x + Reanimated
+# (dynamic can cause "runtime not ready/_WORKLET" and pod resolution issues)
 use_frameworks! :linkage => :static
 
-target 'ArabSocialDev' do
+target 'ArabSocial' do
   config = use_native_modules!
 
   use_react_native!(
     :path => config[:reactNativePath],
-    # Absolute path to your app root
+    # An absolute path to your application root.
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
 
-  # Add extra pods here if needed
+  post_install do |installer|
+    # Standard RN post_install
+    react_native_post_install(
+      installer,
+      config[:reactNativePath],
+      :mac_catalyst_enabled => false,
+      # :ccache_enabled => true
+    )
 
-end
-
-# -------- Global post_install (outside target) --------
-post_install do |installer|
-  # Standard RN post-install hooks
-  react_native_post_install(
-    installer,
-    :mac_catalyst_enabled => false
-  )
-
-  # Ensure dSYM is produced for all pods (incl. hermes-engine) in Release
-  installer.pods_project.targets.each do |t|
-    t.build_configurations.each do |config|
-      next unless config.name == 'Release'
-      config.build_settings['DEBUG_INFORMATION_FORMAT'] = 'dwarf-with-dsym'
-      config.build_settings['GCC_GENERATE_DEBUGGING_SYMBOLS'] = 'YES'
-      config.build_settings['COPY_PHASE_STRIP'] = 'NO'
-    end
+    # (Optional) ensure a modern iOS target if your Xcode complains
+    # installer.pods_project.targets.each do |t|
+    #   t.build_configurations.each do |bc|
+    #     bc.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.4'
+    #   end
+    # end
   end
 end
