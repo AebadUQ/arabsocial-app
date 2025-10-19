@@ -39,7 +39,7 @@ const Button: React.FC<ButtonProps> = ({
 
   const textStyles: TextStyle = {
     fontFamily: theme.typography.fontFamily.regular,
-    fontSize: 20,
+    fontSize: theme.typography.fontSize.v4,
     color: theme.colors.textWhite,
     textAlign: 'center',
   };

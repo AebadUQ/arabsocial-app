@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { useTheme } from "../theme/ThemeContext";
 import { theme } from "@/theme/theme";
-import { Eye, EyeSlash } from "phosphor-react-native";
+import { Eye, EyeIcon, EyeSlash, EyeSlashIcon } from "phosphor-react-native";
 
 type Props = TextInputProps & {
   label?: string;
@@ -68,9 +68,9 @@ export default function InputField({
             hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
           >
             {hide ? (
-              <EyeSlash size={22} color={theme.colors.primary} />
+              <EyeSlashIcon size={22} color={theme.colors.primary} />
             ) : (
-              <Eye size={22} color={theme.colors.primary} />
+              <EyeIcon size={22} color={theme.colors.primary} />
             )}
           </TouchableOpacity>
         ) : right ? (
@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
   },
   label: {
     marginBottom: 6,
-    fontSize: 14,
+    fontSize: theme.typography.fontSize.v3,
     fontWeight: "500",
   },
   container: {
@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     color: theme.colors.text,
-    fontSize: 16,
+    fontSize: theme.typography.fontSize.v4,
     paddingVertical: 12,
   },
   error: {

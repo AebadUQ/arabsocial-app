@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   StatusBar,
   Image,
+  Text as RNText,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeContext';
@@ -12,21 +13,19 @@ import { Text, Button } from '../components';
 import InputField from '../components/Input';
 import { useNavigation } from '@react-navigation/native';
 
-const AuthLogo = require('../assets/images/auth-logo.png');
+import AuthLogo from '../assets/images/authlogo.svg';
 
 const LoginScreen: React.FC = () => {
-    const navigation = useNavigation();
-
+  const navigation = useNavigation();
   const { theme } = useTheme();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
   const handleLogin = () => {
     // @ts-ignore
     navigation.replace('Main');
-
-      
-
     console.log('Login pressed', { email, password });
   };
 
@@ -38,111 +37,124 @@ const LoginScreen: React.FC = () => {
   return (
     <>
       <StatusBar barStyle="light-content" backgroundColor={theme.colors.primaryDark} />
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.primaryDark }]}>
-        <View style={styles.inner}>
-          {/* Logo */}
-          <View style={styles.logoContainer}>
-            <Image source={AuthLogo} style={styles.logoImage} resizeMode="contain" />
-          </View>
+      
+      <View style={[styles.outerContainer, { backgroundColor: theme.colors.primaryDark }]}>
+        {/* Background Vector Image */}
+        <Image
+          source={require('../assets/images/vector-2.png')}
+          style={styles.vectorBackground}
+          resizeMode="cover"
+        />
 
-          {/* Title */}
-          <Text variant="h1" color={theme.colors.textWhite} textAlign="center" style={styles.title}>
-            Login
-          </Text>
+        <SafeAreaView style={styles.safeArea}>
+          <View style={styles.inner}>
+            {/* Logo */}
+            <View style={styles.logoContainer}>
+              <AuthLogo width={100} height={52} />
+            </View>
 
-          <Text variant="body1" color={theme.colors.textWhite} textAlign="center" style={styles.subtitle}>
-            Please enter your account details to continue.
-          </Text>
-
-          {/* Input Fields */}
-          <View style={styles.inputContainer}>
-            <InputField
-              placeholder="Email"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-              containerStyle={styles.inputWrapper}
-              inputStyle={styles.input}
-            />
-
-            <InputField
-              placeholder="Password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
-              autoComplete="password"
-              secureToggle={true}
-              containerStyle={styles.inputWrapper}
-              inputStyle={styles.input}
-            />
-          </View>
-
-          {/* Forgot Password */}
-          <TouchableOpacity style={styles.forgotPasswordContainer}>
-            <Text variant="body2" color={theme.colors.textWhite} textAlign="right" style={styles.forgotPasswordText}>
-              Forgot password?
+            {/* Title */}
+            <Text variant="h1" color={theme.colors.textWhite} textAlign="center" style={styles.title}>
+              Login
             </Text>
-          </TouchableOpacity>
 
-          {/* Login Button */}
-          <Button title="Login" onPress={handleLogin} fullWidth style={styles.loginButton} />
+            <Text variant="body1" color={theme.colors.textWhite} textAlign="center" style={styles.subtitle}>
+              Please enter your account details to continue.
+            </Text>
 
-          {/* OR Separator */}
-          <View style={styles.socialContainer}>
-            <View style={styles.line} />
-            <Text variant="body2" color={theme.colors.textWhite} textAlign="center">or continue with</Text>
-            <View style={styles.line} />
+            {/* Input Fields */}
+            <View style={styles.inputContainer}>
+              <InputField
+                placeholder="Email"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+                containerStyle={styles.inputWrapper}
+                inputStyle={styles.input}
+              />
+
+              <InputField
+                placeholder="Password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                autoComplete="password"
+                secureToggle={true}
+                containerStyle={styles.inputWrapper}
+                inputStyle={styles.input}
+              />
+            </View>
+
+            {/* Forgot Password */}
+            <TouchableOpacity style={styles.forgotPasswordContainer}>
+              <Text variant="body2" color={theme.colors.textWhite} textAlign="right" style={styles.forgotPasswordText}>
+                Forgot password?
+              </Text>
+            </TouchableOpacity>
+
+            {/* Login Button */}
+            <Button title="Login" onPress={handleLogin} fullWidth style={styles.loginButton} />
+
+            {/* OR Separator */}
+            <View style={styles.socialContainer}>
+              <View style={styles.line} />
+              <Text variant="body2" color={theme.colors.textWhite} textAlign="center">
+                or continue with
+              </Text>
+              <View style={styles.line} />
+            </View>
+
+            {/* Google Button */}
+            <TouchableOpacity style={styles.googleButton} onPress={() => console.log('Continue with Google')}>
+              <Image
+                source={require('@/assets/icons/google-logo.png')}
+                style={styles.googleLogo}
+                resizeMode="contain"
+              />
+            </TouchableOpacity>
+
+            {/* Signup */}
+            <View style={styles.signUpWrapper}>
+              <RNText style={{ color: theme.colors.textWhite, textAlign: 'center' }}>
+                New to Arab Socials?{' '}
+                <RNText onPress={handleSignUp} style={styles.signUpText}>
+                  Sign Up
+                </RNText>
+              </RNText>
+            </View>
           </View>
-
-          {/* Google Button */}
-          <TouchableOpacity style={styles.googleButton}>
-            <Image
-              source={require('@/assets/icons/google-logo.png')}
-              style={styles.googleLogo}
-              resizeMode="contain"
-            />
-          </TouchableOpacity>
-
-          {/* Signup */}
-          <View style={styles.signUpWrapper}>
-  <Text variant="body2" color={theme.colors.textWhite} textAlign="center">
-    New to Arab Socials?{' '}
-    <Text
-      variant="body2"
-      color={theme.colors.textWhite} // or theme.colors.textWhite if you prefer
-      onPress={handleSignUp}
-      style={styles.signUpText}
-    >
-      Sign Up
-    </Text>
-  </Text>
-</View>
-
-        </View>
-      </SafeAreaView>
+        </SafeAreaView>
+      </View>
     </>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  outerContainer: {
     flex: 1,
+    position: 'relative',
+  },
+  safeArea: {
+    flex: 1,
+    backgroundColor: 'transparent', // Make sure no light background here
+    zIndex: 1,
+  },
+  vectorBackground: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 0, // behind everything
   },
   inner: {
     flex: 1,
     paddingHorizontal: 24,
     paddingTop: 20,
     justifyContent: 'space-between',
+    zIndex: 1,
   },
   logoContainer: {
     alignItems: 'center',
     marginTop: 20,
-  },
-  logoImage: {
-    width: 100,
-    height: 48,
   },
   title: {
     marginTop: 16,
@@ -209,7 +221,6 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
     fontWeight: '600',
   },
-  
 });
 
 export default LoginScreen;

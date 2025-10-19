@@ -5,6 +5,8 @@ import {
   StatusBar,
   Image,
   TouchableOpacity,
+  Text as RNText,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeContext';
@@ -12,7 +14,7 @@ import { Text, Button } from '../components';
 import InputField from '../components/Input';
 import PhoneInput from 'react-native-phone-number-input';
 import { useNavigation } from '@react-navigation/native';
-const AuthLogo = require('../assets/images/auth-logo.png');
+import AuthLogo from '../assets/images/authlogo.svg';
 
 const RegisterScreen: React.FC = () => {
   const { theme } = useTheme();
@@ -25,18 +27,27 @@ const RegisterScreen: React.FC = () => {
   const phoneInputRef = useRef<PhoneInput>(null);
 
   const handleRegister = () => {
-    const isValid = phoneInputRef.current?.isValidNumber(phoneNumber);
-    if (!isValid) {
-      console.log('Invalid phone number');
-      return;
-    }
-    console.log('Register pressed', {
+    const formattedNumber =
+      phoneInputRef.current?.getNumberAfterPossiblyEliminatingZero()
+        ?.formattedNumber;
+
+    const isValid = phoneInputRef.current?.isValidNumber(formattedNumber || '');
+
+    // if (!isValid) {
+    //   Alert.alert('Invalid Phone Number', 'Please enter a valid phone number.');
+    //   console.log('❌ Invalid phone number');
+    //   return;
+    // }
+
+    // Proceed with registration
+    console.log('✅ Register pressed:', {
       fullName,
       email,
       password,
-      //@ts-ignore
-      phoneNumber: phoneInputRef.current?.getNumberAfterPossiblyEliminatingZero()?.formatted,
+      phoneNumber: formattedNumber,
     });
+
+    // You can add your API call or navigation here
   };
 
   const handleLogin = () => {
@@ -46,20 +57,43 @@ const RegisterScreen: React.FC = () => {
 
   return (
     <>
-      <StatusBar barStyle="light-content" backgroundColor={theme.colors.primaryDark} />
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.primaryDark }]}>
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={theme.colors.primaryDark}
+      />
+
+      <SafeAreaView
+        style={[styles.container, { backgroundColor: theme.colors.primaryDark }]}
+      >
+        {/* Background Vector Image */}
+        <Image
+          source={require('../assets/images/vector-2.png')}
+          style={styles.vectorBackground}
+          resizeMode="cover"
+        />
+
         <View style={styles.inner}>
           {/* Logo */}
           <View style={styles.logoContainer}>
-            <Image source={AuthLogo} style={styles.logoImage} resizeMode="contain" />
+            <AuthLogo width={100} height={52} />
           </View>
 
           {/* Title */}
-          <Text variant="h1" color={theme.colors.textWhite} textAlign="center" style={styles.title}>
+          <Text
+            variant="h1"
+            color={theme.colors.textWhite}
+            textAlign="center"
+            style={styles.title}
+          >
             Register
           </Text>
 
-          <Text variant="body1" color={theme.colors.textWhite} textAlign="center" style={styles.subtitle}>
+          <Text
+            variant="body1"
+            color={theme.colors.textWhite}
+            textAlign="center"
+            style={styles.subtitle}
+          >
             Create your account to continue.
           </Text>
 
@@ -83,7 +117,8 @@ const RegisterScreen: React.FC = () => {
               containerStyle={styles.inputWrapper}
               inputStyle={styles.input}
             />
-<PhoneInput
+
+            <PhoneInput
               ref={phoneInputRef}
               defaultValue={phoneNumber}
               defaultCode="US"
@@ -98,6 +133,7 @@ const RegisterScreen: React.FC = () => {
               withShadow={true}
               placeholder="Phone Number"
             />
+
             <InputField
               placeholder="Password"
               value={password}
@@ -108,22 +144,34 @@ const RegisterScreen: React.FC = () => {
               containerStyle={styles.inputWrapper}
               inputStyle={styles.input}
             />
-
-            
           </View>
 
           {/* Register Button */}
-          <Button title="Register" onPress={handleRegister} fullWidth style={styles.registerButton} />
+          <Button
+            title="Register"
+            onPress={handleRegister}
+            fullWidth
+            style={styles.registerButton}
+          />
 
           {/* OR Separator */}
           <View style={styles.socialContainer}>
             <View style={styles.line} />
-            <Text variant="body2" color={theme.colors.textWhite} textAlign="center">or continue with</Text>
+            <Text
+              variant="body2"
+              color={theme.colors.textWhite}
+              textAlign="center"
+            >
+              or continue with
+            </Text>
             <View style={styles.line} />
           </View>
 
-          {/* Google Button */}
-          <TouchableOpacity style={styles.googleButton} onPress={() => console.log('Continue with Google')}>
+          {/* Google Auth Button */}
+          <TouchableOpacity
+            style={styles.googleButton}
+            onPress={() => console.log('Continue with Google')}
+          >
             <Image
               source={require('@/assets/icons/google-logo.png')}
               style={styles.googleLogo}
@@ -131,19 +179,14 @@ const RegisterScreen: React.FC = () => {
             />
           </TouchableOpacity>
 
-          {/* Login Link */}
+          {/* Login Redirect */}
           <View style={styles.loginRedirect}>
-            <Text variant="body2" color={theme.colors.textWhite} textAlign="center">
+            <RNText style={{ color: theme.colors.textWhite, textAlign: 'center' }}>
               Already have an account?{' '}
-              <Text
-                variant="body2"
-                color={theme.colors.textWhite}
-                onPress={handleLogin}
-                style={styles.loginText}
-              >
+              <RNText onPress={handleLogin} style={styles.loginText}>
                 Login
-              </Text>
-            </Text>
+              </RNText>
+            </RNText>
           </View>
         </View>
       </SafeAreaView>
@@ -154,20 +197,22 @@ const RegisterScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    position: 'relative',
+  },
+  vectorBackground: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 0,
   },
   inner: {
     flex: 1,
     paddingHorizontal: 24,
     paddingTop: 20,
     justifyContent: 'space-between',
+    zIndex: 1,
   },
   logoContainer: {
     alignItems: 'center',
     marginTop: 20,
-  },
-  logoImage: {
-    width: 100,
-    height: 48,
   },
   title: {
     marginTop: 16,

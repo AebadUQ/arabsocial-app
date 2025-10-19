@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeContext';
 import { Button } from '../components';
 import { useNavigation } from '@react-navigation/native';
+import Logo from '../assets/images/logo.svg';
 
 const GetStartedScreen: React.FC = () => {
   const { theme } = useTheme();
@@ -27,11 +28,10 @@ const GetStartedScreen: React.FC = () => {
 
         <View style={styles.inner}>
           {/* Centered Logo */}
-          <Image
-            source={require('../assets/images/logo-getstarted.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
+          <Logo             width={200} height={100}
+/>
+
+        
 
           {/* Get Started Button */}
           <View style={styles.buttonContainer}>
