@@ -20,3 +20,7 @@ export const getUserProfile = async () => {
   const response = await api.get('/users/profile');
   return response.data.data;
 };
+export const editUserProfile = async (data:any) => {
+  const response = await api.put('/users/update-user',data);
+  return response.data.data;
+};
