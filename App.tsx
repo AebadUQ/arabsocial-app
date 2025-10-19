@@ -1,22 +1,31 @@
-import React from 'react';
+// App.tsx  
+import React from 'react';  
+import { GestureHandlerRootView } from 'react-native-gesture-handler';  
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';  
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';  
+import { ThemeProvider } from './src/theme/ThemeContext';  
+import { AuthProvider } from '@/context/Authcontext';  // adjust path  
+import AppNavigator from './src/navigation/AppNavigator';  // adjust path  
 import { StyleSheet } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { ThemeProvider } from './src/theme/ThemeContext';
-import AppNavigator from './src/navigation/AppNavigator';
-import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 
-const App: React.FC = () => {
-  return (
-    <GestureHandlerRootView style={styles.container}>
-          <BottomSheetModalProvider>
-      <ThemeProvider>      
+const queryClient = new QueryClient();
 
-        <AppNavigator />
-      </ThemeProvider>
-        </BottomSheetModalProvider>
-    </GestureHandlerRootView>
-  );
+const App: React.FC = () => {  
+  return (  
+    <GestureHandlerRootView style={styles.container}>  
+      <QueryClientProvider client={queryClient}>  
+        <BottomSheetModalProvider>  
+          <ThemeProvider>  
+            <AuthProvider>  
+              <AppNavigator />  
+            </AuthProvider>  
+          </ThemeProvider>  
+        </BottomSheetModalProvider>  
+      </QueryClientProvider>  
+    </GestureHandlerRootView>  
+  );  
 };
 
 const styles = StyleSheet.create({ container: { flex: 1 } });
+
 export default App;

@@ -6,18 +6,15 @@ import { createStackNavigator } from '@react-navigation/stack';
 import {
   createDrawerNavigator,
   DrawerContentScrollView,
-  DrawerItem,
 } from '@react-navigation/drawer';
 
-// Theme
 import { useTheme } from '../theme/ThemeContext';
+import { useAuth } from '@/context/Authcontext';
 
-// Auth / Intro Screens
 import GetStartedScreen from '@/screens/GetStarted';
 import LoginScreen from '@/screens/LoginScreen';
 import RegisterScreen from '@/screens/RegisterScreen';
 
-// Main Tab Screens
 import HomeScreen from '@/screens/HomeScreen';
 import EventScreen from '@/screens/EventScreen';
 import MembersScreen from '@/screens/MembersScreen';
@@ -25,115 +22,63 @@ import BusinessScreen from '@/screens/BusinessScreen';
 import BusinessDetailScreen from '@/screens/BusinessDetail';
 import GroupsScreen from '@/screens/GroupScreen';
 import SettingsScreen from '@/screens/SettingsScreen';
-
-// Details
+import NotificationsScreen from '@/screens/NotificationScreen';
 import EventDetailScreen from '@/screens/EventDetail';
 import AddEventScreen from '@/screens/AddEvent';
-import GroupDetailScreen from '@/screens/GroupDetailScreen'; // ✅ NEW
-
-// Custom Tab Bar
-import CustomBottomsheet from '@/components/CustomBottomsheet';
-
-// Icons (optional)
-import { House, Gear, GearIcon, InfoIcon, SignOutIcon } from 'phosphor-react-native';
-import { theme } from '@/theme/theme';
-import { Image, Text, TouchableOpacity, View } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
-import NotificationsScreen from '@/screens/NotificationScreen';
+import GroupDetailScreen from '@/screens/GroupDetailScreen';
 import ProfileScreen from '@/screens/profile/ProfileScreen';
 import ProfileEditScreen from '@/screens/profile/ProfileEditScreen';
 
+import CustomBottomsheet from '@/components/CustomBottomsheet';
+
+import { Gear, InfoIcon, SignOutIcon } from 'phosphor-react-native';
+import { theme as appTheme } from '@/theme/theme';
+import { Image, Text, TouchableOpacity, View } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+
 const AuthLogo = require('../assets/images/auth-logo.png');
 
-/* -------------------------------------------
- *  Type-safe param lists
- * ------------------------------------------*/
+/* -------------------------------
+ * Type‑safe param lists
+ * (you keep your existing types)
+ * ------------------------------ */
 export type HomeStackParamList = {
   Home: undefined;
   EventDetail: { id?: string } | undefined;
 };
+// ... (others omitted for brevity; keep as you had) ...
 
-export type EventsStackParamList = {
-  Events: undefined;
-  AddEvent: undefined;
-  EventDetail: { id?: string } | undefined;
-};
-
-export type MembersStackParamList = { Members: undefined };
-export type BusinessStackParamList = {
-  Business: undefined;
-  BusinessDetail: { id?: string } | undefined;
-};
-
-// ✅ add GroupDetail route
-export type GroupsStackParamList = {
-  Groups: undefined;
-  GroupDetail: { group?: any; groupId?: number } | undefined;
-};
-
-export type SettingsStackParamList = { Settings: undefined };
-
-export type TabsParamList = {
-  HomeTab: undefined;
-  EventsTab: undefined;
-  MembersTab: undefined;
-  BusinessTab: undefined;
-  GroupsTab: undefined;
-  SettingsTab: undefined;
-  ProfileTab: undefined;
-
-};
-
-export type DrawerParamList = {
-  MainTabs:
-    | {
-        screen?: keyof TabsParamList;
-        params?: any;
-      }
-    | undefined;
-};
-
-export type RootStackParamList = {
-  GetStarted: undefined;
-  Login: undefined;
-  Register: undefined;
-  Main: undefined;
-  Notifications: undefined;
-};
-export type ProfileStackParamList = {
-  Profile: undefined;
-  ProfileEdit: undefined;
-
-};
-/* -------------------------------------------
- *  Navigator instances
- * ------------------------------------------*/
-const Tab = createBottomTabNavigator<TabsParamList>();
-const RootStack = createStackNavigator<RootStackParamList>();
-const Drawer = createDrawerNavigator<DrawerParamList>();
+/* -------------------------------
+ * Navigator Instances
+ * ------------------------------ */
+const Tab = createBottomTabNavigator();
+const RootStack = createStackNavigator();
+const Drawer = createDrawerNavigator();
 
 const HomeStack = createStackNavigator<HomeStackParamList>();
-const EventsStack = createStackNavigator<EventsStackParamList>();
-const MembersStack = createStackNavigator<MembersStackParamList>();
-const BusinessStack = createStackNavigator<BusinessStackParamList>();
-const GroupsStack = createStackNavigator<GroupsStackParamList>();
-const SettingsStack = createStackNavigator<SettingsStackParamList>();
-const ProfileStack = createStackNavigator<ProfileStackParamList>();
+const EventsStack = createStackNavigator();
+const MembersStack = createStackNavigator();
+const BusinessStack = createStackNavigator();
+const GroupsStack = createStackNavigator();
+const SettingsStack = createStackNavigator();
+const ProfileStack = createStackNavigator();
+
+/* -------------------------------------------
+ * Profile Stack
+ * ------------------------------------------- */
 const ProfileStackNav = () => (
   <ProfileStack.Navigator screenOptions={{ headerShown: false }}>
     <ProfileStack.Screen name="Profile" component={ProfileScreen} />
-        <ProfileStack.Screen name="ProfileEdit" component={ProfileEditScreen} />
-
+    <ProfileStack.Screen name="ProfileEdit" component={ProfileEditScreen} />
   </ProfileStack.Navigator>
 );
 
 /* -------------------------------------------
- *  Stacks per Tab
- * ------------------------------------------*/
+ * Stacks per Tab
+ * ------------------------------------------- */
 const HomeStackNav = () => (
   <HomeStack.Navigator screenOptions={{ headerShown: false }}>
     <HomeStack.Screen name="Home" component={HomeScreen} />
-    {/* <HomeStack.Screen name="EventDetail" component={EventDetailScreen} /> */}
   </HomeStack.Navigator>
 );
 
@@ -158,7 +103,6 @@ const BusinessStackNav = () => (
   </BusinessStack.Navigator>
 );
 
-// ✅ include GroupDetail in Groups stack
 const GroupsStackNav = () => (
   <GroupsStack.Navigator screenOptions={{ headerShown: false }}>
     <GroupsStack.Screen name="Groups" component={GroupsScreen} />
@@ -173,8 +117,8 @@ const SettingsStackNav = () => (
 );
 
 /* -------------------------------------------
- *  Bottom Tabs (inside Drawer)
- * ------------------------------------------*/
+ * Bottom Tabs inside Drawer
+ * ------------------------------------------- */
 const MainTabNavigator = () => {
   useTheme();
   return (
@@ -189,19 +133,20 @@ const MainTabNavigator = () => {
       <Tab.Screen name="GroupsTab" component={GroupsStackNav} options={{ title: 'Groups' }} />
       <Tab.Screen name="SettingsTab" component={SettingsStackNav} options={{ title: 'Settings' }} />
       <Tab.Screen name="ProfileTab" component={ProfileStackNav} options={{ title: 'Profile' }} />
-    
     </Tab.Navigator>
   );
 };
 
 /* -------------------------------------------
- *  Custom Drawer Content
- * ------------------------------------------*/
+ * Custom Drawer Content
+ * ------------------------------------------- */
 function CustomDrawerContent(props: any) {
-  const { navigation } = props;
+  const { logout } = useAuth();
 
-  const handleLogout = () => {
-    navigation.replace('Login');
+  const handleLogout = async () => {
+    await logout();
+    // after logout, context will cause token = null and user = null,
+    // navigator will switch to AuthStack
   };
 
   return (
@@ -224,47 +169,43 @@ function CustomDrawerContent(props: any) {
             <Image source={AuthLogo} style={{ width: 110, height: 52, resizeMode: 'contain' }} />
           </View>
 
-          <View style={{ gap: 20 }}>
-            <TouchableOpacity
-              onPress={() => navigation.navigate('MainTabs', { screen: 'SettingsTab' })}
-              activeOpacity={0.7}
-              style={{
-                borderRadius: 10,
-                backgroundColor: theme.colors.primaryDark,
-                paddingVertical: 14,
-                paddingHorizontal: 18,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}
-            >
-              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>Settings</Text>
-              <Gear size={22} color="#fff" />
-            </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => props.navigation.navigate('MainTabs', { screen: 'SettingsTab' })}
+            style={{
+              borderRadius: 10,
+              backgroundColor: appTheme.colors.primaryDark,
+              paddingVertical: 14,
+              paddingHorizontal: 18,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 10,
+            }}
+          >
+            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>Settings</Text>
+            <Gear size={22} color="#fff" />
+          </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={() => navigation.navigate('MainTabs', { screen: 'GroupsTab' })}
-              activeOpacity={0.7}
-              style={{
-                borderRadius: 10,
-                backgroundColor: theme.colors.primaryDark,
-                paddingVertical: 14,
-                paddingHorizontal: 18,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}
-            >
-              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>Resources</Text>
-              <InfoIcon size={22} color="#fff" />
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            onPress={() => props.navigation.navigate('MainTabs', { screen: 'GroupsTab' })}
+            style={{
+              borderRadius: 10,
+              backgroundColor: appTheme.colors.primaryDark,
+              paddingVertical: 14,
+              paddingHorizontal: 18,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>Resources</Text>
+            <InfoIcon size={22} color="#fff" />
+          </TouchableOpacity>
         </DrawerContentScrollView>
 
         <View style={{ paddingHorizontal: 16, paddingBottom: 24 }}>
           <TouchableOpacity
             onPress={handleLogout}
-            activeOpacity={0.7}
             style={{
               borderRadius: 10,
               backgroundColor: '#156051',
@@ -285,43 +226,60 @@ function CustomDrawerContent(props: any) {
 }
 
 /* -------------------------------------------
- *  Drawer wraps Tabs
- * ------------------------------------------*/
-const RootDrawer = () => {
-  return (
-    <Drawer.Navigator
-      initialRouteName="MainTabs"
-      drawerContent={(props) => <CustomDrawerContent {...props} />}
-      screenOptions={{
-        headerShown: false,
-        drawerType: 'front',
-        drawerStyle: { width: 280 },
-        drawerActiveTintColor: '#111',
-        drawerInactiveTintColor: '#666',
-      }}
-    >
-      <Drawer.Screen name="MainTabs" component={MainTabNavigator} options={{ title: 'Main' }} />
-    </Drawer.Navigator>
-  );
-};
+ * Drawer wraps Tabs
+ * ------------------------------------------- */
+const RootDrawer = () => (
+  <Drawer.Navigator
+    initialRouteName="MainTabs"
+    drawerContent={(props) => <CustomDrawerContent {...props} />}
+    screenOptions={{
+      headerShown: false,
+      drawerType: 'front',
+      drawerStyle: { width: 280 },
+      drawerActiveTintColor: '#111',
+      drawerInactiveTintColor: '#666',
+    }}
+  >
+    <Drawer.Screen name="MainTabs" component={MainTabNavigator} />
+  </Drawer.Navigator>
+);
 
 /* -------------------------------------------
- *  Root: Auth → Drawer(Main)
- * ------------------------------------------*/
+ * Auth Stack (GetStarted / Login / Register)
+ * ------------------------------------------- */
+const AuthStack = () => (
+  <RootStack.Navigator screenOptions={{ headerShown: false }}>
+    <RootStack.Screen name="GetStarted" component={GetStartedScreen} />
+    <RootStack.Screen name="Login" component={LoginScreen} />
+    <RootStack.Screen name="Register" component={RegisterScreen} />
+  </RootStack.Navigator>
+);
+
+/* -------------------------------------------
+ * App Navigator: Switch based on auth state
+ * ------------------------------------------- */
 const AppNavigator: React.FC = () => {
+  const { token, loading } = useAuth();
+
+  if (loading) {
+    // You might return a splash screen here
+    return null;
+  }
+
   return (
     <NavigationContainer>
-      <RootStack.Navigator initialRouteName="GetStarted" screenOptions={{ headerShown: false }}>
-        <RootStack.Screen name="GetStarted" component={GetStartedScreen} />
-        <RootStack.Screen name="Login" component={LoginScreen} />
-        <RootStack.Screen name="Register" component={RegisterScreen} />
-        <RootStack.Screen name="Main" component={RootDrawer} />
-        <RootStack.Screen
-          name="Notifications"
-          component={NotificationsScreen}
-          options={{ presentation: 'transparentModal', animation: 'none', headerShown: false }}
-        />
-      </RootStack.Navigator>
+      {token ? (
+        <RootStack.Navigator screenOptions={{ headerShown: false }}>
+          <RootStack.Screen name="Main" component={RootDrawer} />
+          <RootStack.Screen
+            name="Notifications"
+            component={NotificationsScreen}
+            options={{ presentation: 'transparentModal', animation: 'none', headerShown: false }}
+          />
+        </RootStack.Navigator>
+      ) : (
+        <AuthStack />
+      )}
     </NavigationContainer>
   );
 };

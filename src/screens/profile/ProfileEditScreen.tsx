@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { View, ScrollView, TouchableOpacity, StyleSheet, Image } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, ScrollView, TouchableOpacity, StyleSheet, Image, Text as RNText } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { useTheme } from "@/theme/ThemeContext";
@@ -15,70 +15,89 @@ import {
   Plus,
 } from "phosphor-react-native";
 import BottomSheetSelect from "@/components/BottomSheetSelect";
+import { useAuth } from "@/context/Authcontext";
 
 const TILE = 100;
 const RADIUS = 10;
 const CHIP_BG = "#1E644CCC";
 
+const GENDER_OPTIONS = ["Female", "Male", "Prefer not to say"];
+const RELIGION_OPTIONS = ["Islam", "Christianity", "Hinduism", "Buddhism", "Atheist", "Other"];
+const EDUCATION_OPTIONS = [
+  "High School Diploma",
+  "Bachelor’s Degree",
+  "Master’s Degree",
+  "Doctorate / PhD",
+  "Other",
+];
+const LANGUAGE_OPTIONS = ["Arabic", "English", "Urdu", "Hindi", "French", "Other"];
+
 const ProfileEditScreen: React.FC = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const { theme } = useTheme();
+  const { user } = useAuth();
 
-  // --- Static data ---
-  const photos = [
-    "https://i.pravatar.cc/200?img=12",
-    "https://i.pravatar.cc/200?img=15",
-    "https://i.pravatar.cc/200?img=18",
-    "https://i.pravatar.cc/200?img=21",
-    "https://i.pravatar.cc/200?img=25",
-  ];
-
-  const GENDER_OPTIONS = ["Female", "Male", "Prefer not to say"];
-  const RELIGION_OPTIONS = ["Islam", "Christianity", "Hinduism", "Buddhism", "Atheist", "Other"];
-  const EDUCATION_OPTIONS = [
-    "High School Diploma",
-    "Bachelor’s Degree",
-    "Master’s Degree",
-    "Doctorate / PhD",
-    "Other",
-  ];
-  const LANGUAGE_OPTIONS = ["Arabic", "English", "Urdu", "Hindi", "French", "Other"];
-
-  const interests = ["UI/UX", "React Native", "Photography", "Travel", "Fitness", "Street Food"];
-  const MAX_PREVIEW = 3;
-  const preview = photos.slice(0, MAX_PREVIEW);
-  const extraCount = Math.max(0, photos.length - MAX_PREVIEW);
-
-  // --- Form state ---
+  // initialize form state based on user data
   const [form, setForm] = useState({
-    email: "harleen.quinzel@example.com",
-    phone: "harleen.quinzel@example.com",
-    state: "United Arab Emirates",
-    city: "Dubai",
-    nationality: "United Arab Emirates",
-    occupation: "Psychologist",
-    gender: "Female",
-    height: "5'8”",
-    maritalStatus: "Single",
-    age: "25 years",
-    religion: "Islam",
-    education: "Bachelor’s degree",
-    languages: "Arabic, English",
+    email: "",
+    phone: "",
+    state: "",
+    city: "",
+    nationality: "",
+    occupation: "",
+    gender: "",
+    height: "",
+    maritalStatus: "",
+    age: "",
+    religion: "",
+    education: "",
+    languages: "",
   });
 
-  const handleChange = (key: keyof typeof form, value: string) =>
-    setForm((prev) => ({ ...prev, [key]: value }));
+  useEffect(() => {
+    console.log("user",user)
+    if (user) {
+      setForm({
+        email: user.email || "",
+        phone: user.phone || "",
+        state: user.state || "",
+        city: user.location || user.city || "",
+        nationality: user.nationality || "",
+        occupation: user.profession || "",
+        gender: user.gender || "",
+        height: user.height || "",
+        maritalStatus: user.marital_status || "",
+        age: user.age ? String(user.age) : "",
+        religion: user.religion || "",
+        education: user.education || "",
+        languages: Array.isArray(user.language_spoken) 
+                     ? user.language_spoken.join(", ") 
+                     : user.language_spoken || "",
+      });
+    }
+  }, [user]);
 
-  const onSave = () => console.log("Updated form:", form);
+  const handleChange = (key: keyof typeof form, value: string) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const onSave = () => {
+    // Prepare data for API / update
+    const updatedData = {
+      ...form,
+      language_spoken: form.languages.split(",").map((l) => l.trim()),
+    };
+    console.log("Updated form:", updatedData);
+    // TODO: Call update API or context method
+  };
 
   const onEditAbout = () => {};
   const onAddPhoto = () => {};
   const onViewAll = () => {};
-  const onAddInterest = () => {};
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      {/* Header */}
+      {/* Header controls */}
       <View style={styles.overlayRow}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.circleBtn}>
           <ArrowLeft size={22} color="#fff" weight="bold" />
@@ -88,97 +107,19 @@ const ProfileEditScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Scrollable content */}
-      <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: 50 }]}
-        showsVerticalScrollIndicator={false}
-        nestedScrollEnabled
-      >
-        {/* --- Avatar + Name --- */}
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 50 }]} showsVerticalScrollIndicator={false} nestedScrollEnabled>
+        {/* Avatar + Name */}
         <View style={styles.avatarWrap}>
-          <Image source={{ uri: "https://i.pravatar.cc/200?img=12" }} style={styles.avatar} />
-          <Text variant="h5">Harleen Quinzel</Text>
-          <Text variant="caption" color={theme.colors.textLight}>
-            Graphic Designer
-          </Text>
+          <Image source={{ uri: user?.image || user?.img || "https://i.pravatar.cc/200?img=12" }} style={styles.avatar} />
+          <Text variant="h5">{user?.name || ""}</Text>
+          <Text variant="caption" color={theme.colors.textLight}>{user?.profession || ""}</Text>
         </View>
 
-        {/* Socials */}
+        {/* Social icons */}
         <View style={styles.socialRow}>
           <FacebookLogo size={20} color={theme.colors.text} />
           <XLogo size={20} color={theme.colors.text} />
           <InstagramLogo size={20} color={theme.colors.text} />
-        </View>
-
-        {/* About Section */}
-        <View style={[styles.sectionRow, { borderBottomColor: theme.colors.borderColor }]}>
-          <View style={styles.sectionTextWrap}>
-            <Text variant="body1" color={theme.colors.text} style={styles.sectionTitle}>
-              About me
-            </Text>
-            <Text variant="body1" color={theme.colors.textLight}>
-              Nullam euismod dui vitae nisi vestibulum, tincidunt erat semper.
-            </Text>
-          </View>
-          <TouchableOpacity onPress={onEditAbout} style={styles.iconBtn}>
-            <NotePencil size={22} color={theme.colors.textLight} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Gallery */}
-        <View style={styles.galleryHeader}>
-          <Text variant="body1" color={theme.colors.text} style={styles.sectionTitle}>
-            Gallery
-          </Text>
-          {extraCount > 0 && (
-            <TouchableOpacity onPress={onViewAll}>
-              <Text variant="caption" color={theme.colors.primary}>
-                View all ({photos.length})
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
-        <View style={styles.galleryRow}>
-          {preview.map((uri, idx) => (
-            <Image key={idx} source={{ uri }} style={styles.thumb} />
-          ))}
-          <TouchableOpacity onPress={onAddPhoto} style={[styles.plusBox, { backgroundColor: theme.colors.primary }]}>
-            <Plus size={12} color="#fff" weight="bold" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Interests */}
-        <View
-          style={[
-            styles.interestsSection,
-            { borderBottomWidth: 1, borderBottomColor: theme.colors.borderColor },
-          ]}
-        >
-          <Text variant="body1" color={theme.colors.text} style={styles.sectionTitle}>
-            Interests
-          </Text>
-          <View style={styles.chipsWrap}>
-            {interests.map((label, i) => (
-              <TouchableOpacity key={i} style={styles.chip}>
-                <Text variant="overline" color={theme.colors.textWhite}>
-                  {label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-            <TouchableOpacity onPress={onAddInterest} style={styles.plusChip}>
-              <Plus size={12} color="#fff" weight="bold" />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Personal Details */}
-        <View style={styles.detailsHeader}>
-          <Text variant="body1" color={theme.colors.text} style={styles.sectionTitle}>
-            Personal Details
-          </Text>
-          <TouchableOpacity onPress={onEditAbout} style={styles.iconBtn}>
-            <NotePencil size={22} color={theme.colors.textLight} />
-          </TouchableOpacity>
         </View>
 
         {/* Form Fields */}
@@ -234,7 +175,6 @@ const ProfileEditScreen: React.FC = () => {
             placeholder="Enter occupation"
           />
 
-          {/* --- BottomSheet dropdowns --- */}
           <BottomSheetSelect
             label="Gender"
             labelColor={theme.colors.textLight}
@@ -287,7 +227,7 @@ const ProfileEditScreen: React.FC = () => {
             labelColor={theme.colors.textLight}
             value={form.maritalStatus}
             onChangeText={(v) => handleChange("maritalStatus", v)}
-            placeholder="Select status"
+            placeholder="Enter marital status"
           />
           <InputField
             label="Age"
@@ -297,6 +237,7 @@ const ProfileEditScreen: React.FC = () => {
             placeholder="Enter age"
           />
         </View>
+
       </ScrollView>
 
       {/* Save Button */}
@@ -334,7 +275,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  avatarWrap: { justifyContent: "center", alignItems: "center" },
+  avatarWrap: { justifyContent: "center", alignItems: "center", marginBottom: 20 },
   avatar: {
     width: 120,
     height: 120,
@@ -350,58 +291,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
     marginBottom: 10,
   },
-  sectionRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    alignItems: "flex-start",
-  },
-  sectionTextWrap: { flex: 1, paddingRight: 8 },
-  sectionTitle: { fontWeight: "600", marginBottom: 4 },
-  iconBtn: { padding: 6, borderRadius: 8 },
 
-  galleryHeader: {
-    marginTop: 14,
-    marginBottom: 6,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "baseline",
-  },
-  galleryRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  thumb: { width: TILE, height: TILE, borderRadius: RADIUS, backgroundColor: "#e9e9e9" },
-  plusBox: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  interestsSection: { marginTop: 16, paddingBottom: 16 },
-  chipsWrap: { marginTop: 10, flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  chip: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: CHIP_BG,
-  },
-  plusChip: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#0a8f6a",
-  },
-
-  detailsHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 16,
-    alignItems: "center",
-  },
   row: { flexDirection: "row", gap: 6 },
 
   ctaWrap: {
@@ -409,9 +299,11 @@ const styles = StyleSheet.create({
     width: "100%",
     bottom: 0,
     alignItems: "center",
+    paddingBottom: 10,
+    backgroundColor: "transparent",
   },
   ctaShadow: {
-    width: "100%",
+    width: "90%",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.18,
@@ -420,8 +312,10 @@ const styles = StyleSheet.create({
   },
   ctaBtn: {
     height: 56,
+    width: "100%",
     alignItems: "center",
     justifyContent: "center",
+    borderRadius: 28,
   },
 });
 

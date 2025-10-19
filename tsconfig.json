@@ -10,7 +10,9 @@
       "@/theme/*": ["src/theme/*"],
       "@/utils/*": ["src/utils/*"],
       "@/types/*": ["src/types/*"],
-      "@/assets/*": ["src/assets/*"]
+      "@/assets/*": ["src/assets/*"],
+      "@/context/*": ["src/context/*"]
+
     },
     "strict": true,
     "noImplicitAny": true,

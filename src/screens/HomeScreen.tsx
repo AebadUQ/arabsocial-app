@@ -84,7 +84,7 @@ const HomeScreen: React.FC = ({navigation}:any) => {
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <TopBar   onMenuPress={() => navigation.openDrawer()} />
 
-      <CompleteProfileModal
+      {/* <CompleteProfileModal
         visible={open}
         onClose={() => setOpen(false)}
         onProceed={() => {
@@ -92,7 +92,7 @@ const HomeScreen: React.FC = ({navigation}:any) => {
           console.log("Proceed clicked!");
         }}
         title="Complete Your Profile"
-      />
+      /> */}
 
       {/* Add Post Input Bar */}
       <View style={styles.inputWrap}>

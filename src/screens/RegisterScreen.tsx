@@ -15,44 +15,84 @@ import InputField from '../components/Input';
 import PhoneInput from 'react-native-phone-number-input';
 import { useNavigation } from '@react-navigation/native';
 import AuthLogo from '../assets/images/authlogo.svg';
+import { useMutation } from '@tanstack/react-query';
+import { registerUser } from '../api/auth';
+import { RegisterPayload } from '@/api/types';
+import { theme } from '@/theme/theme';
 
 const RegisterScreen: React.FC = () => {
   const { theme } = useTheme();
   const navigation = useNavigation();
-  const [fullName, setFullName] = useState('');
+
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const [phone, setPhone] = useState('');
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
   const phoneInputRef = useRef<PhoneInput>(null);
+
+  const mutation = useMutation({
+    mutationFn: (user: RegisterPayload) => registerUser(user),
+    onSuccess: (data) => {
+      console.log('✅ Registration successful:', data);
+      // Alert.alert('Success', 'Account created successfully!');
+      // @ts-ignore
+      navigation.navigate('Login');
+    },
+    onError: (error) => {
+      console.error('❌ Registration failed:', error);
+      // Alert.alert('Error', `${error}`);
+    },
+  });
 
   const handleRegister = () => {
     const formattedNumber =
-      phoneInputRef.current?.getNumberAfterPossiblyEliminatingZero()
-        ?.formattedNumber;
+      phoneInputRef.current?.getNumberAfterPossiblyEliminatingZero()?.formattedNumber || '';
 
-    const isValid = phoneInputRef.current?.isValidNumber(formattedNumber || '');
+    const newErrors: { [key: string]: string } = {};
 
-    // if (!isValid) {
-    //   Alert.alert('Invalid Phone Number', 'Please enter a valid phone number.');
-    //   console.log('❌ Invalid phone number');
-    //   return;
-    // }
+    if (!name.trim()) newErrors.name = 'Name is required.';
+    if (!email.trim()) {
+      newErrors.email = 'Email is required.';
+    } else if (!/^\S+@\S+\.\S+$/.test(email)) {
+      newErrors.email = 'Enter a valid email.';
+    }
 
-    // Proceed with registration
-    console.log('✅ Register pressed:', {
-      fullName,
+    if (!formattedNumber) {
+      newErrors.phone = 'Phone number is required.';
+    } else if (formattedNumber.length < 8 || formattedNumber.length > 15) {
+      newErrors.phone = 'Phone must be 8–15 digits.';
+    }
+
+    if (!password) {
+      newErrors.password = 'Password is required.';
+    } else if (password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters.';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    setErrors({});
+
+    const userData: RegisterPayload = {
+      name,
       email,
       password,
-      phoneNumber: formattedNumber,
-    });
+      phone: formattedNumber,
+    };
 
-    // You can add your API call or navigation here
+    console.log('userData', userData);
+    mutation.mutate(userData);
   };
 
   const handleLogin = () => {
     // @ts-ignore
-    navigation.navigate && navigation.navigate('Login');
+    navigation.navigate('Login');
   };
 
   return (
@@ -65,7 +105,6 @@ const RegisterScreen: React.FC = () => {
       <SafeAreaView
         style={[styles.container, { backgroundColor: theme.colors.primaryDark }]}
       >
-        {/* Background Vector Image */}
         <Image
           source={require('../assets/images/vector-2.png')}
           style={styles.vectorBackground}
@@ -73,12 +112,10 @@ const RegisterScreen: React.FC = () => {
         />
 
         <View style={styles.inner}>
-          {/* Logo */}
           <View style={styles.logoContainer}>
             <AuthLogo width={100} height={52} />
           </View>
 
-          {/* Title */}
           <Text
             variant="h1"
             color={theme.colors.textWhite}
@@ -97,14 +134,14 @@ const RegisterScreen: React.FC = () => {
             Create your account to continue.
           </Text>
 
-          {/* Input Fields */}
           <View style={styles.inputContainer}>
             <InputField
-              placeholder="Full Name"
-              value={fullName}
-              onChangeText={setFullName}
+              placeholder="Name"
+              value={name}
+              onChangeText={setName}
               containerStyle={styles.inputWrapper}
               inputStyle={styles.input}
+              error={errors.name}
             />
 
             <InputField
@@ -116,14 +153,15 @@ const RegisterScreen: React.FC = () => {
               autoComplete="email"
               containerStyle={styles.inputWrapper}
               inputStyle={styles.input}
+              error={errors.email}
             />
 
             <PhoneInput
               ref={phoneInputRef}
-              defaultValue={phoneNumber}
+              defaultValue={phone}
               defaultCode="US"
               layout="first"
-              onChangeFormattedText={setPhoneNumber}
+              onChangeFormattedText={setPhone}
               containerStyle={styles.phoneContainer}
               textContainerStyle={styles.phoneTextContainer}
               textInputStyle={styles.input}
@@ -133,6 +171,9 @@ const RegisterScreen: React.FC = () => {
               withShadow={true}
               placeholder="Phone Number"
             />
+            {errors.phone ? (
+              <RNText style={styles.errorText}>{errors.phone}</RNText>
+            ) : null}
 
             <InputField
               placeholder="Password"
@@ -143,18 +184,18 @@ const RegisterScreen: React.FC = () => {
               secureToggle={true}
               containerStyle={styles.inputWrapper}
               inputStyle={styles.input}
+              error={errors.password}
             />
           </View>
 
-          {/* Register Button */}
           <Button
-            title="Register"
+            title={mutation.status === 'pending' ? 'Registering...' : 'Register'}
             onPress={handleRegister}
             fullWidth
+            disabled={mutation.status === 'pending'}
             style={styles.registerButton}
           />
 
-          {/* OR Separator */}
           <View style={styles.socialContainer}>
             <View style={styles.line} />
             <Text
@@ -167,7 +208,6 @@ const RegisterScreen: React.FC = () => {
             <View style={styles.line} />
           </View>
 
-          {/* Google Auth Button */}
           <TouchableOpacity
             style={styles.googleButton}
             onPress={() => console.log('Continue with Google')}
@@ -179,7 +219,6 @@ const RegisterScreen: React.FC = () => {
             />
           </TouchableOpacity>
 
-          {/* Login Redirect */}
           <View style={styles.loginRedirect}>
             <RNText style={{ color: theme.colors.textWhite, textAlign: 'center' }}>
               Already have an account?{' '}
@@ -307,6 +346,12 @@ const styles = StyleSheet.create({
   loginText: {
     textDecorationLine: 'underline',
     fontWeight: '600',
+  },
+  errorText: {
+    color: theme.colors.error,
+    marginTop: -8,
+    fontSize: 12,
+    marginLeft: 4,
   },
 });
 

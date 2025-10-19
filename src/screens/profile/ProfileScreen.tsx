@@ -1,150 +1,139 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, Image, TouchableOpacity, Text as RNText } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../theme/ThemeContext';
 import { Text } from '@/components';
 import {
-  FacebookLogo,
-  InstagramLogo,
-  XLogo,
-  NotePencil,
-  Plus,
-  ListDashes as ListDashesIcon,
-  EnvelopeSimple,
-  Phone,
-  MapPin,
-  Flag,
-  GenderFemale,
-  Ruler,
-  Heart,
-  HandsPraying,
-  GraduationCap,
-  Translate,
-  ArrowLeft,
+  ArrowLeftIcon,
+  NotePencilIcon,
+  FacebookLogoIcon,
+  InstagramLogoIcon,
+  PlusIcon,
+  EnvelopeSimpleIcon,
+  PhoneIcon,
+  MapPinIcon,
+  FlagIcon,
+  GenderFemaleIcon,
+  RulerIcon,
+  HeartIcon,
+  HandsPrayingIcon,
+  GraduationCapIcon,
+  TranslateIcon,
+  XLogoIcon,
+  ListDashesIcon,
 } from 'phosphor-react-native';
+import { useAuth } from '@/context/Authcontext';
 import { theme } from '@/theme/theme';
 
 const ProfileScreen: React.FC = () => {
-const navigation = useNavigation<any>();
+  const navigation = useNavigation<any>();
   const { theme } = useTheme();
+  const { user } = useAuth();
 
-  // 🔹 Example photos
-  const photos = [
-    'https://i.pravatar.cc/200?img=12',
-    'https://i.pravatar.cc/200?img=15',
-    'https://i.pravatar.cc/200?img=18',
-    'https://i.pravatar.cc/200?img=21',
-    'https://i.pravatar.cc/200?img=25',
-  ];
+  const safeValue = (value: any) => (value === null || value === undefined || value === '' ? 'N/A' : value);
 
-  // 🔹 Example interests
-  const interests = ['UI/UX', 'React Native', 'Photography', 'Travel', 'Fitness', 'Street Food'];
+  // interests array fallback
+  const interests: string[] = user?.interests && Array.isArray(user.interests) && user.interests.length > 0
+    ? user.interests
+    : ['N/A'];
 
-  // 🔹 Example personal details
-  const details = {
-    email: 'harleen@example.com',
-    phone: '+92 300 1234567',
-    state: 'Sindh',
-    city: 'Karachi',
-    nationality: 'Pakistani',
-    gender: 'Female',
-    height: "5'6”",
-    maritalStatus: 'Single',
-    religion: '—',
-    educationLevel: 'Bachelor’s',
-  };
+  // language_spoken assumed array always
+  const languages: string[] = Array.isArray(user?.language_spoken) && user.language_spoken.length > 0
+    ? user.language_spoken
+    : ['N/A'];
 
-  // 🔹 Example languages
-  const languages = ['English', 'Urdu', 'Arabic'];
+  // Avatar fallback
+  const avatarUri = user?.image || user?.img || 'https://i.pravatar.cc/200?img=12';
 
+  // Gallery fallback, and check if empty to show "No image in gallery"
+  const gallery: string[] = Array.isArray(user?.gallery) ? user.gallery : [];
+  const hasGallery = gallery.length > 0;
+
+  // Preview max 3 images
   const MAX_PREVIEW = 3;
-  const preview = photos.slice(0, MAX_PREVIEW);
-  const extraCount = Math.max(0, photos.length - MAX_PREVIEW);
+  const preview = hasGallery ? gallery.slice(0, MAX_PREVIEW) : [];
 
-  const onEditAbout = () => {
-      navigation.navigate("ProfileEdit");
-
+  const details = {
+    email: safeValue(user?.email),
+    phone: safeValue(user?.phone),
+    state: safeValue(user?.state),
+    city: safeValue(user?.location || user?.city),
+    nationality: safeValue(user?.nationality),
+    gender: safeValue(user?.gender),
+    height: safeValue(user?.height),
+    maritalStatus: safeValue(user?.marital_status),
+    religion: safeValue(user?.religion),
+    educationLevel: safeValue(user?.education),
   };
-  const onAddPhoto = () => console.log('Add photo');
+
+  const onEditAbout = () => navigation.navigate('ProfileEdit');
   const onViewAll = () => console.log('View all photos');
-  const onAddInterest = () => console.log('Add interest');
   const onEditPersonal = () => console.log('Edit personal details');
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      {/* Floating header controls over avatar */}
+      {/* Floating header */}
       <View style={styles.overlayRow}>
-        <TouchableOpacity
-          accessibilityRole="button"
-          onPress={() => navigation.goBack()}
-          style={styles.circleBtn}
-        >
-          <ArrowLeft size={22} color="#fff" weight="bold" />
+        <TouchableOpacity accessibilityRole="button" onPress={() => navigation.goBack()} style={styles.circleBtn}>
+          <ArrowLeftIcon size={22} color="#fff" weight="bold" />
         </TouchableOpacity>
 
-        <TouchableOpacity
-          accessibilityRole="button"
-          onPress={onEditAbout}
-          style={styles.circleBtn}
-        >
-          <NotePencil size={22} color="#fff" weight="bold" />
+        <TouchableOpacity accessibilityRole="button" onPress={onEditAbout} style={styles.circleBtn}>
+          <NotePencilIcon size={22} color="#fff" weight="bold" />
         </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
         {/* Avatar + Name */}
         <View style={styles.avatarWrap}>
-          <Image source={{ uri: 'https://i.pravatar.cc/200?img=12' }} style={styles.avatar} />
-          <Text variant="h5">Harleen Quinzel</Text>
-          <Text variant="caption" color={theme.colors.textLight}>Graphic Designer</Text>
+          <Image source={{ uri: avatarUri }} style={styles.avatar} />
+          <Text variant="h5">{safeValue(user?.name)}</Text>
+          <Text variant="caption" color={theme.colors.textLight}>{safeValue(user?.profession)}</Text>
         </View>
 
         {/* Socials */}
         <View style={styles.socialRow}>
-          <FacebookLogo size={20} color={theme.colors.text} />
-          <XLogo size={20} color={theme.colors.text} />
-          <InstagramLogo size={20} color={theme.colors.text} />
+          <FacebookLogoIcon size={20} color={theme.colors.text} />
+          <XLogoIcon size={20} color={theme.colors.text} />
+          <InstagramLogoIcon size={20} color={theme.colors.text} />
         </View>
 
-        {/* About + Edit */}
+        {/* About me */}
         <View style={[styles.sectionRow, { borderBottomColor: theme.colors.borderColor }]}>
           <View style={styles.sectionTextWrap}>
             <Text variant="body1" color={theme.colors.text} style={styles.sectionTitle}>About me</Text>
             <Text variant="body1" color={theme.colors.textLight}>
-              Nullam euismod dui vitae nisi vestibulum, tincidunt erat semper.
+              {safeValue(user?.about_me === '—' ? null : user?.about_me) === 'N/A'
+                ? 'No details provided.'
+                : user?.about_me}
             </Text>
           </View>
-          <TouchableOpacity onPress={onEditAbout} style={styles.iconBtn} accessibilityRole="button">
-            <NotePencil size={22} color={theme.colors.textLight} />
-          </TouchableOpacity>
         </View>
 
-        {/* Gallery header */}
+        {/* Gallery */}
         <View style={styles.galleryHeader}>
           <Text variant="body1" color={theme.colors.text} style={styles.sectionTitle}>Gallery</Text>
-          {extraCount > 0 && (
+          {hasGallery && gallery.length > MAX_PREVIEW && (
             <TouchableOpacity onPress={onViewAll} accessibilityRole="button">
-              <Text variant="caption" color={theme.colors.primary}>View all ({photos.length})</Text>
+              <Text variant="caption" color={theme.colors.primary}>View all ({gallery.length})</Text>
             </TouchableOpacity>
           )}
         </View>
 
-        {/* Gallery Row: inline plus BEFORE images */}
         <View style={styles.galleryRow}>
-          {preview.map((uri, idx) => (
-            <Image key={idx} source={{ uri }} style={styles.thumb} />
-          ))}
-          <TouchableOpacity
-            onPress={onAddPhoto}
-            accessibilityRole="button"
-            style={[styles.plusBox, { backgroundColor: theme.colors.primary }]}
-          >
-            <Plus size={12} color="#fff" weight="bold" />
-          </TouchableOpacity>
+          {hasGallery ? (
+            preview.map((uri, idx) => (
+              <Image key={idx} source={{ uri }} style={styles.thumb} />
+            ))
+          ) : (
+            <RNText style={[styles.noImageText, { color: theme.colors.textLight }]}>
+              No image in gallery
+            </RNText>
+          )}
         </View>
 
-        {/* ===== Interests ===== */}
+        {/* Interests */}
         <View style={[styles.interestsSection, { borderBottomWidth: 1, borderBottomColor: theme.colors.borderColor }]}>
           <Text variant="body1" color={theme.colors.text} style={styles.sectionTitle}>Interests</Text>
 
@@ -154,35 +143,26 @@ const navigation = useNavigation<any>();
                 <Text variant="overline" color={theme.colors.textWhite}>{label}</Text>
               </TouchableOpacity>
             ))}
-
-            <TouchableOpacity onPress={onAddInterest} accessibilityRole="button" style={styles.plusChip}>
-              <Plus size={12} color="#fff" weight="bold" />
-            </TouchableOpacity>
           </View>
         </View>
 
-        {/* ===== Personal Details (no line under) ===== */}
+        {/* Personal details */}
         <View style={styles.sectionRowTightNoLine}>
           <Text variant="body1" color={theme.colors.text} style={styles.sectionTitle}>Personal details</Text>
-          <TouchableOpacity onPress={onEditPersonal} accessibilityRole="button" style={styles.iconBtn}>
-            <NotePencil size={20} color={theme.colors.textLight} />
-          </TouchableOpacity>
         </View>
 
-        {/* Details List with per-field icons */}
         <View style={styles.detailsList}>
-          <DetailRow Icon={EnvelopeSimple} iconColor={theme.colors.primaryDark} label="Email" value={details.email} />
-          <DetailRow Icon={Phone} iconColor={theme.colors.primaryDark} label="Phone" value={details.phone} />
-          <DetailRow Icon={MapPin} iconColor={theme.colors.primaryDark} label="State · City" value={`${details.state} · ${details.city}`} />
-          <DetailRow Icon={Flag} iconColor={theme.colors.primaryDark} label="Nationality" value={details.nationality} />
-          <DetailRow Icon={GenderFemale} iconColor={theme.colors.primaryDark} label="Gender" value={details.gender} />
-          <DetailRow Icon={Ruler} iconColor={theme.colors.primaryDark} label="Height" value={details.height} />
-          <DetailRow Icon={Heart} iconColor={theme.colors.primaryDark} label="Marital status" value={details.maritalStatus} />
-          <DetailRow Icon={HandsPraying} iconColor={theme.colors.primaryDark} label="Religion" value={details.religion} />
-          <DetailRow Icon={GraduationCap} iconColor={theme.colors.primaryDark} label="Educational level" value={details.educationLevel} />
-          <DetailRow Icon={Translate} iconColor={theme.colors.primaryDark} label="Languages" value={languages.join(', ')} />
+          <DetailRow Icon={EnvelopeSimpleIcon} iconColor={theme.colors.primaryDark} label="Email" value={details.email} />
+          <DetailRow Icon={PhoneIcon} iconColor={theme.colors.primaryDark} label="Phone" value={details.phone} />
+          <DetailRow Icon={MapPinIcon} iconColor={theme.colors.primaryDark} label="State · City" value={`${details.state} · ${details.city}`} />
+          <DetailRow Icon={FlagIcon} iconColor={theme.colors.primaryDark} label="Nationality" value={details.nationality} />
+          <DetailRow Icon={GenderFemaleIcon} iconColor={theme.colors.primaryDark} label="Gender" value={details.gender} />
+          <DetailRow Icon={RulerIcon} iconColor={theme.colors.primaryDark} label="Height" value={details.height} />
+          <DetailRow Icon={HeartIcon} iconColor={theme.colors.primaryDark} label="Marital status" value={details.maritalStatus} />
+          <DetailRow Icon={HandsPrayingIcon} iconColor={theme.colors.primaryDark} label="Religion" value={details.religion} />
+          <DetailRow Icon={GraduationCapIcon} iconColor={theme.colors.primaryDark} label="Educational level" value={details.educationLevel} />
+          <DetailRow Icon={TranslateIcon} iconColor={theme.colors.primaryDark} label="Languages" value={languages.join(', ')} />
         </View>
-
       </ScrollView>
     </SafeAreaView>
   );
@@ -192,7 +172,6 @@ type DetailRowProps = {
   label: string;
   value: string;
   iconColor: string;
-  // Icon component optional, falls back to ListDashesIcon if not provided
   Icon?: React.ComponentType<{ size?: number; color?: string; weight?: any }>;
 };
 
@@ -211,18 +190,15 @@ const DetailRow: React.FC<DetailRowProps> = ({ label, value, iconColor, Icon }) 
 
 const TILE = 100;
 const RADIUS = 10;
-// keeping your chip color as-is to avoid bigger changes
 const CHIP_BG = '#1E644CCC';
 
 const styles = StyleSheet.create({
   container: { flex: 1, position: 'relative' },
   content: { padding: 20, paddingTop: 40 },
 
-  /* Floating buttons row */
   overlayRow: {
-    display:'flex',
-    flexDirection:'row',
-    justifyContent:'space-between',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     padding: 10,
   },
   circleBtn: {
@@ -289,6 +265,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    minHeight: TILE, // to keep space even if no images
   },
 
   thumb: {
@@ -298,15 +275,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#e9e9e9',
   },
 
-  plusBox: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
+  noImageText: {
+    fontSize: 16,
+    fontStyle: 'italic',
   },
 
-  // Interests
   interestsSection: {
     marginTop: 16,
     paddingBottom: 16,
@@ -336,7 +309,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
   },
 
-  // Details list
   detailsList: {
     paddingTop: 10,
   },

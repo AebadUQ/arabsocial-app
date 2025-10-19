@@ -11,23 +11,24 @@ import {
 } from "react-native";
 import { useTheme } from "../theme/ThemeContext";
 import { theme } from "@/theme/theme";
-import { Eye, EyeIcon, EyeSlash, EyeSlashIcon } from "phosphor-react-native";
+import { EyeIcon, EyeSlashIcon } from "phosphor-react-native";
 
-type Props = TextInputProps & {
-  label?: string;
-  labelColor?: string;            // ✅ optional prop
-  error?: string;
-  left?: ReactNode;
-  right?: ReactNode;
-  onPressRight?: () => void;
-  containerStyle?: ViewStyle;
-  inputStyle?: TextStyle;
-  secureToggle?: boolean;
-};
+type Props = {
+  label?: string | undefined;
+  labelColor?: string | undefined;
+  error?: string | undefined;
+  left?: ReactNode | undefined;
+  right?: ReactNode | undefined;
+  onPressRight?: (() => void) | undefined;
+  containerStyle?: ViewStyle | undefined;
+  inputStyle?: TextStyle | undefined;
+  secureToggle?: boolean | undefined;
+} & TextInputProps;
+
 
 export default function InputField({
   label,
-  labelColor = "#FFFFFF",        // ✅ default white
+  labelColor = "#FFFFFF",
   error,
   left,
   right,
@@ -42,25 +43,20 @@ export default function InputField({
   const [hide, setHide] = useState(!!secureTextEntry);
   const { theme: activeTheme } = useTheme();
 
-  const toggleVisibility = () => setHide(!hide);
-
   return (
     <View style={[styles.wrapper, containerStyle]}>
-      {label ? (
-        <Text style={[styles.label, { color: labelColor }]}>{label}</Text>
-      ) : null}
+      {label && <Text style={[styles.label, { color: labelColor }]}>{label}</Text>}
 
       <View style={[styles.container, error && styles.containerError]}>
-        {left ? <View style={styles.side}>{left}</View> : null}
+        {left && <View style={styles.side}>{left}</View>}
 
         <TextInput
           style={[styles.input, inputStyle]}
           placeholderTextColor={placeholderTextColor}
-          secureTextEntry={hide}
+          secureTextEntry={secureToggle ? hide : secureTextEntry}
           {...rest}
         />
 
-        {/* Right adornment */}
         {secureToggle ? (
           <TouchableOpacity
             onPress={() => setHide(!hide)}
@@ -84,7 +80,7 @@ export default function InputField({
         ) : null}
       </View>
 
-      {!!error && <Text style={styles.error}>{error}</Text>}
+      {error && <Text style={styles.error}>{error}</Text>}
     </View>
   );
 }
@@ -95,7 +91,7 @@ const styles = StyleSheet.create({
   },
   label: {
     marginBottom: 6,
-    fontSize: theme.typography.fontSize.v3,
+    fontSize: theme.typography.fontSize.v5,
     fontWeight: "500",
   },
   container: {
@@ -105,7 +101,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     flexDirection: "row",
     alignItems: "center",
-
     shadowColor: "#000",
     shadowOpacity: 0.08,
     shadowRadius: 8,
