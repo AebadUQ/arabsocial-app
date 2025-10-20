@@ -1,9 +1,16 @@
-import React from 'react';
-import { View, StyleSheet, ScrollView, Image, TouchableOpacity, Text as RNText } from 'react-native';
+import React, { useState } from 'react';
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  Image,
+  TouchableOpacity,
+  Text as RNText,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../theme/ThemeContext';
-import { Text } from '@/components';
+import { Switch, Text } from '@/components';
 import {
   ArrowLeftIcon,
   NotePencilIcon,
@@ -25,33 +32,34 @@ import {
 } from 'phosphor-react-native';
 import { useAuth } from '@/context/Authcontext';
 import { theme } from '@/theme/theme';
+import { updateUserDetailVisibility } from '@/api/auth';
+
+// ---------------------------
+// External function for switch changes
+// ---------------------------
+
 
 const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { theme } = useTheme();
   const { user } = useAuth();
-  console.log("s",user?.social_links)
+const {visibility_settings}=user
+  const safeValue = (value: any) =>
+    value === null || value === undefined || value === '' ? 'N/A' : value;
 
-  const safeValue = (value: any) => (value === null || value === undefined || value === '' ? 'N/A' : value);
+  const interests: string[] =
+    user?.interests && Array.isArray(user.interests) && user.interests.length > 0
+      ? user.interests
+      : ['N/A'];
 
-  // interests array fallback
-  const interests: string[] = user?.interests && Array.isArray(user.interests) && user.interests.length > 0
-    ? user.interests
-    : ['N/A'];
+  const languages: string[] =
+    Array.isArray(user?.language_spoken) && user.language_spoken.length > 0
+      ? user.language_spoken
+      : ['N/A'];
 
-  // language_spoken assumed array always
-  const languages: string[] = Array.isArray(user?.language_spoken) && user.language_spoken.length > 0
-    ? user.language_spoken
-    : ['N/A'];
-
-  // Avatar fallback
   const avatarUri = user?.image || user?.img || 'https://i.pravatar.cc/200?img=12';
-
-  // Gallery fallback, and check if empty to show "No image in gallery"
   const gallery: string[] = Array.isArray(user?.gallery) ? user.gallery : [];
   const hasGallery = gallery.length > 0;
-
-  // Preview max 3 images
   const MAX_PREVIEW = 3;
   const preview = hasGallery ? gallery.slice(0, MAX_PREVIEW) : [];
 
@@ -67,16 +75,34 @@ const ProfileScreen: React.FC = () => {
     religion: safeValue(user?.religion),
     educationLevel: safeValue(user?.education),
   };
+const handleSwitchChange = async (field: string | undefined, value: boolean) => {
+  if (!field) return;
 
+  const payload = {
+    visibility_settings: {
+      [field]: value, // dynamically set the field
+    },
+  };
+
+  try {
+    const result = await updateUserDetailVisibility(payload);
+    console.log('Visibility updated successfully:', result);
+  } catch (error) {
+    console.error('Error updating visibility:', error);
+  }
+};
   const onEditAbout = () => navigation.navigate('ProfileEdit');
   const onViewAll = () => console.log('View all photos');
-  const onEditPersonal = () => console.log('Edit personal details');
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Floating header */}
       <View style={styles.overlayRow}>
-        <TouchableOpacity accessibilityRole="button" onPress={() => navigation.goBack()} style={styles.circleBtn}>
+        <TouchableOpacity
+          accessibilityRole="button"
+          onPress={() => navigation.goBack()}
+          style={styles.circleBtn}
+        >
           <ArrowLeftIcon size={22} color="#fff" weight="bold" />
         </TouchableOpacity>
 
@@ -90,55 +116,52 @@ const ProfileScreen: React.FC = () => {
         <View style={styles.avatarWrap}>
           <Image source={{ uri: avatarUri }} style={styles.avatar} />
           <Text variant="h5">{safeValue(user?.name)}</Text>
-          <Text variant="caption" color={theme.colors.textLight}>{safeValue(user?.profession)}</Text>
+          <Text variant="caption" color={theme.colors.textLight}>
+            {safeValue(user?.profession)}
+          </Text>
         </View>
 
         {/* Socials */}
-        {/* Socials */}
-<View style={styles.socialRow}>
-  {user?.social_links &&
-    Object.entries(user.social_links)
-      .filter(([_, value]) => value) // only non-empty links
-      .map(([key, value], index) => {
-        let IconComp;
-        let type = key; // keeps track of social type
+        <View style={styles.socialRow}>
+          {user?.social_links &&
+            Object.entries(user.social_links)
+              .filter(([_, value]) => value)
+              .map(([key, value], index) => {
+                let IconComp;
+                let type = key;
+                switch (key) {
+                  case 'facebook':
+                    IconComp = FacebookLogoIcon;
+                    break;
+                  case 'twitter':
+                    IconComp = XLogoIcon;
+                    break;
+                  case 'instagram':
+                    IconComp = InstagramLogoIcon;
+                    break;
+                  default:
+                    IconComp = ListDashesIcon;
+                    type = 'other';
+                }
 
-        switch (key) {
-          case "facebook":
-            IconComp = FacebookLogoIcon;
-            break;
-          case "twitter":
-            IconComp = XLogoIcon;
-            break;
-          case "instagram":
-            IconComp = InstagramLogoIcon;
-            break;
-          default:
-            IconComp = ListDashesIcon;
-            type = "other";
-        }
-
-        return (
-          <TouchableOpacity
-            key={index}
-            style={{ marginRight: 12 }}
-            onPress={() => {
-              // handle navigation or link action here
-              console.log("Clicked social type:", type, "value:", value);
-              // Example: navigation.navigate('SocialProfile', { type, handle: value });
-            }}
-          >
-            <IconComp size={20} color={theme.colors.text} />
-          </TouchableOpacity>
-        );
-      })}
-</View>
-
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    style={{ marginRight: 12 }}
+                    onPress={() => console.log('Clicked social type:', type, 'value:', value)}
+                  >
+                    <IconComp size={20} color={theme.colors.text} />
+                  </TouchableOpacity>
+                );
+              })}
+        </View>
 
         {/* About me */}
         <View style={[styles.sectionRow, { borderBottomColor: theme.colors.borderColor }]}>
           <View style={styles.sectionTextWrap}>
-            <Text variant="body1" color={theme.colors.text} style={styles.sectionTitle}>About me</Text>
+            <Text variant="body1" color={theme.colors.text} style={styles.sectionTitle}>
+              About me
+            </Text>
             <Text variant="body1" color={theme.colors.textLight}>
               {safeValue(user?.about_me === '—' ? null : user?.about_me) === 'N/A'
                 ? 'No details provided.'
@@ -149,19 +172,21 @@ const ProfileScreen: React.FC = () => {
 
         {/* Gallery */}
         <View style={styles.galleryHeader}>
-          <Text variant="body1" color={theme.colors.text} style={styles.sectionTitle}>Gallery</Text>
+          <Text variant="body1" color={theme.colors.text} style={styles.sectionTitle}>
+            Gallery
+          </Text>
           {hasGallery && gallery.length > MAX_PREVIEW && (
             <TouchableOpacity onPress={onViewAll} accessibilityRole="button">
-              <Text variant="caption" color={theme.colors.primary}>View all ({gallery.length})</Text>
+              <Text variant="caption" color={theme.colors.primary}>
+                View all ({gallery.length})
+              </Text>
             </TouchableOpacity>
           )}
         </View>
 
         <View style={styles.galleryRow}>
           {hasGallery ? (
-            preview.map((uri, idx) => (
-              <Image key={idx} source={{ uri }} style={styles.thumb} />
-            ))
+            preview.map((uri, idx) => <Image key={idx} source={{ uri }} style={styles.thumb} />)
           ) : (
             <RNText style={[styles.noImageText, { color: theme.colors.textLight }]}>
               No image in gallery
@@ -171,12 +196,16 @@ const ProfileScreen: React.FC = () => {
 
         {/* Interests */}
         <View style={[styles.interestsSection]}>
-          <Text variant="body1" color={theme.colors.text} style={styles.sectionTitle}>Interests</Text>
+          <Text variant="body1" color={theme.colors.text} style={styles.sectionTitle}>
+            Interests
+          </Text>
 
           <View style={styles.chipsWrap}>
             {interests.map((label, i) => (
               <TouchableOpacity key={i} style={styles.chip} accessibilityRole="button">
-                <Text variant="overline" color={theme.colors.textWhite}>{label}</Text>
+                <Text variant="overline" color={theme.colors.textWhite}>
+                  {label}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -184,46 +213,159 @@ const ProfileScreen: React.FC = () => {
 
         {/* Personal details */}
         <View style={styles.sectionRowTightNoLine}>
-          <Text variant="body1" color={theme.colors.text} style={styles.sectionTitle}>Personal details</Text>
+          <Text variant="body1" color={theme.colors.text} style={styles.sectionTitle}>
+            Personal details
+          </Text>
         </View>
 
         <View style={styles.detailsList}>
-          <DetailRow Icon={EnvelopeSimpleIcon} iconColor={theme.colors.primaryDark} label="Email" value={details.email} />
-          <DetailRow Icon={PhoneIcon} iconColor={theme.colors.primaryDark} label="Phone" value={details.phone} />
-          <DetailRow Icon={MapPinIcon} iconColor={theme.colors.primaryDark} label="State · City" value={`${details.state} · ${details.city}`} />
-          <DetailRow Icon={FlagIcon} iconColor={theme.colors.primaryDark} label="Nationality" value={details.nationality} />
-          <DetailRow Icon={GenderFemaleIcon} iconColor={theme.colors.primaryDark} label="Gender" value={details.gender} />
-          <DetailRow Icon={RulerIcon} iconColor={theme.colors.primaryDark} label="Height" value={details.height} />
-          <DetailRow Icon={HeartIcon} iconColor={theme.colors.primaryDark} label="Marital status" value={details.maritalStatus} />
-          <DetailRow Icon={HandsPrayingIcon} iconColor={theme.colors.primaryDark} label="Religion" value={details.religion} />
-          <DetailRow Icon={GraduationCapIcon} iconColor={theme.colors.primaryDark} label="Educational level" value={details.educationLevel} />
-          <DetailRow Icon={TranslateIcon} iconColor={theme.colors.primaryDark} label="Languages" value={languages.join(', ')} />
+          <DetailRow
+            Icon={EnvelopeSimpleIcon}
+            iconColor={theme.colors.primaryDark}
+            label="Email"
+            value={details.email}
+            show={false}
+          />
+          <DetailRow
+            Icon={PhoneIcon}
+            iconColor={theme.colors.primaryDark}
+            label="Phone"
+            value={details.phone}
+            show={false}
+          />
+          <DetailRow
+            Icon={MapPinIcon}
+            iconColor={theme.colors.primaryDark}
+            label="State · City"
+            value={`${details.state} · ${details.city}`}
+            show={false}
+          />
+          <DetailRow
+            Icon={FlagIcon}
+            iconColor={theme.colors.primaryDark}
+            label="Nationality"
+            value={details.nationality}
+            show={false}
+            defaultValue={visibility_settings?.nationality}
+
+          />
+          <DetailRow
+            Icon={GenderFemaleIcon}
+            iconColor={theme.colors.primaryDark}
+            label="Gender"
+            value={details.gender}
+            field="gender"
+            onSwitchChange={handleSwitchChange}
+            defaultValue={visibility_settings?.gender}
+
+          />
+          <DetailRow
+            Icon={RulerIcon}
+            iconColor={theme.colors.primaryDark}
+            label="Height"
+            value={details.height}
+            field="height"
+            onSwitchChange={handleSwitchChange}
+            defaultValue={visibility_settings?.height}
+
+          />
+          <DetailRow
+            Icon={HeartIcon}
+            iconColor={theme.colors.primaryDark}
+            label="Marital status"
+            value={details.maritalStatus}
+            field="marital_status"
+            onSwitchChange={handleSwitchChange}
+            defaultValue={visibility_settings?.marital_status}
+
+          />
+          <DetailRow
+            Icon={HandsPrayingIcon}
+            iconColor={theme.colors.primaryDark}
+            label="Religion"
+            value={details.religion}
+            field="religion"
+            onSwitchChange={handleSwitchChange}
+            defaultValue={visibility_settings?.religion}
+
+          />
+          <DetailRow
+            Icon={GraduationCapIcon}
+            iconColor={theme.colors.primaryDark}
+            label="Educational level"
+            value={details.educationLevel}
+            field="education"
+            onSwitchChange={handleSwitchChange}
+            defaultValue={visibility_settings?.education}
+
+          />
+          <DetailRow
+            Icon={TranslateIcon}
+            iconColor={theme.colors.primaryDark}
+            label="Languages"
+            value={languages.join(', ')}
+            field="language_spoken"
+            onSwitchChange={handleSwitchChange}
+            defaultValue={visibility_settings?.language}
+
+          />
         </View>
       </ScrollView>
     </SafeAreaView>
   );
 };
 
+// ---------------------------
+// DetailRow Component
+// ---------------------------
 type DetailRowProps = {
   label: string;
   value: string;
   iconColor: string;
   Icon?: React.ComponentType<{ size?: number; color?: string; weight?: any }>;
+  show?: boolean;
+  field?: string;
+  onSwitchChange?: (field: string | undefined, value: boolean) => void;
+  defaultValue?: boolean;
 };
 
-const DetailRow: React.FC<DetailRowProps> = ({ label, value, iconColor, Icon }) => {
+const DetailRow: React.FC<DetailRowProps> = ({
+  label,
+  value,
+  iconColor,
+  Icon,
+  show = true,
+  field,
+  onSwitchChange,
+  defaultValue = false,
+}) => {
   const IconComp = Icon || ListDashesIcon;
+  const [active, setActive] = useState(defaultValue);
+
+  const handleToggle = (val: boolean) => {
+    setActive(val);
+    onSwitchChange?.(field, val);
+  };
+
   return (
     <View style={styles.row}>
       <IconComp size={20} color={iconColor} weight="regular" />
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, marginLeft: 8 }}>
         <Text variant="overline">{label}</Text>
-        <Text variant="body1" color={iconColor}>{value}</Text>
+        <Text variant="body1" color={iconColor}>
+          {value}
+        </Text>
       </View>
+      {show && <Switch initial={active} onToggle={handleToggle} />}
     </View>
   );
 };
 
+
+
+// ---------------------------
+// Styles
+// ---------------------------
 const TILE = 100;
 const RADIUS = 10;
 const CHIP_BG = '#1E644CCC';
@@ -301,7 +443,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    minHeight: TILE, // to keep space even if no images
+    minHeight: TILE,
   },
 
   thumb: {

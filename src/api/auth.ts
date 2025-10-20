@@ -24,3 +24,9 @@ export const editUserProfile = async (data:any) => {
   const response = await api.put('/users/update-user',data);
   return response.data.data;
 };
+
+export const updateUserDetailVisibility = async (data:any) => {
+    console.log("payload",data)
+  const response = await api.patch('/users/update-visibility',data);
+  return response.data.data;
+};
