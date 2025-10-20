@@ -5,7 +5,9 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
-  Alert,
+  TextInput,
+  Modal,
+  Text as RNText,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
@@ -14,19 +16,18 @@ import { Text } from "@/components";
 import InputField from "@/components/Input";
 import LinearGradient from "react-native-linear-gradient";
 import {
-  ArrowLeft,
-  NotePencil,
+  ArrowLeftIcon,
   FacebookLogo,
   InstagramLogo,
   XLogo,
-  ArrowLeftIcon,
+  Plus,
 } from "phosphor-react-native";
 import BottomSheetSelect from "@/components/BottomSheetSelect";
 import { useAuth } from "@/context/Authcontext";
 import { Country, State } from "country-state-city";
 import { theme } from "@/theme/theme";
-const MARITAL_OPTIONS = ["Single", "Married", "Prefer not to say"];
 
+const MARITAL_OPTIONS = ["Single", "Married", "Prefer not to say"];
 const GENDER_OPTIONS = ["Female", "Male", "Prefer not to say"];
 const RELIGION_OPTIONS = [
   "Islam",
@@ -44,15 +45,15 @@ const EDUCATION_OPTIONS = [
   "Other",
 ];
 const LANGUAGE_OPTIONS = ["Arabic", "English", "Urdu", "Hindi", "French", "Other"];
-const CHIP_BG = '#1E644CCC';
+const CHIP_BG = "#1E644CCC";
 
 const ProfileEditScreen: React.FC = () => {
-
   const navigation = useNavigation<any>();
   const { theme } = useTheme();
   const { user, updateProfile } = useAuth();
 
   const [saving, setSaving] = useState(false);
+  const [ageError, setAgeError] = useState("");
   const [form, setForm] = useState({
     state: "",
     nationality: "",
@@ -64,14 +65,29 @@ const ProfileEditScreen: React.FC = () => {
     religion: "",
     education: "",
     language_spoken: "",
+    about_me: "",
   });
- const interests: string[] = user?.interests && Array.isArray(user.interests) && user.interests.length > 0
-    ? user.interests
-    : ['N/A'];
+
+  const [interests, setInterests] = useState<string[]>(
+    user?.interests && Array.isArray(user.interests) && user.interests.length > 0
+      ? user.interests
+      : ["N/A"]
+  );
+
   const [countries, setCountries] = useState<string[]>([]);
   const [states, setStates] = useState<string[]>([]);
   const [selectedCountry, setSelectedCountry] = useState<string>("");
   const [selectedState, setSelectedState] = useState<string>("");
+
+  const [interestModalVisible, setInterestModalVisible] = useState(false);
+  const [newInterest, setNewInterest] = useState("");
+
+  // Social Links state
+  const [socialLinks, setSocialLinks] = useState({
+    facebook: user?.social_links?.facebook || "",
+    instagram: user?.social_links?.instagram || "",
+    twitter: user?.social_links?.twitter || "",
+  });
 
   useEffect(() => {
     const countryList = Country.getAllCountries().map((c) => c.name);
@@ -93,6 +109,7 @@ const ProfileEditScreen: React.FC = () => {
         language_spoken: Array.isArray(user.language_spoken)
           ? user.language_spoken.join(", ")
           : user.language_spoken || "",
+        about_me: user.about_me || "",
       });
       if (user.state) setSelectedState(user.state);
       if (user.country) setSelectedCountry(user.country);
@@ -121,23 +138,45 @@ const ProfileEditScreen: React.FC = () => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
+  const handleSocialChange = (key: keyof typeof socialLinks, value: string) => {
+    setSocialLinks((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleAddInterest = () => {
+    setInterestModalVisible(true);
+  };
+
+  const saveNewInterest = () => {
+    if (newInterest.trim() !== "") {
+      setInterests((prev) => [...prev, newInterest.trim()]);
+      setNewInterest("");
+      setInterestModalVisible(false);
+    }
+  };
+
   const onSave = async () => {
+    if (isNaN(Number(form.age)) || form.age.trim() === "") {
+      setAgeError("Age must be a number");
+      return;
+    } else {
+      setAgeError("");
+    }
     try {
       setSaving(true);
       const updatedData = {
         ...form,
         country: selectedCountry,
-        age:parseInt(form?.age),
+        age: parseInt(form.age),
         state: selectedState,
+        interests: interests,
         language_spoken: form.language_spoken
           ? form.language_spoken.split(",").map((l) => l.trim())
           : [],
+        social_links: socialLinks,
       };
       await updateProfile(updatedData);
-      Alert.alert("Success", "Your profile has been updated successfully!");
       navigation.goBack();
-    } catch (err: any) {
-      Alert.alert("Error", "Failed to update profile. Please try again.");
+    } catch {
     } finally {
       setSaving(false);
     }
@@ -151,9 +190,6 @@ const ProfileEditScreen: React.FC = () => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.circleBtn}>
           <ArrowLeftIcon size={22} color="#fff" weight="bold" />
         </TouchableOpacity>
-        {/* <TouchableOpacity onPress={onSave} style={styles.circleBtn}>
-          <NotePencil size={22} color="#fff" weight="bold" />
-        </TouchableOpacity> */}
       </View>
 
       <ScrollView
@@ -173,26 +209,56 @@ const ProfileEditScreen: React.FC = () => {
           </Text>
         </View>
 
-        <View style={styles.socialRow}>
-          <FacebookLogo size={20} color={theme.colors.text} />
-          <XLogo size={20} color={theme.colors.text} />
-          <InstagramLogo size={20} color={theme.colors.text} />
+       
+
+        {/* About Me Section */}
+        <View style={{ marginBottom: 16 }}>
+          <InputField
+            label="About Me"
+            labelColor={theme.colors.textLight}
+            value={form.about_me}
+            onChangeText={(v) => handleChange("about_me", v)}
+            placeholder="Write something about yourself..."
+            multiline
+            numberOfLines={4}
+            style={{ textAlignVertical: "top" }}
+          />
         </View>
-        <View style={[styles.interestsSection, { borderBottomWidth: 1, borderBottomColor: theme.colors.borderColor }]}>
-                  <Text variant="body1" color={theme.colors.text} style={styles.sectionTitle}>Interests</Text>
-        
-                  <View style={styles.chipsWrap}>
-                    {interests.map((label, i) => (
-                      <TouchableOpacity key={i} style={styles.chip} accessibilityRole="button">
-                        <Text variant="overline" color={theme.colors.textWhite}>{label}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-<View style={styles.sectionRowTightNoLine}>
-          <Text variant="body1" color={theme.colors.text} style={styles.sectionTitle}>Personal details</Text>
+
+        {/* Interests Section */}
+        <View style={styles.interestsSection}>
+          <View style={styles.interestsHeader}>
+            <Text
+              variant="body1"
+              color={theme.colors.text}
+              style={styles.sectionTitle}
+            >
+              Interests
+            </Text>
+          </View>
+
+          <View style={styles.chipsWrap}>
+            {interests.map((label, i) => (
+              <TouchableOpacity key={i} style={styles.chip}>
+                <Text variant="overline" color={theme.colors.textWhite}>
+                  {label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity onPress={handleAddInterest} style={styles.addIcon}>
+              <Plus size={16} color={theme.colors.textWhite} weight="bold" />
+            </TouchableOpacity>
+          </View>
         </View>
-        <View style={{ display: "flex", gap: 10 }}>
+
+        {/* Personal Details Section */}
+        <View style={styles.sectionRowTightNoLine}>
+          <Text variant="body1" color={theme.colors.text} style={styles.sectionTitle}>
+            Personal details
+          </Text>
+        </View>
+
+        <View style={{ display: "flex", gap: 20 }}>
           <InputField
             label="Email"
             labelColor={theme.colors.textLight}
@@ -298,16 +364,15 @@ const ProfileEditScreen: React.FC = () => {
             placeholder="Enter height"
           />
 
-         <BottomSheetSelect
-  label="Marital Status"
-  labelColor={theme.colors.textLight}
-  value={form.marital_status}
-  onChange={(v) => handleChange("marital_status", v)}
-  options={MARITAL_OPTIONS}
-  placeholder="Select marital status"
-  sheetTitle="Select Marital Status"
-/>
-
+          <BottomSheetSelect
+            label="Marital Status"
+            labelColor={theme.colors.textLight}
+            value={form.marital_status}
+            onChange={(v) => handleChange("marital_status", v)}
+            options={MARITAL_OPTIONS}
+            placeholder="Select marital status"
+            sheetTitle="Select Marital Status"
+          />
 
           <InputField
             label="Age"
@@ -315,9 +380,82 @@ const ProfileEditScreen: React.FC = () => {
             value={form.age}
             onChangeText={(v) => handleChange("age", v)}
             placeholder="Enter age"
+            keyboardType="numeric"
           />
+          {ageError ? (
+            <RNText style={{ color: theme.colors.error, marginTop: -6 }}>
+              {ageError}
+            </RNText>
+          ) : null}
+        </View>
+
+         {/* Social Links Section */}
+        <View style={{ marginBottom: 16,marginTop:20 }}>
+          <Text variant="body1" color={theme.colors.text} style={styles.sectionTitle}>
+            Social Links
+          </Text>
+         
+          <View style={{display:'flex',gap:20}}>
+            <InputField
+            label="Facebook"
+            labelColor={theme.colors.textLight}
+            value={socialLinks.facebook}
+            onChangeText={(v) => handleSocialChange("facebook", v)}
+            placeholder="Enter Facebook URL"
+          />
+          <InputField
+            label="Instagram"
+            labelColor={theme.colors.textLight}
+            value={socialLinks.instagram}
+            onChangeText={(v) => handleSocialChange("instagram", v)}
+            placeholder="Enter Instagram URL"
+          />
+          <InputField
+            label="Twitter"
+            labelColor={theme.colors.textLight}
+            value={socialLinks.twitter}
+            onChangeText={(v) => handleSocialChange("twitter", v)}
+            placeholder="Enter Twitter URL"
+          />
+          </View>
         </View>
       </ScrollView>
+
+      {/* Add Interest Modal */}
+      <Modal
+        transparent
+        visible={interestModalVisible}
+        animationType="fade"
+        onRequestClose={() => setInterestModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <RNText style={{ marginBottom: 10, fontWeight: "600" }}>
+              Add New Interest
+            </RNText>
+            <TextInput
+              placeholder="Enter interest"
+              value={newInterest}
+              onChangeText={setNewInterest}
+              style={styles.modalInput}
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                onPress={() => setInterestModalVisible(false)}
+                style={[styles.modalBtn, { backgroundColor: "#ccc" }]}
+              >
+                <RNText>Cancel</RNText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={saveNewInterest}
+                style={[styles.modalBtn, { backgroundColor: "#1BAD7A" }]}
+              >
+                <RNText style={{ color: "#fff" }}>Add</RNText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <View pointerEvents="box-none" style={styles.ctaWrap}>
         <TouchableOpacity
@@ -363,13 +501,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#e9e9e9",
     marginBottom: 8,
   },
-  socialRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 12,
-    marginTop: 6,
-    marginBottom: 10,
-  },
   ctaWrap: {
     position: "absolute",
     width: "100%",
@@ -389,41 +520,73 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   sectionRowTightNoLine: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     paddingVertical: 8,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 16,
   },
-    sectionTitle: { fontWeight: '600', marginBottom: 4 },
-
+  sectionTitle: { fontWeight: "600", marginBottom: 4 },
   interestsSection: {
     marginTop: 16,
-    paddingBottom: 16,
+    marginBottom: 16,
   },
-
+  interestsHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  addIcon: {
+    padding: 6,
+    width: 32,
+    height: 32,
+    backgroundColor: theme.colors.primary,
+    borderRadius: 16,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   chipsWrap: {
     marginTop: 10,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
   },
-
   chip: {
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 999,
     backgroundColor: CHIP_BG,
   },
-
-  plusChip: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: theme.colors.primary,
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContainer: {
+    width: "85%",
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    padding: 20,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 12,
+  },
+  modalButtons: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 10,
+  },
+  modalBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
   },
 });
 

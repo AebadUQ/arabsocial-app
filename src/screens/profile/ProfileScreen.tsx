@@ -30,6 +30,7 @@ const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { theme } = useTheme();
   const { user } = useAuth();
+  console.log("s",user?.social_links)
 
   const safeValue = (value: any) => (value === null || value === undefined || value === '' ? 'N/A' : value);
 
@@ -93,11 +94,46 @@ const ProfileScreen: React.FC = () => {
         </View>
 
         {/* Socials */}
-        <View style={styles.socialRow}>
-          <FacebookLogoIcon size={20} color={theme.colors.text} />
-          <XLogoIcon size={20} color={theme.colors.text} />
-          <InstagramLogoIcon size={20} color={theme.colors.text} />
-        </View>
+        {/* Socials */}
+<View style={styles.socialRow}>
+  {user?.social_links &&
+    Object.entries(user.social_links)
+      .filter(([_, value]) => value) // only non-empty links
+      .map(([key, value], index) => {
+        let IconComp;
+        let type = key; // keeps track of social type
+
+        switch (key) {
+          case "facebook":
+            IconComp = FacebookLogoIcon;
+            break;
+          case "twitter":
+            IconComp = XLogoIcon;
+            break;
+          case "instagram":
+            IconComp = InstagramLogoIcon;
+            break;
+          default:
+            IconComp = ListDashesIcon;
+            type = "other";
+        }
+
+        return (
+          <TouchableOpacity
+            key={index}
+            style={{ marginRight: 12 }}
+            onPress={() => {
+              // handle navigation or link action here
+              console.log("Clicked social type:", type, "value:", value);
+              // Example: navigation.navigate('SocialProfile', { type, handle: value });
+            }}
+          >
+            <IconComp size={20} color={theme.colors.text} />
+          </TouchableOpacity>
+        );
+      })}
+</View>
+
 
         {/* About me */}
         <View style={[styles.sectionRow, { borderBottomColor: theme.colors.borderColor }]}>
@@ -134,7 +170,7 @@ const ProfileScreen: React.FC = () => {
         </View>
 
         {/* Interests */}
-        <View style={[styles.interestsSection, { borderBottomWidth: 1, borderBottomColor: theme.colors.borderColor }]}>
+        <View style={[styles.interestsSection]}>
           <Text variant="body1" color={theme.colors.text} style={styles.sectionTitle}>Interests</Text>
 
           <View style={styles.chipsWrap}>
