@@ -7,6 +7,7 @@ import { ThemeProvider } from './src/theme/ThemeContext';
 import { AuthProvider } from '@/context/Authcontext';  // adjust path  
 import AppNavigator from './src/navigation/AppNavigator';  // adjust path  
 import { StyleSheet } from 'react-native';
+import AppWrapper from '@/components/AuthWrapper';
 
 const queryClient = new QueryClient();
 
@@ -17,7 +18,9 @@ const App: React.FC = () => {
         <BottomSheetModalProvider>  
           <ThemeProvider>  
             <AuthProvider>  
+      <AppWrapper>
               <AppNavigator />  
+              </AppWrapper>
             </AuthProvider>  
           </ThemeProvider>  
         </BottomSheetModalProvider>  

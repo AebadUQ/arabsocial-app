@@ -15,8 +15,8 @@ const LoginScreen: React.FC = () => {
   const { theme } = useTheme();  
   const { login, loading } = useAuth();
 
-  const [email, setEmail] = useState('');  
-  const [password, setPassword] = useState('');  
+  const [email, setEmail] = useState('test@gmail.com');  
+  const [password, setPassword] = useState('abc.123');  
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
   const handleLogin = async () => {  
