@@ -7,7 +7,7 @@ import {
   ShareFat as ShareFatIcon,
 } from "phosphor-react-native";
 import { useTheme } from "@/theme/ThemeContext";
-import { formatDate } from "@/utils";
+import { formatDate, formatEventDate } from "@/utils";
 import {
   View,
   Image,
@@ -20,15 +20,16 @@ export type EventType = "in_person" | "online";
 
 export type Event = {
   id: string;
-  name: string;
+  title: string;
   startDate: string | Date;
   endDate?: string | Date;
   address?: string;
   city?: string;
   state?: string;
   country?:string;
-  image?: ImageSourcePropType;
+  flyer?: ImageSourcePropType;
   eventType: EventType;
+  event_date?:any;
   totalSpots?: number;
   ticketLink?: string;
   ticketPrice?: number | string;
@@ -44,9 +45,9 @@ const EventCard: React.FC<Props> = ({ event }) => {
 
   return (
     <View style={[styles.card, { backgroundColor: "#fff" }]}>
-      {!!event.image && (
+      {!!event.flyer && (
         <View style={styles.imageWrap}>
-          <Image source={event.image} style={styles.image} resizeMode="cover" />
+          <Image source={require("@/assets/images/event1.png")} style={styles.image} resizeMode="cover" />
           {event.isFeatured ? (
             <View style={[styles.badge, { backgroundColor: theme.colors.primary }]}>
               <Text variant="overline" style={styles.badgeText}>
@@ -59,8 +60,9 @@ const EventCard: React.FC<Props> = ({ event }) => {
 
       <View style={styles.section}>
         <View style={styles.headerRow}>
-          <Text variant="body2" style={styles.title} numberOfLines={2}>
-            {event.name}
+          <Text variant="body2" style={styles.title} numberOfLines={2} color={theme.colors.text}>
+            {event.title}
+            
           </Text>
 
           <View style={styles.iconCircle}>
@@ -71,13 +73,13 @@ const EventCard: React.FC<Props> = ({ event }) => {
         <View style={styles.metaRow}>
           <View style={styles.metaItem}>
             <CalendarBlankIcon size={16} color={theme.colors.primary} />
-            <Text variant="overline" style={styles.metaText}>{formatDate(event.startDate)}</Text>
+            <Text variant="overline" style={styles.metaText}>{formatEventDate(event.event_date)}</Text>
           </View>
 
           {event.city ? (
             <View style={styles.metaItem}>
               <MapPinIcon size={16} color={theme.colors.primary} />
-              <Text style={styles.metaText}>{event.city}</Text>
+              <Text variant="overline" style={styles.metaText}>{event.city}</Text>
             </View>
           ) : null}
         </View>

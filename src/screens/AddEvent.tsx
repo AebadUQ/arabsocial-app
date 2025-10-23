@@ -1,12 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
   Image,
-  Platform,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { launchImageLibrary } from "react-native-image-picker";
@@ -15,80 +15,58 @@ import { Text } from "@/components";
 import InputField from "@/components/Input";
 import { useTheme } from "@/theme/ThemeContext";
 import { useNavigation } from "@react-navigation/native";
+import BottomSheetSelect from "@/components/BottomSheetSelect";
+import PickerField from "@/components/Pickerfield";
+import { Country, State } from "country-state-city";
+import { useMutation } from "@tanstack/react-query";
+import { createEvent } from "@/api/events";
 
-// Icons (phosphor-react-native)
+// Icons
 import {
   CalendarBlank as CalendarIcon,
   Clock as ClockIcon,
-  LinkSimple as LinkIcon,
-  CurrencyDollar as DollarIcon,
-  CaretDown as CaretDownIcon,
-  ArrowLeft as ArrowLeftIcon,
   ImageSquare as ImageSquareIcon,
+  ArrowLeft as ArrowLeftIcon,
 } from "phosphor-react-native";
 
 type FormState = {
-  name: string;
-  type: string;
-  date: string;        // e.g., "Sat, 04 Oct 2025"
-  startTime: string;   // e.g., "06:30 PM"
-  endTime: string;     // e.g., "09:30 PM"
+  title: string;
+  event_type: string;
+  event_date: string;
+  start_datetime: string;
+  end_datetime: string;
   address: string;
-  state: string;
+  country: string;
   city: string;
-  spots: string;
-  link: string;
+  total_spots: string;
+  ticket_link: string;
   price: string;
   description: string;
-  bannerUri: string; // chosen image (if any)
+  bannerUri: string;
 };
 
 type PickerTarget = "date" | "start" | "end";
 
-const PickerField: React.FC<{
-  placeholder: string;
-  value?: string;
-  icon?: React.ReactNode;
-  onPress: () => void;
-  disabled?: boolean;
-}> = ({ placeholder, value, icon, onPress, disabled }) => {
-  return (
-    <TouchableOpacity
-      activeOpacity={0.8}
-      onPress={onPress}
-      disabled={disabled}
-      style={styles.pickerField}
-    >
-      <Text style={{ opacity: value ? 1 : 0.5 }}>
-        {value || placeholder}
-      </Text>
-      <View style={{ marginLeft: 12 }}>{icon}</View>
-    </TouchableOpacity>
-  );
-};
-
 export default function PromoteEventScreen() {
-      const navigation = useNavigation();
-    
+  const navigation = useNavigation();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
 
-  // Actual Date objects (for API)
   const [eventDate, setEventDate] = useState<Date | null>(null);
   const [startAt, setStartAt] = useState<Date | null>(null);
   const [endAt, setEndAt] = useState<Date | null>(null);
 
   const [form, setForm] = useState<FormState>({
-    name: "",
-    type: "",
-    date: "",
-    startTime: "",
-    endTime: "",
+    title: "",
+    event_type: "",
+    event_date: "",
+    start_datetime: "",
+    end_datetime: "",
     address: "",
-    state: "",
+    country: "",
     city: "",
-    spots: "",
-    link: "",
+    total_spots: "",
+    ticket_link: "",
     price: "",
     description: "",
     bannerUri: "",
@@ -97,7 +75,29 @@ export default function PromoteEventScreen() {
   const set = (key: keyof FormState, value: string) =>
     setForm((f) => ({ ...f, [key]: value }));
 
-  // Formatting helpers
+  // --- Country / City handling ---
+  const [countries, setCountries] = useState<string[]>([]);
+  const [cities, setCities] = useState<string[]>([]);
+
+  useEffect(() => {
+    const allCountries = Country.getAllCountries().map((c) => c.name);
+    setCountries(allCountries);
+  }, []);
+
+  useEffect(() => {
+    if (form.country) {
+      const selected = Country.getAllCountries().find(
+        (c) => c.name === form.country
+      );
+      const stateList = State.getStatesOfCountry(selected?.isoCode || "").map(
+        (s) => s.name
+      );
+      setCities(stateList);
+      set("city", "");
+    }
+  }, [form.country]);
+
+  // ---- Date/Time Formatting ----
   const fmtDate = (d: Date) =>
     d.toLocaleDateString(undefined, {
       weekday: "short",
@@ -113,13 +113,11 @@ export default function PromoteEventScreen() {
       hour12: true,
     });
 
-  // Image picker
+  // ---- Image Picker ----
   const onPickBanner = async () => {
     try {
       const result = await launchImageLibrary({
         mediaType: "photo",
-        // @ts-ignore
-        quality: 0.85,
         maxWidth: 1400,
         maxHeight: 1400,
         selectionLimit: 1,
@@ -139,9 +137,7 @@ export default function PromoteEventScreen() {
     }
   };
 
-  const onSelectType = () => console.log("Select event type");
-
-  // ===== Modal DateTime Picker (react-native-modal-datetime-picker) =====
+  // ---- DateTime Picker ----
   const [isPickerVisible, setPickerVisible] = useState(false);
   const [pickerMode, setPickerMode] = useState<"date" | "time">("date");
   const [pickerTarget, setPickerTarget] = useState<PickerTarget>("date");
@@ -150,33 +146,29 @@ export default function PromoteEventScreen() {
   const openPicker = (target: PickerTarget, mode: "date" | "time") => {
     setPickerTarget(target);
     setPickerMode(mode);
-
-    // Pre-fill
     let base: Date | null = null;
     if (target === "date") base = eventDate ?? new Date();
     if (target === "start") base = startAt ?? (eventDate ?? new Date());
     if (target === "end") base = endAt ?? startAt ?? (eventDate ?? new Date());
     setTempValue(base ?? new Date());
-
     setPickerVisible(true);
   };
 
   const onConfirm = (d: Date) => {
     if (pickerTarget === "date") {
       setEventDate(d);
-      set("date", fmtDate(d));
-      // Seed sensible defaults if times not set
+      set("event_date", fmtDate(d));
       if (!startAt) {
         const s = new Date(d);
         s.setHours(18, 0, 0, 0);
         setStartAt(s);
-        set("startTime", fmtTime(s));
+        set("start_datetime", fmtTime(s));
       }
       if (!endAt) {
         const e = new Date(d);
         e.setHours(21, 0, 0, 0);
         setEndAt(e);
-        set("endTime", fmtTime(e));
+        set("end_datetime", fmtTime(e));
       }
     }
 
@@ -184,12 +176,12 @@ export default function PromoteEventScreen() {
       const base = new Date(eventDate ?? new Date());
       base.setHours(d.getHours(), d.getMinutes(), 0, 0);
       setStartAt(base);
-      set("startTime", fmtTime(base));
+      set("start_datetime", fmtTime(base));
       if (endAt && endAt < base) {
         const e = new Date(base);
         e.setHours(base.getHours() + 1);
         setEndAt(e);
-        set("endTime", fmtTime(e));
+        set("end_datetime", fmtTime(e));
       }
     }
 
@@ -197,7 +189,7 @@ export default function PromoteEventScreen() {
       const base = new Date(eventDate ?? new Date());
       base.setHours(d.getHours(), d.getMinutes(), 0, 0);
       setEndAt(base);
-      set("endTime", fmtTime(base));
+      set("end_datetime", fmtTime(base));
       if (startAt && base < startAt) {
         Alert.alert("End time is before start", "Please choose a later time.");
       }
@@ -208,34 +200,56 @@ export default function PromoteEventScreen() {
 
   const onCancel = () => setPickerVisible(false);
 
-  // Triggers
   const onSelectDate = () => openPicker("date", "date");
   const onSelectStart = () => openPicker("start", "time");
   const onSelectEnd = () => openPicker("end", "time");
 
-  // Submit
+  // ---- React Query Mutation ----
+  const mutation = useMutation({
+    mutationFn: createEvent,
+    onSuccess: () => {
+      Alert.alert("Success", "Event created successfully!");
+      navigation.goBack();
+    },
+    onError: (err: any) => {
+      console.error(err);
+      Alert.alert("Error", err?.message || "Something went wrong");
+    },
+  });
+
+  // ---- Submit ----
   const onSubmit = () => {
-    if (!form.name?.trim()) return Alert.alert("Missing", "Please enter event name.");
+    if (!form.title?.trim()) return Alert.alert("Missing", "Please enter event name.");
     if (!eventDate) return Alert.alert("Missing", "Please pick an event date.");
     if (!startAt || !endAt) return Alert.alert("Missing", "Please pick start & end times.");
     if (startAt >= endAt) return Alert.alert("Invalid time", "End time must be after start.");
 
-    console.log("Submitting form:", {
-      ...form,
-      eventDateISO: eventDate?.toISOString(),
-      startISO: startAt?.toISOString(),
-      endISO: endAt?.toISOString(),
-    });
-    //@ts-ignore
-              navigation.navigate("Events")
+    const payload = {
+      title: form.title,
+      description: form.description,
+      event_type: form.event_type,
+      location: form.address,
+      address: form.address,
+      country: form.country,
+      city: form.city,
+      flyer: form.bannerUri,
+      img: form.bannerUri,
+      ticket_link: form.ticket_link,
+      price: form.price,
+      total_spots: Number(form.total_spots),
+      start_datetime: startAt.toISOString(),
+      end_datetime: endAt.toISOString(),
+      event_date: eventDate.toISOString(),
+    };
 
+    mutation.mutate(payload);
   };
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.colors.background }]}>
       {/* Top Bar */}
       <View style={styles.topBar}>
-        <TouchableOpacity style={styles.navBtn} onPress={() => console.log("Back")}>
+        <TouchableOpacity style={styles.navBtn} onPress={() => navigation.goBack()}>
           <ArrowLeftIcon size={24} color={"white"} />
         </TouchableOpacity>
         <Text variant="body1" color={theme.colors.text} style={{ fontWeight: "600" }}>
@@ -251,7 +265,7 @@ export default function PromoteEventScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Upload box */}
+        {/* Banner Upload */}
         <TouchableOpacity
           activeOpacity={0.9}
           style={[
@@ -277,28 +291,57 @@ export default function PromoteEventScreen() {
           )}
         </TouchableOpacity>
 
-        {/* Fields */}
+        {/* Form Inputs */}
         <InputField
           placeholder="Event name"
-          value={form.name}
-          onChangeText={(t) => set("name", t)}
+          value={form.title}
+          onChangeText={(t) => set("title", t)}
           containerStyle={styles.fieldGap}
         />
 
-        <InputField
-          placeholder="Event type"
-          value={form.type}
-          onChangeText={(t) => set("type", t)}
-          right={<CaretDownIcon size={18} color={theme.colors.placeholder} />}
-          onPressRight={onSelectType as any}
+        <BottomSheetSelect
+          label="Event Type"
+          labelColor={theme.colors.textLight}
+          value={form.event_type}
+          onChange={(v) => set("event_type", v)}
+          options={[
+            { label: "Online", value: "online" },
+            { label: "In Person", value: "in_person" },
+          ]}
+          placeholder="Select Event Type"
+          sheetTitle="Select Event Type"
           containerStyle={styles.fieldGap}
         />
 
-        {/* Date / Time: use pressable picker fields */}
+        <BottomSheetSelect
+          label="Country"
+          labelColor={theme.colors.textLight}
+          value={form.country}
+          onChange={(v) => set("country", v)}
+          options={countries.map((c) => ({ label: c, value: c }))}
+          placeholder="Select Country"
+          sheetTitle="Select Country"
+          containerStyle={styles.fieldGap}
+        />
+
+        {form.country ? (
+          <BottomSheetSelect
+            label="City / State"
+            labelColor={theme.colors.textLight}
+            value={form.city}
+            onChange={(v) => set("city", v)}
+            options={cities.map((s) => ({ label: s, value: s }))}
+            placeholder="Select City"
+            sheetTitle="Select City"
+            containerStyle={styles.fieldGap}
+          />
+        ) : null}
+
+        {/* Date & Time Pickers */}
         <View style={styles.fieldGap}>
           <PickerField
             placeholder="Event date"
-            value={form.date}
+            value={form.event_date}
             icon={<CalendarIcon size={18} color={theme.colors.placeholder} />}
             onPress={onSelectDate}
           />
@@ -308,7 +351,7 @@ export default function PromoteEventScreen() {
           <View style={styles.col}>
             <PickerField
               placeholder="Start Time"
-              value={form.startTime}
+              value={form.start_datetime}
               icon={<ClockIcon size={18} color={theme.colors.placeholder} />}
               onPress={onSelectStart}
             />
@@ -316,61 +359,41 @@ export default function PromoteEventScreen() {
           <View style={styles.col}>
             <PickerField
               placeholder="End Time"
-              value={form.endTime}
+              value={form.end_datetime}
               icon={<ClockIcon size={18} color={theme.colors.placeholder} />}
               onPress={onSelectEnd}
             />
           </View>
         </View>
 
+        {/* Other Fields */}
         <InputField
-          placeholder="Address"
+          placeholder="Event address"
           value={form.address}
           onChangeText={(t) => set("address", t)}
           containerStyle={styles.fieldGap}
         />
 
-        {/* State / City */}
-        <View style={[styles.row, styles.fieldGap]}>
-          <View style={styles.col}>
-            <InputField
-              placeholder="State"
-              value={form.state}
-              onChangeText={(t) => set("state", t)}
-            />
-          </View>
-          <View style={styles.col}>
-            <InputField
-              placeholder="City"
-              value={form.city}
-              onChangeText={(t) => set("city", t)}
-            />
-          </View>
-        </View>
-
         <InputField
-          placeholder="Total spots (optional)"
-          value={form.spots}
-          onChangeText={(t) => set("spots", t.replace(/[^0-9]/g, ""))}
-          keyboardType={Platform.select({ ios: "number-pad", android: "numeric" })}
-          containerStyle={styles.fieldGap}
-        />
-
-        <InputField
-          placeholder="Ticket link (optional)"
-          value={form.link}
-          onChangeText={(t) => set("link", t)}
-          right={<LinkIcon size={18} color={theme.colors.placeholder} />}
-          containerStyle={styles.fieldGap}
-          autoCapitalize="none"
-        />
-
-        <InputField
-          placeholder="Ticket price (optional)"
+          placeholder="Price (optional)"
           value={form.price}
-          onChangeText={(t) => set("price", t.replace(/[^0-9.]/g, ""))}
-          keyboardType="decimal-pad"
-          right={<DollarIcon size={18} color={theme.colors.placeholder} />}
+          keyboardType="numeric"
+          onChangeText={(t) => set("price", t)}
+          containerStyle={styles.fieldGap}
+        />
+
+        <InputField
+          placeholder="Total spots"
+          value={form.total_spots}
+          onChangeText={(t) => set("total_spots", t)}
+          containerStyle={styles.fieldGap}
+          keyboardType="numeric"
+        />
+
+        <InputField
+          placeholder="Event Link (optional)"
+          value={form.ticket_link}
+          onChangeText={(t) => set("ticket_link", t)}
           containerStyle={styles.fieldGap}
         />
 
@@ -379,41 +402,30 @@ export default function PromoteEventScreen() {
           value={form.description}
           onChangeText={(t) => set("description", t)}
           multiline
-          textAlignVertical="top"
-          inputStyle={{ height: 120, paddingTop: 12 }}
+          numberOfLines={4}
+          style={{ textAlignVertical: "top" }}
           containerStyle={styles.fieldGap}
         />
       </ScrollView>
 
-      {/* Sticky Submit */}
-      <View
-        style={[
-          styles.footer,
-          { paddingBottom: Math.max(insets.bottom, 12), backgroundColor: theme.colors.background },
-        ]}
-      >
-        <TouchableOpacity
-          style={[styles.submitBtn, { backgroundColor: theme.colors.primary }]}
-          onPress={onSubmit}
-          activeOpacity={0.9}
-        >
-          <Text style={styles.submitText}>Submit Event</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Submit Button */}
+      <TouchableOpacity style={styles.submitBtn} onPress={onSubmit}>
+        {
+        //@ts-ignore
+        mutation.isLoading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={{ color: "#fff", fontWeight: "600" }}>Submit</Text>
+        )}
+      </TouchableOpacity>
 
-      {/* ===== Modal DateTime Picker ===== */}
+      {/* Date Picker */}
       <DateTimePickerModal
         isVisible={isPickerVisible}
         mode={pickerMode}
         date={tempValue}
-        // Optional: restrict past dates for Event Date
-        minimumDate={pickerMode === "date" ? new Date() : undefined}
         onConfirm={onConfirm}
         onCancel={onCancel}
-        // Nice iOS/Android consistent UX:
-        //@ts-ignore
-        headerTextIOS={pickerMode === "date" ? "Select Date" : "Select Time"}
-        confirmTextIOS="Done"
       />
     </SafeAreaView>
   );
@@ -421,82 +433,58 @@ export default function PromoteEventScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-
   topBar: {
-    height: 48,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
     justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   navBtn: {
     width: 40,
     height: 40,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#191D214D",
     borderRadius: 20,
-  },
-
-  content: { paddingHorizontal: 16, paddingTop: 8 },
-
-  uploadBox: {
-    height: 220,
-    borderRadius: 16,
-    borderWidth: 1,
-    overflow: "hidden",
-    marginTop: 8,
-    marginBottom: 16,
-    position: "relative",
-  },
-  uploadInner: {
-    flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 10,
+    backgroundColor: "#1BAD7A",
   },
-  bannerImg: { width: "100%", height: "100%", resizeMode: "cover" },
-
+  content: { padding: 16 },
+  fieldGap: { marginTop: 16 },
+  uploadBox: {
+    height: 180,
+    borderWidth: 1.5,
+    borderStyle: "dashed",
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 20,
+  },
+  uploadInner: { alignItems: "center", justifyContent: "center", gap: 8 },
+  bannerImg: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 12,
+    resizeMode: "cover",
+  },
   changeHintWrap: {
     position: "absolute",
-    right: 8,
-    bottom: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    bottom: 6,
+    right: 6,
     backgroundColor: "rgba(0,0,0,0.5)",
-    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
   },
   changeHintText: { color: "#fff", fontSize: 12 },
-
-  fieldGap: { marginBottom: 14 },
-
-  row: { flexDirection: "row", gap: 12 },
+  row: { flexDirection: "row", justifyContent: "space-between", gap: 10 },
   col: { flex: 1 },
-
-  footer: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingTop: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "rgba(0,0,0,0.06)",
-  },
   submitBtn: {
-    height: 52,
+    backgroundColor: "#1BAD7A",
     alignItems: "center",
     justifyContent: "center",
-  },
-  submitText: { color: "#fff", fontSize: 16, fontWeight: "600" },
-
-  pickerField: {
-    height: 50,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "#d9d9d9",
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "space-between",
+    height: 54,
+    borderRadius: 12,
+    marginHorizontal: 16,
+    marginBottom: 20,
   },
 });

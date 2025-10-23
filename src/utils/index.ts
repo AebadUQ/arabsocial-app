@@ -33,6 +33,26 @@ export const truncateText = (text: string, maxLength: number): string => {
   if (text.length <= maxLength) return text;
   return text.substring(0, maxLength) + '...';
 };
+export const formatEventDate = (date: Date | string): string => {
+  const d = new Date(date);
+  const now = new Date();
+
+  // Check if same day
+  const isToday =
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate();
+
+  if (isToday) return "Today";
+
+  // Otherwise return formatted string
+  return d.toLocaleDateString(undefined, {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
 
 // Date utilities
 export const formatDate = (date: Date | string): string => {

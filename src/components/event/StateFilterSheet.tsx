@@ -1,4 +1,3 @@
-// components/event/StateFilterSheet.tsx
 import React, { useMemo, useState } from "react";
 import {
   View,
@@ -12,175 +11,131 @@ import CustomBottomSheet from "@/components/BottomSheet";
 import { useTheme } from "@/theme/ThemeContext";
 import {
   CaretDown as CaretDownIcon,
-  CaretUp as CaretUpIcon,
   Check as CheckIcon,
   MagnifyingGlass as MagnifyingGlassIcon,
 } from "phosphor-react-native";
-
-type Country = {
-  code: string;
-  name: string;
-  states: string[];
-};
-
-const COUNTRIES: Country[] = [
-  {
-    code: "AE",
-    name: "United Arab Emirates",
-    states: [
-      "Dubai",
-      "Ajman",
-      "Sharjah",
-      "Abu Dhabi",
-      "Ras Al Khaimah",
-      "Fujairah",
-      "Umm Al-Quwain",
-      "Al Ain",
-    ],
-  },
-  {
-    code: "SA",
-    name: "Saudi Arabia",
-    states: [
-      "Riyadh",
-      "Jeddah",
-      "Mecca",
-      "Medina",
-      "Dammam",
-      "Khobar",
-      "Tabuk",
-      "Abha",
-    ],
-  },
-  {
-    code: "OM",
-    name: "Oman",
-    states: ["Muscat", "Salalah", "Sohar", "Nizwa", "Sur", "Ibri"],
-  },
-  {
-    code: "QA",
-    name: "Qatar",
-    states: ["Doha", "Al Wakrah", "Al Khor", "Umm Salal"],
-  },
-  {
-    code: "PK",
-    name: "Pakistan",
-    states: ["Sindh", "Punjab", "Balochistan", "KPK", "ICT", "Gilgit Baltistan"],
-  },
-];
+import { Country, City } from "country-state-city";
 
 type Props = {
   visible: boolean;
   onClose: () => void;
-  initialCountryCode?: string;
-  initialStates?: string[];
-  onApply: (params: { countryCode: string; states: string[] }) => void;
+  initialCountryName?: string;
+  initialCities?: string[];
+  onApply: (params: { countryName: string; cities: string }) => void;
 };
 
 const StateFilterSheet: React.FC<Props> = ({
   visible,
   onClose,
-  initialCountryCode = "AE",
-  initialStates = [],
+  initialCountryName = "United Arab Emirates",
+  initialCities = [],
   onApply,
 }) => {
   const { theme } = useTheme();
 
-  // Dropdown toggles
   const [countryOpen, setCountryOpen] = useState(false);
-  const [stateOpen, setStateOpen] = useState(false);
+  const [cityOpen, setCityOpen] = useState(false);
 
-  // Data
-  const [countryCode, setCountryCode] = useState(initialCountryCode);
-  const [selected, setSelected] = useState<string[]>(
-    Array.isArray(initialStates) ? initialStates : []
+  const allCountries = useMemo(() => Country.getAllCountries(), []);
+
+  const mappedCountries = useMemo(
+    () =>
+      allCountries.map((c) => ({
+        code: c.isoCode,
+        name: c.name,
+      })),
+    [allCountries]
   );
 
-  // Search queries (separate for country & state)
+  // Initial selected country object
+  const initialCountry = mappedCountries.find(
+    (c) => c.name === initialCountryName
+  );
+
+  const [selectedCountry, setSelectedCountry] = useState<{
+    code: string;
+    name: string;
+  } | null>(initialCountry || null);
+
+  const [selectedCountryName, setSelectedCountryName] = useState<string>(
+    initialCountry?.name || ""
+  );
+
+  const [selected, setSelected] = useState<string[]>(initialCities);
+
   const [countryQuery, setCountryQuery] = useState("");
-  const [stateQuery, setStateQuery] = useState("");
+  const [cityQuery, setCityQuery] = useState("");
 
-  // Current country object
-  const country = useMemo(
-    () => COUNTRIES.find((c) => c.code === countryCode) || COUNTRIES[0],
-    [countryCode]
-  );
+  // Cities of the selected country
+  const countryCities = useMemo(() => {
+    if (!selectedCountry?.code) return [];
+    const cities = City.getCitiesOfCountry(selectedCountry.code) ?? [];
+    return cities.map((c) => c.name);
+  }, [selectedCountry]);
 
-  // Filtered lists
+  // Filter countries & cities based on search
   const filteredCountries = useMemo(() => {
-    const q = countryQuery.trim().toLowerCase();
-    if (!q) return COUNTRIES;
-    return COUNTRIES.filter(
-      (c) => c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)
+    const q = countryQuery.toLowerCase().trim();
+    if (!q) return mappedCountries;
+    return mappedCountries.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)
     );
-  }, [countryQuery]);
+  }, [countryQuery, mappedCountries]);
 
-  const filteredStates = useMemo(() => {
-  const q = stateQuery.trim().toLowerCase();
-  const states = country?.states ?? []; // ✅ handles undefined country safely
-  if (!q) return states;
-  return states.filter((s) => s.toLowerCase().includes(q));
-}, [country, stateQuery]);
+  const filteredCities = useMemo(() => {
+    const q = cityQuery.toLowerCase().trim();
+    if (!q) return countryCities;
+    return countryCities.filter((c) => c.toLowerCase().includes(q));
+  }, [cityQuery, countryCities]);
 
-  // Select logic
-  const toggleState = (name: string) => {
+  // City selection
+  const toggleCity = (name: string) =>
     setSelected((prev) =>
       prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]
     );
-  };
 
   const allShownSelected =
-    filteredStates.length > 0 &&
-    filteredStates.every((s) => selected.includes(s));
+    filteredCities.length > 0 && filteredCities.every((c) => selected.includes(c));
 
   const toggleAllShown = () => {
     if (allShownSelected) {
-      setSelected((prev) => prev.filter((s) => !filteredStates.includes(s)));
+      setSelected((prev) => prev.filter((c) => !filteredCities.includes(c)));
     } else {
-      setSelected((prev) => Array.from(new Set([...prev, ...filteredStates])));
+      setSelected((prev) => Array.from(new Set([...prev, ...filteredCities])));
     }
   };
 
-  const handleSelectCountry = (code: string) => {
-    setCountryCode(code);
+  const handleSelectCountry = (country: { code: string; name: string }) => {
+    setSelectedCountry(country);
+    setSelectedCountryName(country.name); // store name for display & onApply
     setCountryOpen(false);
     setSelected([]);
-    setStateQuery("");
-    setStateOpen(true);
+    setCityQuery("");
+    setCityOpen(true);
   };
 
   return (
     <CustomBottomSheet visible={visible} onClose={onClose}>
       <View style={styles.wrap}>
-        {/* ===================== COUNTRY ===================== */}
+        {/* Country Selector */}
         {!countryOpen && (
           <TouchableOpacity
             activeOpacity={0.85}
             onPress={() => {
               setCountryOpen(true);
-              setStateOpen(false);
+              setCityOpen(false);
             }}
-            style={[
-              styles.headerRow,
-              { backgroundColor: "white", borderColor: theme.colors.borderColor },
-            ]}
+            style={[styles.headerRow, { borderColor: theme.colors.borderColor }]}
           >
-            <Text variant="body1">{country?.name || "Select Country"}</Text>
+            <Text variant="body1">{selectedCountryName || "Select Country"}</Text>
             <CaretDownIcon size={18} color={theme.colors.text} />
           </TouchableOpacity>
         )}
 
         {countryOpen && (
-          <View
-            style={[
-              styles.dropdown,
-              { backgroundColor: "white", borderColor: theme.colors.borderColor },
-            ]}
-          >
-            {/* Search */}
-            <View
-              style={[styles.searchRow, { borderColor: theme.colors.borderColor }]}
-            >
+          <View style={[styles.dropdown, { borderColor: theme.colors.borderColor }]}>
+            <View style={[styles.searchRow, { borderColor: theme.colors.borderColor }]}>
               <TextInput
                 value={countryQuery}
                 onChangeText={setCountryQuery}
@@ -191,182 +146,142 @@ const StateFilterSheet: React.FC<Props> = ({
               <MagnifyingGlassIcon size={18} color={theme.colors.textLight} />
             </View>
 
-            {/* Country List */}
             <ScrollView
               style={{ maxHeight: 280 }}
               keyboardShouldPersistTaps="handled"
               contentContainerStyle={{ paddingVertical: 6 }}
             >
               {filteredCountries.map((c) => {
-                const active = c.code === countryCode;
-                return (
-                 <TouchableOpacity
-  key={c.code}
-  onPress={() => handleSelectCountry(c.code)}
-  activeOpacity={0.8}
-  style={styles.itemRow}
->
-  <View
-    style={[
-      styles.checkbox,
-      {
-        borderColor: theme.colors.borderColor,
-        backgroundColor: active ? theme.colors.primary : "transparent",
-      },
-    ]}
-  >
-    {active ? <CheckIcon size={14} color="#fff" weight="bold" /> : null}
-  </View>
-  <Text
-    variant="body1"
-    style={{
-      color: active ? theme.colors.primary : theme.colors.text,
-      fontWeight: active ? "600" : "400",
-    }}
-  >
-    {c.name}
-  </Text>
-</TouchableOpacity>
-
-                );
-              })}
-              {filteredCountries.length === 0 && (
-                <View style={{ paddingVertical: 16, alignItems: "center" }}>
-                  <Text style={{ color: theme.colors.textLight }}>
-                    No results found
-                  </Text>
-                </View>
-              )}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* ===================== STATE ===================== */}
-        {!stateOpen && (
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={() => {
-              setStateOpen(true);
-              setCountryOpen(false);
-            }}
-            style={[
-              styles.headerRow,
-              { backgroundColor: "white", borderColor: theme.colors.borderColor },
-            ]}
-          >
-            <Text style={{ color: theme.colors.text, fontWeight: "600" }}>
-              {selected.length > 0
-                ? `${selected.length} selected`
-                : "Select states"}
-            </Text>
-            <CaretDownIcon size={18} color={theme.colors.text} />
-          </TouchableOpacity>
-        )}
-
-        {stateOpen && (
-          <View
-            style={[
-              styles.dropdown,
-              { backgroundColor: "white", borderColor: theme.colors.borderColor },
-            ]}
-          >
-            {/* Search */}
-            <View
-              style={[styles.searchRow, { borderColor: theme.colors.borderColor }]}
-            >
-              <TextInput
-                value={stateQuery}
-                onChangeText={setStateQuery}
-                placeholder="Search states..."
-                placeholderTextColor={theme.colors.textLight}
-                style={[styles.searchInput, { color: theme.colors.text }]}
-              />
-              <MagnifyingGlassIcon size={18} color={theme.colors.textLight} />
-            </View>
-
-            {/* Select All */}
-            <TouchableOpacity
-              onPress={toggleAllShown}
-              style={styles.selectAllRow}
-              activeOpacity={0.8}
-            >
-              <View
-                style={[
-                  styles.checkbox,
-                  {
-                    borderColor: theme.colors.borderColor,
-                    backgroundColor: allShownSelected
-                      ? theme.colors.primary
-                      : "transparent",
-                  },
-                ]}
-              >
-                {allShownSelected ? (
-                  <CheckIcon size={14} color="#fff" weight="bold" />
-                ) : null}
-              </View>
-              <Text style={{ color: theme.colors.textLight }}>Select all</Text>
-              <Text style={{ color: theme.colors.textLight }}>
-                {" "}
-                ({filteredStates.length})
-              </Text>
-            </TouchableOpacity>
-
-            {/* State List */}
-            <ScrollView
-              style={{ maxHeight: 320 }}
-              contentContainerStyle={{ paddingBottom: 8 }}
-              keyboardShouldPersistTaps="handled"
-            >
-              {filteredStates.map((s) => {
-                const checked = selected.includes(s);
+                const active = c.name === selectedCountryName;
                 return (
                   <TouchableOpacity
-                    key={s}
-                    onPress={() => toggleState(s)}
-                    activeOpacity={0.8}
+                    key={c.code}
+                    onPress={() => handleSelectCountry(c)}
                     style={styles.itemRow}
+                    activeOpacity={0.8}
                   >
                     <View
                       style={[
                         styles.checkbox,
                         {
                           borderColor: theme.colors.borderColor,
-                          backgroundColor: checked
-                            ? theme.colors.primary
-                            : "transparent",
+                          backgroundColor: active ? theme.colors.primary : "transparent",
                         },
                       ]}
                     >
-                      {checked ? (
-                        <CheckIcon size={14} color="#fff" weight="bold" />
-                      ) : null}
+                      {active && <CheckIcon size={14} color="#fff" weight="bold" />}
                     </View>
                     <Text
                       variant="body1"
                       style={{
-                        color: checked
-                          ? theme.colors.primaryDark
-                          : theme.colors.textLight,
+                        color: active ? theme.colors.primary : theme.colors.text,
+                        fontWeight: active ? "600" : "400",
                       }}
                     >
-                      {s}
+                      {c.name}
                     </Text>
                   </TouchableOpacity>
                 );
               })}
-              {filteredStates.length === 0 && (
+              {filteredCountries.length === 0 && (
                 <View style={{ paddingVertical: 16, alignItems: "center" }}>
-                  <Text style={{ color: theme.colors.textLight }}>
-                    No results found
-                  </Text>
+                  <Text style={{ color: theme.colors.textLight }}>No results found</Text>
                 </View>
               )}
             </ScrollView>
           </View>
         )}
 
-        {/* ===================== FOOTER ===================== */}
+        {/* City Selector */}
+        {!cityOpen && (
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => {
+              setCityOpen(true);
+              setCountryOpen(false);
+            }}
+            style={[styles.headerRow, { borderColor: theme.colors.borderColor }]}
+          >
+            <Text style={{ color: theme.colors.text, fontWeight: "600" }}>
+              {selected.length > 0 ? `${selected.length} selected` : "Select Cities"}
+            </Text>
+            <CaretDownIcon size={18} color={theme.colors.text} />
+          </TouchableOpacity>
+        )}
+
+        {cityOpen && (
+          <View style={[styles.dropdown, { borderColor: theme.colors.borderColor }]}>
+            <View style={[styles.searchRow, { borderColor: theme.colors.borderColor }]}>
+              <TextInput
+                value={cityQuery}
+                onChangeText={setCityQuery}
+                placeholder="Search cities..."
+                placeholderTextColor={theme.colors.textLight}
+                style={[styles.searchInput, { color: theme.colors.text }]}
+              />
+              <MagnifyingGlassIcon size={18} color={theme.colors.textLight} />
+            </View>
+
+            <TouchableOpacity onPress={toggleAllShown} style={styles.selectAllRow} activeOpacity={0.8}>
+              <View
+                style={[
+                  styles.checkbox,
+                  {
+                    borderColor: theme.colors.borderColor,
+                    backgroundColor: allShownSelected ? theme.colors.primary : "transparent",
+                  },
+                ]}
+              >
+                {allShownSelected && <CheckIcon size={14} color="#fff" weight="bold" />}
+              </View>
+              <Text style={{ color: theme.colors.textLight }}>Select all</Text>
+              <Text style={{ color: theme.colors.textLight }}> ({filteredCities.length})</Text>
+            </TouchableOpacity>
+
+            <ScrollView
+              style={{ maxHeight: 320 }}
+              contentContainerStyle={{ paddingBottom: 8 }}
+              keyboardShouldPersistTaps="handled"
+            >
+              {filteredCities.map((c, index) => {
+                const checked = selected.includes(c);
+                return (
+                  <TouchableOpacity
+                    key={`${c}-${index}`}
+                    onPress={() => toggleCity(c)}
+                    style={styles.itemRow}
+                    activeOpacity={0.8}
+                  >
+                    <View
+                      style={[
+                        styles.checkbox,
+                        {
+                          borderColor: theme.colors.borderColor,
+                          backgroundColor: checked ? theme.colors.primary : "transparent",
+                        },
+                      ]}
+                    >
+                      {checked && <CheckIcon size={14} color="#fff" weight="bold" />}
+                    </View>
+                    <Text
+                      variant="body1"
+                      style={{ color: checked ? theme.colors.primaryDark : theme.colors.textLight }}
+                    >
+                      {c}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+              {filteredCities.length === 0 && (
+                <View style={{ paddingVertical: 16, alignItems: "center" }}>
+                  <Text style={{ color: theme.colors.textLight }}>No results found</Text>
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* Footer */}
         <View style={styles.footer}>
           <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
             <Text style={{ color: theme.colors.text }}>Cancel</Text>
@@ -374,7 +289,12 @@ const StateFilterSheet: React.FC<Props> = ({
 
           <TouchableOpacity
             style={[styles.applyBtn, { backgroundColor: theme.colors.primary }]}
-            onPress={() => onApply({ countryCode, states: selected })}
+            onPress={() =>
+              onApply({
+                countryName: selectedCountryName,
+                cities: selected.join(","),
+              })
+            }
           >
             <Text style={{ color: "#fff", fontWeight: "700" }}>Apply</Text>
           </TouchableOpacity>
@@ -386,7 +306,6 @@ const StateFilterSheet: React.FC<Props> = ({
 
 const styles = StyleSheet.create({
   wrap: { gap: 16 },
-
   headerRow: {
     borderWidth: 1,
     borderRadius: 8,
@@ -395,14 +314,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    backgroundColor: "white",
   },
-
   dropdown: {
     borderWidth: 1,
     borderRadius: 8,
     overflow: "hidden",
+    backgroundColor: "white",
   },
-
   searchRow: {
     borderBottomWidth: 1,
     paddingHorizontal: 16,
@@ -414,7 +333,6 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   searchInput: { flex: 1 },
-
   itemRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -422,7 +340,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 14,
   },
-
   checkbox: {
     width: 20,
     height: 20,
@@ -431,22 +348,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-
-  radio: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  radioDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#fff",
-  },
-
   selectAllRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -454,7 +355,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 16,
   },
-
   footer: {
     flexDirection: "row",
     gap: 12,

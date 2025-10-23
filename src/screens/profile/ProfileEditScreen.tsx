@@ -176,7 +176,8 @@ const ProfileEditScreen: React.FC = () => {
       };
       await updateProfile(updatedData);
       navigation.goBack();
-    } catch {
+    } catch(err) {
+      console.log(err)
     } finally {
       setSaving(false);
     }
