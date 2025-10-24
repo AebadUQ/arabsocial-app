@@ -22,7 +22,7 @@ import {
 import TopBar from "@/components/common/TopBar";
 import StateFilterSheet from "@/components/event/StateFilterSheet";
 import { getApprovedEvents } from "@/api/events";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 
 type DateFilter = "all" | "today" | "week" | "month";
 const FILTERS: { key: DateFilter; label: string }[] = [
@@ -39,34 +39,53 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
   const [selectedFilter, setSelectedFilter] = useState<DateFilter>("all");
   const [query, setQuery] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
-  const [filterCountry, setFilterCountry] = useState(""); // store country name
+  const [filterCountry, setFilterCountry] = useState("");
   const [filterStates, setFilterStates] = useState<string[]>([]);
 
   const dimText = theme.colors?.text ?? "#111827";
 
-  // ✅ React Query: Fetch Events
-  const { data, isLoading, isFetching, refetch } = useQuery({
-    queryKey: ["approvedEvents", selectedFilter, filterCountry, filterStates],
-    queryFn: async () => {
-      const params = {
-        when: selectedFilter === "all" ? "" : selectedFilter,
-        page: 1,
-        limit: 10,
-        country: filterCountry,
-        city: filterStates[0] || "",
-      };
-      const response = await getApprovedEvents(params);
-      return response?.data?.data || [];
-    },
-  });
+  // ✅ React Query Infinite Pagination
+  const {
+  data,
+  isLoading,
+  isFetchingNextPage,
+  fetchNextPage,
+  hasNextPage,
+  refetch,
+} = useInfiniteQuery({
+  queryKey: ["approvedEvents", selectedFilter, filterCountry, filterStates],
+  initialPageParam: 1, // ✅ required in React Query v5
+  queryFn: async ({ pageParam }) => {
+    const params = {
+      when: selectedFilter === "all" ? "" : selectedFilter,
+      page: pageParam,
+      limit: 10,
+      country: filterCountry,
+      city: filterStates[0] || "",
+    };
 
-  const events: Event[] = data || [];
+    const res = await getApprovedEvents(params);
+    const events = res?.data?.data || [];
 
-  // --- filtering logic (only local search) ---
+    // ✅ determine next page
+    const nextPage = events.length === 10 ? pageParam + 1 : undefined;
+
+    return { data: events, nextPage };
+  },
+  getNextPageParam: (lastPage) => lastPage?.nextPage,
+});
+
+
+  const events: Event[] = useMemo(
+    () => data?.pages?.flatMap((page) => page.data) || [],
+    [data]
+  );
+
+  // --- local search ---
   const filteredEvents = useMemo(() => {
     const q = query.trim().toLowerCase();
     return events?.filter((e) => {
-      const text = `${e.title} ${e.city} ${e.state} ${e.country} ${e.description}`.toLowerCase();
+      const text = `${e.title} ${e.city} ${e.country} ${e.description}`.toLowerCase();
       return !q || text.includes(q);
     });
   }, [query, events]);
@@ -154,7 +173,7 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
       </View>
 
       {/* Events List */}
-      {isLoading || isFetching ? (
+      {isLoading ? (
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
           <ActivityIndicator size="large" color="#1BAD7A" />
           <Text style={{ marginTop: 8 }}>Loading events...</Text>
@@ -166,6 +185,17 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
           contentContainerStyle={[styles.content, { paddingBottom: 140 + insets.bottom }]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          onEndReached={() => {
+            if (hasNextPage) fetchNextPage();
+          }}
+          onEndReachedThreshold={0.4}
+          ListFooterComponent={
+            isFetchingNextPage ? (
+              <View style={{ paddingVertical: 20 }}>
+                <ActivityIndicator color="#1BAD7A" />
+              </View>
+            ) : null
+          }
           ListEmptyComponent={
             <View style={{ padding: 24, alignItems: "center" }}>
               <Text style={{ color: theme.colors.textLight }}>
@@ -183,7 +213,7 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
               <EventCard event={item} />
             </TouchableOpacity>
           )}
-          refreshing={isFetching}
+          refreshing={isLoading}
           onRefresh={refetch}
         />
       )}
@@ -210,15 +240,14 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
       <StateFilterSheet
         visible={filterOpen}
         onClose={() => setFilterOpen(false)}
-        initialCountryName={filterCountry} // updated: use name
+        initialCountryName={filterCountry}
         initialCities={filterStates}
         onApply={({ countryName, cities }) => {
-          setFilterCountry(countryName); // store country name
+          setFilterCountry(countryName);
           setFilterStates(cities ? cities.split(",") : []);
           setFilterOpen(false);
         }}
       />
-
     </SafeAreaView>
   );
 };
