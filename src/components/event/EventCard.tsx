@@ -45,7 +45,7 @@ const EventCard: React.FC<Props> = ({ event }) => {
 
   return (
     <View style={[styles.card, { backgroundColor: "#fff" }]}>
-      {!!event.flyer && (
+      {true && (
         <View style={styles.imageWrap}>
           <Image source={require("@/assets/images/event1.png")} style={styles.image} resizeMode="cover" />
           {event.isFeatured ? (
