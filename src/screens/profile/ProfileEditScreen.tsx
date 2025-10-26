@@ -21,30 +21,23 @@ import {
   InstagramLogo,
   XLogo,
   Plus,
+  X as XIcon,
 } from "phosphor-react-native";
 import BottomSheetSelect from "@/components/BottomSheetSelect";
 import { useAuth } from "@/context/Authcontext";
 import { Country, State } from "country-state-city";
 import { theme } from "@/theme/theme";
 
-const MARITAL_OPTIONS = ["Single", "Married", "Prefer not to say"];
-const GENDER_OPTIONS = ["Female", "Male", "Prefer not to say"];
-const RELIGION_OPTIONS = [
-  "Islam",
-  "Christianity",
-  "Hinduism",
-  "Buddhism",
-  "Atheist",
-  "Other",
-];
-const EDUCATION_OPTIONS = [
-  "High School Diploma",
-  "Bachelor’s Degree",
-  "Master’s Degree",
-  "Doctorate / PhD",
-  "Other",
-];
-const LANGUAGE_OPTIONS = ["Arabic", "English", "Urdu", "Hindi", "French", "Other"];
+// 👇 NEW: import dropdown data from constants file
+import {
+  MARITAL_OPTIONS,
+  GENDER_OPTIONS,
+  RELIGION_OPTIONS,
+  EDUCATION_OPTIONS,
+  LANGUAGE_OPTIONS,
+  PROFESSION_OPTIONS,
+} from "@/utils/dropdown";
+
 const CHIP_BG = "#1E644CCC";
 
 const ProfileEditScreen: React.FC = () => {
@@ -71,7 +64,7 @@ const ProfileEditScreen: React.FC = () => {
   const [interests, setInterests] = useState<string[]>(
     user?.interests && Array.isArray(user.interests) && user.interests.length > 0
       ? user.interests
-      : ["N/A"]
+      : []
   );
 
   const [countries, setCountries] = useState<string[]>([]);
@@ -89,11 +82,13 @@ const ProfileEditScreen: React.FC = () => {
     twitter: user?.social_links?.twitter || "",
   });
 
+  // fill country dropdown
   useEffect(() => {
     const countryList = Country.getAllCountries().map((c) => c.name);
     setCountries(countryList);
   }, []);
 
+  // init form from user
   useEffect(() => {
     if (user) {
       setForm({
@@ -116,16 +111,20 @@ const ProfileEditScreen: React.FC = () => {
     }
   }, [user]);
 
+  // when country changes
   useEffect(() => {
     if (selectedCountry) {
       const countryObj = Country.getAllCountries().find(
         (c) => c.name === selectedCountry
       );
+
       const stateList = State.getStatesOfCountry(countryObj?.isoCode || "").map(
         (s) => s.name
       );
       setStates(stateList);
+
       setForm((prev) => ({ ...prev, state: "" }));
+
       handleChange(
         "nationality",
         // @ts-ignore
@@ -138,20 +137,30 @@ const ProfileEditScreen: React.FC = () => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleSocialChange = (key: keyof typeof socialLinks, value: string) => {
+  const handleSocialChange = (
+    key: keyof typeof socialLinks,
+    value: string
+  ) => {
     setSocialLinks((prev) => ({ ...prev, [key]: value }));
   };
 
+  // add interest modal open
   const handleAddInterest = () => {
     setInterestModalVisible(true);
   };
 
+  // add new interest
   const saveNewInterest = () => {
     if (newInterest.trim() !== "") {
       setInterests((prev) => [...prev, newInterest.trim()]);
       setNewInterest("");
       setInterestModalVisible(false);
     }
+  };
+
+  // remove interest
+  const removeInterest = (idx: number) => {
+    setInterests((prev) => prev.filter((_, i) => i !== idx));
   };
 
   const onSave = async () => {
@@ -161,8 +170,10 @@ const ProfileEditScreen: React.FC = () => {
     } else {
       setAgeError("");
     }
+
     try {
       setSaving(true);
+
       const updatedData = {
         ...form,
         country: selectedCountry,
@@ -174,10 +185,11 @@ const ProfileEditScreen: React.FC = () => {
           : [],
         social_links: socialLinks,
       };
+
       await updateProfile(updatedData);
       navigation.goBack();
-    } catch(err) {
-      console.log(err)
+    } catch (err) {
+      console.log(err);
     } finally {
       setSaving(false);
     }
@@ -187,6 +199,7 @@ const ProfileEditScreen: React.FC = () => {
     <SafeAreaView
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
+      {/* Top back button */}
       <View style={styles.overlayRow}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.circleBtn}>
           <ArrowLeftIcon size={22} color="#fff" weight="bold" />
@@ -197,6 +210,7 @@ const ProfileEditScreen: React.FC = () => {
         contentContainerStyle={[styles.content, { paddingBottom: 80 }]}
         showsVerticalScrollIndicator={false}
       >
+        {/* Avatar / Name / Profession */}
         <View style={styles.avatarWrap}>
           <Image
             source={{
@@ -210,9 +224,7 @@ const ProfileEditScreen: React.FC = () => {
           </Text>
         </View>
 
-       
-
-        {/* About Me Section */}
+        {/* About Me */}
         <View style={{ marginBottom: 16 }}>
           <InputField
             label="About Me"
@@ -226,8 +238,8 @@ const ProfileEditScreen: React.FC = () => {
           />
         </View>
 
-        {/* Interests Section */}
-        <View style={styles.interestsSection}>
+        {/* Interests */}
+        {/* <View style={styles.interestsSection}>
           <View style={styles.interestsHeader}>
             <Text
               variant="body1"
@@ -240,21 +252,38 @@ const ProfileEditScreen: React.FC = () => {
 
           <View style={styles.chipsWrap}>
             {interests.map((label, i) => (
-              <TouchableOpacity key={i} style={styles.chip}>
-                <Text variant="overline" color={theme.colors.textWhite}>
-                  {label}
-                </Text>
-              </TouchableOpacity>
+              <View key={i} style={styles.chipContainer}>
+                <View style={styles.chipInner}>
+                  <Text variant="overline" color={theme.colors.textWhite}>
+                    {label}
+                  </Text>
+                </View>
+
+                {label !== "N/A" && (
+                  <TouchableOpacity
+                    onPress={() => removeInterest(i)}
+                    style={styles.closeBadge}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <XIcon size={12} color="#fff" weight="bold" />
+                  </TouchableOpacity>
+                )}
+              </View>
             ))}
+
             <TouchableOpacity onPress={handleAddInterest} style={styles.addIcon}>
               <Plus size={16} color={theme.colors.textWhite} weight="bold" />
             </TouchableOpacity>
           </View>
-        </View>
+        </View> */}
 
-        {/* Personal Details Section */}
+        {/* Personal Details */}
         <View style={styles.sectionRowTightNoLine}>
-          <Text variant="body1" color={theme.colors.text} style={styles.sectionTitle}>
+          <Text
+            variant="body1"
+            color={theme.colors.text}
+            style={styles.sectionTitle}
+          >
             Personal details
           </Text>
         </View>
@@ -309,12 +338,15 @@ const ProfileEditScreen: React.FC = () => {
             placeholder="Enter nationality"
           />
 
-          <InputField
+          {/* Profession dropdown */}
+          <BottomSheetSelect
             label="Profession"
             labelColor={theme.colors.textLight}
             value={form.profession}
-            onChangeText={(v) => handleChange("profession", v)}
-            placeholder="Enter profession"
+            onChange={(v) => handleChange("profession", v)}
+            options={PROFESSION_OPTIONS}
+            placeholder="Select profession"
+            sheetTitle="Select Profession"
           />
 
           <BottomSheetSelect
@@ -390,34 +422,38 @@ const ProfileEditScreen: React.FC = () => {
           ) : null}
         </View>
 
-         {/* Social Links Section */}
-        <View style={{ marginBottom: 16,marginTop:20 }}>
-          <Text variant="body1" color={theme.colors.text} style={styles.sectionTitle}>
+        {/* Social Links */}
+        <View style={{ marginBottom: 16, marginTop: 20 }}>
+          <Text
+            variant="body1"
+            color={theme.colors.text}
+            style={styles.sectionTitle}
+          >
             Social Links
           </Text>
-         
-          <View style={{display:'flex',gap:20}}>
+
+          <View style={{ display: "flex", gap: 20 }}>
             <InputField
-            label="Facebook"
-            labelColor={theme.colors.textLight}
-            value={socialLinks.facebook}
-            onChangeText={(v) => handleSocialChange("facebook", v)}
-            placeholder="Enter Facebook URL"
-          />
-          <InputField
-            label="Instagram"
-            labelColor={theme.colors.textLight}
-            value={socialLinks.instagram}
-            onChangeText={(v) => handleSocialChange("instagram", v)}
-            placeholder="Enter Instagram URL"
-          />
-          <InputField
-            label="Twitter"
-            labelColor={theme.colors.textLight}
-            value={socialLinks.twitter}
-            onChangeText={(v) => handleSocialChange("twitter", v)}
-            placeholder="Enter Twitter URL"
-          />
+              label="Facebook"
+              labelColor={theme.colors.textLight}
+              value={socialLinks.facebook}
+              onChangeText={(v) => handleSocialChange("facebook", v)}
+              placeholder="Enter Facebook URL"
+            />
+            <InputField
+              label="Instagram"
+              labelColor={theme.colors.textLight}
+              value={socialLinks.instagram}
+              onChangeText={(v) => handleSocialChange("instagram", v)}
+              placeholder="Enter Instagram URL"
+            />
+            <InputField
+              label="Twitter"
+              labelColor={theme.colors.textLight}
+              value={socialLinks.twitter}
+              onChangeText={(v) => handleSocialChange("twitter", v)}
+              placeholder="Enter Twitter URL"
+            />
           </View>
         </View>
       </ScrollView>
@@ -458,6 +494,7 @@ const ProfileEditScreen: React.FC = () => {
         </View>
       </Modal>
 
+      {/* CTA Save */}
       <View pointerEvents="box-none" style={styles.ctaWrap}>
         <TouchableOpacity
           activeOpacity={0.9}
@@ -484,7 +521,11 @@ const ProfileEditScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, position: "relative" },
   content: { padding: 20 },
-  overlayRow: { flexDirection: "row", justifyContent: "space-between", padding: 10 },
+  overlayRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    padding: 10,
+  },
   circleBtn: {
     width: 44,
     height: 44,
@@ -493,7 +534,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  avatarWrap: { justifyContent: "center", alignItems: "center", marginBottom: 20 },
+  avatarWrap: {
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 20,
+  },
   avatar: {
     width: 120,
     height: 120,
@@ -528,6 +573,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   sectionTitle: { fontWeight: "600", marginBottom: 4 },
+
   interestsSection: {
     marginTop: 16,
     marginBottom: 16,
@@ -537,6 +583,40 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
+
+  chipsWrap: {
+    marginTop: 10,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+
+  chipContainer: {
+    position: "relative",
+  },
+
+  chipInner: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: CHIP_BG,
+  },
+
+  closeBadge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: "#FF4D4F",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#00000055",
+  },
+
   addIcon: {
     padding: 6,
     width: 32,
@@ -547,19 +627,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  chipsWrap: {
-    marginTop: 10,
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  chip: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: CHIP_BG,
-  },
+
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.4)",

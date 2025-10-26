@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    minHeight: 96,
+    minHeight: 32,
     paddingRight: 56,
     fontSize: 14,
   },
