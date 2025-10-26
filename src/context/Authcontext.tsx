@@ -1,3 +1,4 @@
+// context/AuthContext.tsx
 import React, { createContext, useContext, useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
@@ -5,12 +6,10 @@ import {
   registerUser,
   getUserProfile,
   editUserProfile,
-} from "../api/auth"; // ✅ make sure all 4 API functions exist
-import { RegisterPayload, LoginPayload } from "../api/types"; // ✅ adjust path
+} from "../api/auth";
+import { RegisterPayload, LoginPayload } from "../api/types";
 
-// ------------------------------------------------------
-// ✅ Define AuthContext Type
-// ------------------------------------------------------
+// ✅ Type definition
 type AuthContextType = {
   user: any | null;
   token: string | null;
@@ -21,23 +20,17 @@ type AuthContextType = {
   updateProfile: (data: any) => Promise<void>;
 };
 
-// ------------------------------------------------------
-// ✅ Create Context
-// ------------------------------------------------------
+// ✅ Create context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// ------------------------------------------------------
-// ✅ Custom Hook
-// ------------------------------------------------------
+// ✅ Custom hook
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) throw new Error("useAuth must be used within AuthProvider");
   return context;
 };
 
-// ------------------------------------------------------
-// ✅ Provider Component
-// ------------------------------------------------------
+// ✅ Provider
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
@@ -46,7 +39,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [loading, setLoading] = useState(true);
 
   // ------------------------------------------------------
-  // ✅ Load token and profile on app start
+  // 🔹 Load token & profile when app starts
   // ------------------------------------------------------
   useEffect(() => {
     const loadTokenAndUser = async () => {
@@ -54,13 +47,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         const savedToken = await AsyncStorage.getItem("authToken");
         if (savedToken) {
           setToken(savedToken);
-          const profile = await getUserProfile();
+          const profile = await getUserProfile(); // ✅ token auto attached via interceptor
           setUser(profile);
         }
-      } catch (err) {
-        console.warn("Auth load failed", err);
-        await AsyncStorage.removeItem("authToken");
-        setToken(null);
+      } catch (err: any) {
+        console.warn("Auth load failed:", err?.response?.data || err.message);
         setUser(null);
       } finally {
         setLoading(false);
@@ -70,7 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   // ------------------------------------------------------
-  // ✅ Login
+  // 🔹 Login
   // ------------------------------------------------------
   const login = async (data: LoginPayload) => {
     setLoading(true);
@@ -86,6 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setUser(profile);
     } catch (err) {
       console.error("Login failed:", err);
+      
       throw err;
     } finally {
       setLoading(false);
@@ -93,13 +85,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   // ------------------------------------------------------
-  // ✅ Register
+  // 🔹 Register
   // ------------------------------------------------------
   const register = async (data: RegisterPayload) => {
     setLoading(true);
     try {
       await registerUser(data);
-      // Optionally auto-login after registration
+      // Optionally auto-login after register
     } catch (err) {
       console.error("Register failed:", err);
       throw err;
@@ -109,7 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   // ------------------------------------------------------
-  // ✅ Update Profile (Edit user)
+  // 🔹 Update Profile
   // ------------------------------------------------------
   const updateProfile = async (data: any) => {
     setLoading(true);
@@ -126,7 +118,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   // ------------------------------------------------------
-  // ✅ Logout
+  // 🔹 Logout
   // ------------------------------------------------------
   const logout = async () => {
     setLoading(true);
@@ -142,13 +134,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   // ------------------------------------------------------
-  // ✅ Context Value
+  // 🔹 Render
   // ------------------------------------------------------
+  if (loading) {
+    return (
+      <></> // or a custom splash/loading screen
+    );
+  }
+
   return (
     <AuthContext.Provider
       value={{ user, token, loading, login, register, logout, updateProfile }}
     >
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };
