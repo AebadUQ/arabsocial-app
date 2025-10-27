@@ -330,8 +330,8 @@ export default function PromoteEventScreen() {
 
         {form.country ? (
           <BottomSheetSelect
-            label="City / State"
-            labelColor={theme.colors.textLight}
+            // label="City / State"
+            // labelColor={theme.colors.textLight}
             value={form.city}
             onChange={(v) => set("city", v)}
             options={cities.map((s) => ({ label: s, value: s }))}

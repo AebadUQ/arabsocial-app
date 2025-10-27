@@ -112,7 +112,7 @@ const EventDetail: React.FC = () => {
       >
         {/* ---------- Event Banner with Back Button ---------- */}
         <View style={styles.bannerWrap}>
-          {!!event?.img && (
+          {true && (
             <Image
           source={require("@/assets/images/event1.png")}
               style={styles.banner}
