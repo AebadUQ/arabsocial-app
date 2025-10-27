@@ -31,20 +31,17 @@ const EventDetail: React.FC = () => {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: contentBottomPad }]}>
-        {!!event?.image && (
+        {/* {!!event?.image && (
           <Image source={event.image} style={styles.banner} resizeMode="cover" />
         )}
 
-        {/* Title */}
         <Text variant="h5" style={[styles.title, { color: theme.colors.text, marginBottom: 16 }]}>
           {event?.name}
         </Text>
 
         <View style={{ flexDirection: 'column', gap: 24 }}>
-          {/* Description */}
           {!!event?.description && <Text variant="body2" color={theme.colors.textLight}>{event.description}</Text>}
 
-          {/* Location */}
           {(event?.city || event?.address) && (
             <View style={styles.row}>
               <MapPin size={20} color={theme.colors.primaryDark} />
@@ -62,7 +59,6 @@ const EventDetail: React.FC = () => {
 
         
 
-          {/* Organizer (placeholder using name) */}
           <View style={styles.row}>
             <ListDashesIcon size={20} color={theme.colors.primaryDark} />
             <View>
@@ -105,10 +101,9 @@ const EventDetail: React.FC = () => {
             </View>
           </View>
           
-        </View>
+        </View> */}
       </ScrollView>
 
-      {/* Sticky Bottom CTA: Book Now */}
      
     </SafeAreaView>
   );

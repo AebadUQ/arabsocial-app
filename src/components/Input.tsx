@@ -41,7 +41,7 @@ export default function InputField({
   ...rest
 }: Props) {
   const [hide, setHide] = useState(!!secureTextEntry);
-  const { theme: activeTheme } = useTheme();
+  const { theme } = useTheme();
 
   return (
     <View style={[styles.wrapper, containerStyle]}>

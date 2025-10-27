@@ -293,6 +293,7 @@ export default function PromoteEventScreen() {
 
         {/* Form Inputs */}
         <InputField
+        
           placeholder="Event name"
           value={form.title}
           onChangeText={(t) => set("title", t)}
@@ -300,8 +301,8 @@ export default function PromoteEventScreen() {
         />
 
         <BottomSheetSelect
-          label="Event Type"
-          labelColor={theme.colors.textLight}
+          // label="Event Type"
+          // labelColor={theme.colors.textLight}
           value={form.event_type}
           onChange={(v) => set("event_type", v)}
           options={[
@@ -316,8 +317,8 @@ export default function PromoteEventScreen() {
         />
 
         <BottomSheetSelect
-          label="Country"
-          labelColor={theme.colors.textLight}
+          // label="Country"
+          // labelColor={theme.colors.textLight}
           value={form.country}
           onChange={(v) => set("country", v)}
           options={countries.map((c) => ({ label: c, value: c }))}

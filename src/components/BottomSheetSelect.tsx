@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, TextInput } from "react-native";
 import {
   BottomSheetModal,
   BottomSheetBackdrop,
@@ -13,16 +13,16 @@ type Option = string | { label: string; value: string };
 
 type Props = {
   label?: string;
-  labelColor?: string;                  // default #FFFFFF
+  labelColor?: string;
   value?: string | null;
   onChange: (val: string) => void;
   options: Option[];
   placeholder?: string;
-  placeholderTextColor?: string;        // NEW: match InputField API
+  placeholderTextColor?: string;
   sheetTitle?: string;
-  containerStyle?: any;                 // wrapper around label + field
-  fieldStyle?: any;                     // box style (matches InputField.container)
-  textStyle?: any;                      // value text style
+  containerStyle?: any;
+  fieldStyle?: any;
+  textStyle?: any;
 };
 
 const BottomSheetSelect: React.FC<Props> = ({
@@ -41,6 +41,7 @@ const BottomSheetSelect: React.FC<Props> = ({
   const { theme } = useTheme();
   const sheetRef = useRef<BottomSheetModal>(null);
   const [selected, setSelected] = useState<string | null>(value ?? null);
+  const [search, setSearch] = useState(""); // NEW: search state
 
   useEffect(() => setSelected(value ?? null), [value]);
 
@@ -49,11 +50,22 @@ const BottomSheetSelect: React.FC<Props> = ({
     [options]
   );
 
+  // Filter options based on search
+  const filteredOptions = useMemo(
+    () =>
+      normalized.filter((opt) =>
+        opt.label.toLowerCase().includes(search.toLowerCase())
+      ),
+    [normalized, search]
+  );
+
   const activeLabel = normalized.find((o) => o.value === selected)?.label ?? "";
 
   const openSheet = useCallback(() => {
     sheetRef.current?.present();
+    setSearch(""); // reset search when opening
   }, []);
+
   const closeSheet = useCallback(() => sheetRef.current?.dismiss(), []);
 
   const handleSelect = (val: string) => {
@@ -62,7 +74,7 @@ const BottomSheetSelect: React.FC<Props> = ({
     closeSheet();
   };
 
-  const snapPoints = useMemo(() => ["40%"], []);
+  const snapPoints = useMemo(() => ["50%"], []); // made bigger for search
 
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => (
@@ -90,7 +102,6 @@ const BottomSheetSelect: React.FC<Props> = ({
           styles.field,
           {
             backgroundColor: theme.colors.background,
-            // 👇 match InputField subtle elevation
             shadowColor: "#000",
             shadowOpacity: 0.08,
             shadowRadius: 8,
@@ -115,7 +126,6 @@ const BottomSheetSelect: React.FC<Props> = ({
         <CaretDown size={18} color={theme.colors.primary} />
       </TouchableOpacity>
 
-      {/* Bottom Sheet */}
       <BottomSheetModal
         ref={sheetRef}
         index={0}
@@ -132,8 +142,20 @@ const BottomSheetSelect: React.FC<Props> = ({
         <View style={{ paddingHorizontal: 16, flex: 1 }}>
           <Text style={[styles.sheetTitle, { color: theme.colors.text }]}>{sheetTitle}</Text>
 
+          {/* Search Input */}
+          <TextInput
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Search..."
+            placeholderTextColor={theme.colors.placeholder}
+            style={[
+              styles.searchInput,
+              { backgroundColor: theme.colors.background, color: theme.colors.text, borderColor: theme.colors.borderColor },
+            ]}
+          />
+
           <BottomSheetFlatList
-            data={normalized}
+            data={filteredOptions}
             keyExtractor={(item) => item.value}
             nestedScrollEnabled
             showsVerticalScrollIndicator={false}
@@ -158,7 +180,7 @@ const BottomSheetSelect: React.FC<Props> = ({
                 </TouchableOpacity>
               );
             }}
-            contentContainerStyle={{ paddingBottom: 50 }}
+            contentContainerStyle={{ paddingBottom: 100 }}
           />
         </View>
       </BottomSheetModal>
@@ -169,7 +191,6 @@ const BottomSheetSelect: React.FC<Props> = ({
 const styles = StyleSheet.create({
   wrapper: { width: "100%" },
   label: { marginBottom: 6, fontSize: 14, fontWeight: "500" },
-  // 👇 mirrors your InputField.container
   field: {
     minHeight: 50,
     borderRadius: 8,
@@ -178,13 +199,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  // 👇 mirrors your InputField.input typographic scale & vertical padding
   valueText: { flex: 1, fontSize: 16, paddingVertical: 12 },
-  sheetTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 10,
-    marginTop: 6,
+  sheetTitle: { fontSize: 16, fontWeight: "600", marginBottom: 10, marginTop: 6 },
+  searchInput: {
+    height: 40,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    marginBottom: 12,
   },
   optionRow: {
     flexDirection: "row",
