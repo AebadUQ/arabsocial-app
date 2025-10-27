@@ -158,7 +158,7 @@ const BottomSheetSelect: React.FC<Props> = ({
                 </TouchableOpacity>
               );
             }}
-            contentContainerStyle={{ paddingBottom: 10 }}
+            contentContainerStyle={{ paddingBottom: 50 }}
           />
         </View>
       </BottomSheetModal>

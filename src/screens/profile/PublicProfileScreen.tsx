@@ -305,19 +305,6 @@ const PublicProfileScreen: React.FC = () => {
             </Text>
           ) : null}
 
-          {/* username (if visible) */}
-          {usernameText && (
-            <Text variant="caption" color={theme.colors.textLight}>
-              @{usernameText}
-            </Text>
-          )}
-
-          {/* dob/age (if visible) */}
-          {dobText && (
-            <Text variant="caption" color={theme.colors.textLight}>
-              {dobText}
-            </Text>
-          )}
         </View>
 
         {/* Social Icons */}

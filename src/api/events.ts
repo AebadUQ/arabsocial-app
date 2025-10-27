@@ -48,3 +48,7 @@ export const getSavedEvents = async () => {
   const response = await api.get('/events/saved-events');
   return response.data;
 };
+export const getEventsDetail= async (id:any) => {
+  const response = await api.get(`/events/${id}`);
+  return response.data.data;
+};

@@ -1,43 +1,51 @@
 // src/navigation/AppNavigator.tsx
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createStackNavigator } from '@react-navigation/stack';
+import React from "react";
+import { NavigationContainer } from "@react-navigation/native";
+import {
+  createBottomTabNavigator,
+} from "@react-navigation/bottom-tabs";
+import {
+  createStackNavigator,
+  StackNavigationOptions,
+} from "@react-navigation/stack";
 import {
   createDrawerNavigator,
   DrawerContentScrollView,
-} from '@react-navigation/drawer';
+} from "@react-navigation/drawer";
 
-import { useTheme } from '../theme/ThemeContext';
-import { useAuth } from '@/context/Authcontext';
+import { useTheme } from "@/theme/ThemeContext";
+import { useAuth } from "@/context/Authcontext";
 
-import GetStartedScreen from '@/screens/GetStarted';
-import LoginScreen from '@/screens/LoginScreen';
-import RegisterScreen from '@/screens/RegisterScreen';
+import GetStartedScreen from "@/screens/GetStarted";
+import LoginScreen from "@/screens/LoginScreen";
+import RegisterScreen from "@/screens/RegisterScreen";
 
-import HomeScreen from '@/screens/HomeScreen';
-import EventScreen from '@/screens/EventScreen';
-import MembersScreen from '@/screens/MembersScreen';
-import BusinessScreen from '@/screens/BusinessScreen';
-import BusinessDetailScreen from '@/screens/BusinessDetail';
-import GroupsScreen from '@/screens/GroupScreen';
-import SettingsScreen from '@/screens/SettingsScreen';
-import NotificationsScreen from '@/screens/NotificationScreen';
-import EventDetailScreen from '@/screens/EventDetail';
-import AddEventScreen from '@/screens/AddEvent';
-import GroupDetailScreen from '@/screens/GroupDetailScreen';
-import ProfileScreen from '@/screens/profile/ProfileScreen';
-import ProfileEditScreen from '@/screens/profile/ProfileEditScreen';
-import PublicProfileScreen from '@/screens/profile/PublicProfileScreen';
+import HomeScreen from "@/screens/HomeScreen";
+import EventScreen from "@/screens/EventScreen";
+import MembersScreen from "@/screens/MembersScreen";
+import BusinessScreen from "@/screens/BusinessScreen";
+import BusinessDetailScreen from "@/screens/BusinessDetail";
+import GroupsScreen from "@/screens/GroupScreen";
+import SettingsScreen from "@/screens/SettingsScreen";
+import NotificationsScreen from "@/screens/NotificationScreen";
+import EventDetailScreen from "@/screens/EventDetail";
+import AddEventScreen from "@/screens/AddEvent";
+import GroupDetailScreen from "@/screens/GroupDetailScreen";
+import ProfileScreen from "@/screens/profile/ProfileScreen";
+import ProfileEditScreen from "@/screens/profile/ProfileEditScreen";
+import PublicProfileScreen from "@/screens/profile/PublicProfileScreen";
 
-import CustomBottomsheet from '@/components/CustomBottomsheet';
+import CustomBottomsheet from "@/components/CustomBottomsheet";
 
-import { Gear, InfoIcon, SignOutIcon } from 'phosphor-react-native';
-import { theme as appTheme } from '@/theme/theme';
-import { Image, Text, TouchableOpacity, View } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
+import { Gear, InfoIcon, SignOutIcon } from "phosphor-react-native";
+import { theme as appTheme } from "@/theme/theme";
+import { Image, Text, TouchableOpacity, View } from "react-native";
+import LinearGradient from "react-native-linear-gradient";
 
-const AuthLogo = require('../assets/images/auth-logo.png');
+/* ---------------------------------
+ * Assets
+ * --------------------------------- */
+const AuthLogo = require("../assets/images/auth-logo.png");
 
 /* ---------------------------------
  * Stack param types
@@ -46,7 +54,7 @@ const AuthLogo = require('../assets/images/auth-logo.png');
 // Home tab stack
 export type HomeStackParamList = {
   Home: undefined;
-  EventDetail: { id?: string } | undefined;
+  EventDetail: { eventId: string | number };
 };
 
 // Profile tab stack (private profile / edit self)
@@ -70,27 +78,31 @@ export type AuthStackParamList = {
   Register: undefined;
 };
 
-// Other tab stacks (optional strict typing if you want later)
+// Events tab stack
 export type EventsStackParamList = {
   Events: undefined;
   AddEvent: undefined;
-  EventDetail: { id?: string } | undefined;
+  EventDetail: { eventId: string | number };
 };
 
+// Members tab stack
 export type MembersStackParamList = {
   Members: undefined;
 };
 
+// Business tab stack
 export type BusinessStackParamList = {
   Business: undefined;
   BusinessDetail: { id?: string } | undefined;
 };
 
+// Groups tab stack
 export type GroupsStackParamList = {
   Groups: undefined;
   GroupDetail: { id?: string } | undefined;
 };
 
+// Settings tab stack
 export type SettingsStackParamList = {
   Settings: undefined;
 };
@@ -111,11 +123,13 @@ const GroupsStack = createStackNavigator<GroupsStackParamList>();
 const SettingsStack = createStackNavigator<SettingsStackParamList>();
 const ProfileStack = createStackNavigator<ProfileStackParamList>();
 
+const defaultNoHeader: StackNavigationOptions = { headerShown: false };
+
 /* ---------------------------------
  * Profile stack (private profile/edit)
  * --------------------------------- */
 const ProfileStackNav = () => (
-  <ProfileStack.Navigator screenOptions={{ headerShown: false }}>
+  <ProfileStack.Navigator screenOptions={defaultNoHeader}>
     <ProfileStack.Screen name="Profile" component={ProfileScreen} />
     <ProfileStack.Screen name="ProfileEdit" component={ProfileEditScreen} />
     {/* NOTE: PublicProfile is NOT here */}
@@ -126,9 +140,9 @@ const ProfileStackNav = () => (
  * Home tab stack
  * --------------------------------- */
 const HomeStackNav = () => (
-  <HomeStack.Navigator screenOptions={{ headerShown: false }}>
+  <HomeStack.Navigator screenOptions={defaultNoHeader}>
     <HomeStack.Screen name="Home" component={HomeScreen} />
-    {/* if you ALSO want event detail from Home tab, you can include:
+    {/* if you ALSO want event detail from Home tab:
         <HomeStack.Screen name="EventDetail" component={EventDetailScreen} />
     */}
   </HomeStack.Navigator>
@@ -138,10 +152,14 @@ const HomeStackNav = () => (
  * Events tab stack
  * --------------------------------- */
 const EventsStackNav = () => (
-  <EventsStack.Navigator screenOptions={{ headerShown: false }}>
+  <EventsStack.Navigator screenOptions={defaultNoHeader}>
     <EventsStack.Screen name="Events" component={EventScreen} />
     <EventsStack.Screen name="AddEvent" component={AddEventScreen} />
-    <EventsStack.Screen name="EventDetail" component={EventDetailScreen} />
+    
+    <EventsStack.Screen name="EventDetail" 
+    
+
+    component={EventDetailScreen} />
   </EventsStack.Navigator>
 );
 
@@ -149,7 +167,7 @@ const EventsStackNav = () => (
  * Members tab stack
  * --------------------------------- */
 const MembersStackNav = () => (
-  <MembersStack.Navigator screenOptions={{ headerShown: false }}>
+  <MembersStack.Navigator screenOptions={defaultNoHeader}>
     <MembersStack.Screen name="Members" component={MembersScreen} />
   </MembersStack.Navigator>
 );
@@ -158,7 +176,7 @@ const MembersStackNav = () => (
  * Business tab stack
  * --------------------------------- */
 const BusinessStackNav = () => (
-  <BusinessStack.Navigator screenOptions={{ headerShown: false }}>
+  <BusinessStack.Navigator screenOptions={defaultNoHeader}>
     <BusinessStack.Screen name="Business" component={BusinessScreen} />
     <BusinessStack.Screen
       name="BusinessDetail"
@@ -171,12 +189,9 @@ const BusinessStackNav = () => (
  * Groups tab stack
  * --------------------------------- */
 const GroupsStackNav = () => (
-  <GroupsStack.Navigator screenOptions={{ headerShown: false }}>
+  <GroupsStack.Navigator screenOptions={defaultNoHeader}>
     <GroupsStack.Screen name="Groups" component={GroupsScreen} />
-    <GroupsStack.Screen
-      name="GroupDetail"
-      component={GroupDetailScreen}
-    />
+    <GroupsStack.Screen name="GroupDetail" component={GroupDetailScreen} />
   </GroupsStack.Navigator>
 );
 
@@ -184,7 +199,7 @@ const GroupsStackNav = () => (
  * Settings tab stack
  * --------------------------------- */
 const SettingsStackNav = () => (
-  <SettingsStack.Navigator screenOptions={{ headerShown: false }}>
+  <SettingsStack.Navigator screenOptions={defaultNoHeader}>
     <SettingsStack.Screen name="Settings" component={SettingsScreen} />
   </SettingsStack.Navigator>
 );
@@ -193,7 +208,8 @@ const SettingsStackNav = () => (
  * Bottom Tabs (inside Drawer)
  * --------------------------------- */
 const MainTabNavigator = () => {
-  useTheme();
+  useTheme(); // keeps theme reactive in tab bar, even if we're not using value directly
+
   return (
     <Tab.Navigator
       screenOptions={{ headerShown: false }}
@@ -202,37 +218,37 @@ const MainTabNavigator = () => {
       <Tab.Screen
         name="HomeTab"
         component={HomeStackNav}
-        options={{ title: 'Home' }}
+        options={{ title: "Home" }}
       />
       <Tab.Screen
         name="EventsTab"
         component={EventsStackNav}
-        options={{ title: 'Events' }}
+        options={{ title: "Events" }}
       />
       <Tab.Screen
         name="MembersTab"
         component={MembersStackNav}
-        options={{ title: 'Members' }}
+        options={{ title: "Members" }}
       />
       <Tab.Screen
         name="BusinessTab"
         component={BusinessStackNav}
-        options={{ title: 'Business' }}
+        options={{ title: "Business" }}
       />
       <Tab.Screen
         name="GroupsTab"
         component={GroupsStackNav}
-        options={{ title: 'Groups' }}
+        options={{ title: "Groups" }}
       />
       <Tab.Screen
         name="SettingsTab"
         component={SettingsStackNav}
-        options={{ title: 'Settings' }}
+        options={{ title: "Settings" }}
       />
       <Tab.Screen
         name="ProfileTab"
         component={ProfileStackNav}
-        options={{ title: 'Profile' }}
+        options={{ title: "Profile" }}
       />
     </Tab.Navigator>
   );
@@ -250,7 +266,7 @@ function CustomDrawerContent(props: any) {
 
   return (
     <LinearGradient
-      colors={['#166152', '#004334']}
+      colors={["#166152", "#004334"]}
       start={{ x: 0, y: 0 }}
       end={{ x: 0, y: 1 }}
       style={{ flex: 1 }}
@@ -266,35 +282,33 @@ function CustomDrawerContent(props: any) {
         >
           <View
             style={{
-              flexDirection: 'row',
-              justifyContent: 'center',
+              flexDirection: "row",
+              justifyContent: "center",
               marginBottom: 32,
             }}
           >
             <Image
               source={AuthLogo}
-              style={{ width: 110, height: 52, resizeMode: 'contain' }}
+              style={{ width: 110, height: 52, resizeMode: "contain" }}
             />
           </View>
 
           <TouchableOpacity
             onPress={() =>
-              props.navigation.navigate('MainTabs', { screen: 'SettingsTab' })
+              props.navigation.navigate("MainTabs", { screen: "SettingsTab" })
             }
             style={{
               borderRadius: 10,
               backgroundColor: appTheme.colors.primaryDark,
               paddingVertical: 14,
               paddingHorizontal: 18,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
               marginBottom: 10,
             }}
           >
-            <Text
-              style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}
-            >
+            <Text style={{ color: "#fff", fontSize: 16, fontWeight: "600" }}>
               Settings
             </Text>
             <Gear size={22} color="#fff" />
@@ -302,21 +316,19 @@ function CustomDrawerContent(props: any) {
 
           <TouchableOpacity
             onPress={() =>
-              props.navigation.navigate('MainTabs', { screen: 'GroupsTab' })
+              props.navigation.navigate("MainTabs", { screen: "GroupsTab" })
             }
             style={{
               borderRadius: 10,
               backgroundColor: appTheme.colors.primaryDark,
               paddingVertical: 14,
               paddingHorizontal: 18,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
             }}
           >
-            <Text
-              style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}
-            >
+            <Text style={{ color: "#fff", fontSize: 16, fontWeight: "600" }}>
               Resources
             </Text>
             <InfoIcon size={22} color="#fff" />
@@ -328,17 +340,15 @@ function CustomDrawerContent(props: any) {
             onPress={handleLogout}
             style={{
               borderRadius: 10,
-              backgroundColor: '#156051',
+              backgroundColor: "#156051",
               paddingVertical: 14,
               paddingHorizontal: 18,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
             }}
           >
-            <Text
-              style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}
-            >
+            <Text style={{ color: "#fff", fontSize: 16, fontWeight: "600" }}>
               Logout
             </Text>
             <SignOutIcon size={22} color="#fff" />
@@ -358,10 +368,10 @@ const RootDrawer = () => (
     drawerContent={(props) => <CustomDrawerContent {...props} />}
     screenOptions={{
       headerShown: false,
-      drawerType: 'front',
+      drawerType: "front",
       drawerStyle: { width: 280 },
-      drawerActiveTintColor: '#111',
-      drawerInactiveTintColor: '#666',
+      drawerActiveTintColor: "#111",
+      drawerInactiveTintColor: "#666",
     }}
   >
     <Drawer.Screen name="MainTabs" component={MainTabNavigator} />
@@ -372,7 +382,7 @@ const RootDrawer = () => (
  * Auth stack (unauthenticated flow)
  * --------------------------------- */
 const AuthStackNav = () => (
-  <AuthStackNavStack.Navigator screenOptions={{ headerShown: false }}>
+  <AuthStackNavStack.Navigator screenOptions={defaultNoHeader}>
     <AuthStackNavStack.Screen name="GetStarted" component={GetStartedScreen} />
     <AuthStackNavStack.Screen name="Login" component={LoginScreen} />
     <AuthStackNavStack.Screen name="Register" component={RegisterScreen} />
@@ -385,6 +395,7 @@ const AuthStackNav = () => (
 const AppNavigator: React.FC = () => {
   const { token, loading } = useAuth();
 
+  // you can render a splash/loader here if you have one
   if (loading) {
     return null;
   }
@@ -392,7 +403,7 @@ const AppNavigator: React.FC = () => {
   return (
     <NavigationContainer>
       {token ? (
-        <RootStack.Navigator screenOptions={{ headerShown: false }}>
+        <RootStack.Navigator screenOptions={defaultNoHeader}>
           {/* whole app shell (drawer + tabs) */}
           <RootStack.Screen name="Main" component={RootDrawer} />
 
@@ -401,8 +412,8 @@ const AppNavigator: React.FC = () => {
             name="Notifications"
             component={NotificationsScreen}
             options={{
-              presentation: 'transparentModal',
-              animation: 'none',
+              presentation: "transparentModal",
+              animation: "none",
               headerShown: false,
             }}
           />

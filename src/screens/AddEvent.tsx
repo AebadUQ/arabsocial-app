@@ -307,6 +307,8 @@ export default function PromoteEventScreen() {
           options={[
             { label: "Online", value: "online" },
             { label: "In Person", value: "in_person" },
+
+            
           ]}
           placeholder="Select Event Type"
           sheetTitle="Select Event Type"

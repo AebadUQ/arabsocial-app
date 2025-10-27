@@ -83,3 +83,50 @@ export interface PaginatedResponse<T> extends ApiResponse<T[]> {
     totalPages: number;
   };
 }
+
+// types/events.ts
+
+export type EventType = "in_person" | "online";
+
+/**
+ * Shape used by EventCard (list screen)
+ */
+export type CardEvent = {
+  id: string;
+  title: string;
+  description?: string;
+  eventType: EventType;
+
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+
+  startDate?: string | Date | null;
+  endDate?: string | Date | null;
+  event_date?: string | Date | null;
+
+  ticketLink?: string;
+  ticketPrice?: number | string;
+  promoCode?: string;
+  totalSpots?: number | null;
+
+  isFeatured?: boolean;
+
+  flyer?: any; // { uri: string } | require(...)
+};
+
+/**
+ * Shape used by EventDetail screen
+ */
+export type DetailEvent = {
+  id: string | number;
+  title: string;
+  description?: string;
+  city?: string;
+  address?: string;
+  startDate?: string | Date | null;
+  ticketLink?: string;
+  promoCode?: string;
+  image?: any; // { uri: string } | require(...)
+};

@@ -1,4 +1,3 @@
-// components/event/EventCard.tsx
 import React, { memo } from "react";
 import { Text } from "@/components";
 import {
@@ -7,7 +6,7 @@ import {
   ShareFat as ShareFatIcon,
 } from "phosphor-react-native";
 import { useTheme } from "@/theme/ThemeContext";
-import { formatDate, formatEventDate } from "@/utils";
+import { formatEventDate } from "@/utils";
 import {
   View,
   Image,
@@ -15,7 +14,9 @@ import {
   TouchableOpacity,
   ImageSourcePropType,
 } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 
+// keep same types
 export type EventType = "in_person" | "online";
 
 export type Event = {
@@ -26,43 +27,68 @@ export type Event = {
   address?: string;
   city?: string;
   state?: string;
-  country?:string;
+  country?: string;
   flyer?: ImageSourcePropType;
   eventType: EventType;
-  event_date?:any;
+  event_date?: any;
   totalSpots?: number;
   ticketLink?: string;
   ticketPrice?: number | string;
   description?: string;
   isFeatured?: boolean;
-  promoCode?: string; // 👈 only render promo UI when this exists
+  promoCode?: string;
 };
 
-type Props = { event: Event };
+type Props = {
+  event: Event;
+};
 
 const EventCard: React.FC<Props> = ({ event }) => {
   const { theme } = useTheme();
+  const navigation = useNavigation<any>(); // if you have typed RootStackParamList, replace `any`
+
+  const handlePress = () => {
+    console.log(event.id)
+    // go to detail screen and pass id
+    navigation.navigate("EventDetail", { eventId: event.id });
+  };
 
   return (
-    <View style={[styles.card, { backgroundColor: "#fff" }]}>
-      {true && (
-        <View style={styles.imageWrap}>
-          <Image source={require("@/assets/images/event1.png")} style={styles.image} resizeMode="cover" />
-          {event.isFeatured ? (
-            <View style={[styles.badge, { backgroundColor: theme.colors.primary }]}>
-              <Text variant="overline" style={styles.badgeText}>
-                Featured
-              </Text>
-            </View>
-          ) : null}
-        </View>
-      )}
+    <TouchableOpacity
+      style={[styles.card, { backgroundColor: "#fff" }]}
+      activeOpacity={0.9}
+      onPress={handlePress}
+    >
+      {/* Top image/banner */}
+      <View style={styles.imageWrap}>
+        {/* TODO: if API gives you URL, change to { uri: event.flyer } */}
+        <Image
+          source={require("@/assets/images/event1.png")}
+          style={styles.image}
+          resizeMode="cover"
+        />
 
+        {event.isFeatured ? (
+          <View
+            style={[styles.badge, { backgroundColor: theme.colors.primary }]}
+          >
+            <Text variant="overline" style={styles.badgeText}>
+              Featured
+            </Text>
+          </View>
+        ) : null}
+      </View>
+
+      {/* Bottom text section */}
       <View style={styles.section}>
         <View style={styles.headerRow}>
-          <Text variant="body2" style={styles.title} numberOfLines={2} color={theme.colors.text}>
+          <Text
+            variant="body2"
+            style={styles.title}
+            numberOfLines={2}
+            color={theme.colors.text}
+          >
             {event.title}
-            
           </Text>
 
           <View style={styles.iconCircle}>
@@ -73,32 +99,36 @@ const EventCard: React.FC<Props> = ({ event }) => {
         <View style={styles.metaRow}>
           <View style={styles.metaItem}>
             <CalendarBlankIcon size={16} color={theme.colors.primary} />
-            <Text variant="overline" style={styles.metaText}>{formatEventDate(event.event_date)}</Text>
+            <Text variant="overline" style={styles.metaText}>
+              {formatEventDate(event.event_date)}
+            </Text>
           </View>
 
           {event.city ? (
             <View style={styles.metaItem}>
               <MapPinIcon size={16} color={theme.colors.primary} />
-              <Text variant="overline" style={styles.metaText}>{event.city}</Text>
+              <Text variant="overline" style={styles.metaText}>
+                {event.city}
+              </Text>
             </View>
           ) : null}
         </View>
 
-        {/* Only show when promoCode is provided */}
+        {/* Promo chip if promoCode exists */}
         {event.promoCode ? (
-          <TouchableOpacity
-            activeOpacity={0.85}
-            style={[styles.promoBtn, { backgroundColor: theme.colors.primary }]}
-            accessibilityRole="button"
-            accessibilityLabel={`Promocode ${event.promoCode}`}
+          <View
+            style={[
+              styles.promoBtn,
+              { backgroundColor: theme.colors.primary },
+            ]}
           >
             <Text variant="overline" style={styles.promoText}>
               Promocode: {event.promoCode}
             </Text>
-          </TouchableOpacity>
+          </View>
         ) : null}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
@@ -120,7 +150,7 @@ const styles = StyleSheet.create({
     position: "relative",
     marginBottom: 16,
     borderRadius: 12,
-    overflow: "hidden", // 👈 ensures the image never overflows the card corners
+    overflow: "hidden", // makes image corners clipped
   },
   image: {
     height: 160,
