@@ -23,6 +23,7 @@ type Props = {
   containerStyle?: any;
   fieldStyle?: any;
   textStyle?: any;
+  searchable?: boolean; // NEW: show search input if true
 };
 
 const BottomSheetSelect: React.FC<Props> = ({
@@ -37,11 +38,12 @@ const BottomSheetSelect: React.FC<Props> = ({
   containerStyle,
   fieldStyle,
   textStyle,
+  searchable = false, // default false
 }) => {
   const { theme } = useTheme();
   const sheetRef = useRef<BottomSheetModal>(null);
   const [selected, setSelected] = useState<string | null>(value ?? null);
-  const [search, setSearch] = useState(""); // NEW: search state
+  const [search, setSearch] = useState("");
 
   useEffect(() => setSelected(value ?? null), [value]);
 
@@ -50,21 +52,23 @@ const BottomSheetSelect: React.FC<Props> = ({
     [options]
   );
 
-  // Filter options based on search
+  // Filter options if searchable is true
   const filteredOptions = useMemo(
     () =>
-      normalized.filter((opt) =>
-        opt.label.toLowerCase().includes(search.toLowerCase())
-      ),
-    [normalized, search]
+      searchable
+        ? normalized.filter((opt) =>
+            opt.label.toLowerCase().includes(search.toLowerCase())
+          )
+        : normalized,
+    [normalized, search, searchable]
   );
 
   const activeLabel = normalized.find((o) => o.value === selected)?.label ?? "";
 
   const openSheet = useCallback(() => {
     sheetRef.current?.present();
-    setSearch(""); // reset search when opening
-  }, []);
+    if (searchable) setSearch(""); // reset search only if searchable
+  }, [searchable]);
 
   const closeSheet = useCallback(() => sheetRef.current?.dismiss(), []);
 
@@ -74,7 +78,7 @@ const BottomSheetSelect: React.FC<Props> = ({
     closeSheet();
   };
 
-  const snapPoints = useMemo(() => ["50%"], []); // made bigger for search
+  const snapPoints = useMemo(() => ["50%"], []);
 
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => (
@@ -115,9 +119,7 @@ const BottomSheetSelect: React.FC<Props> = ({
           numberOfLines={1}
           style={[
             styles.valueText,
-            {
-              color: activeLabel ? theme.colors.text : placeholderColor,
-            },
+            { color: activeLabel ? theme.colors.text : placeholderColor },
             textStyle,
           ]}
         >
@@ -142,17 +144,23 @@ const BottomSheetSelect: React.FC<Props> = ({
         <View style={{ paddingHorizontal: 16, flex: 1 }}>
           <Text style={[styles.sheetTitle, { color: theme.colors.text }]}>{sheetTitle}</Text>
 
-          {/* Search Input */}
-          <TextInput
-            value={search}
-            onChangeText={setSearch}
-            placeholder="Search..."
-            placeholderTextColor={theme.colors.placeholder}
-            style={[
-              styles.searchInput,
-              { backgroundColor: theme.colors.background, color: theme.colors.text, borderColor: theme.colors.borderColor },
-            ]}
-          />
+          {/* Conditionally render search input */}
+          {searchable && (
+            <TextInput
+              value={search}
+              onChangeText={setSearch}
+              placeholder="Search..."
+              placeholderTextColor={theme.colors.placeholder}
+              style={[
+                styles.searchInput,
+                {
+                  backgroundColor: theme.colors.background,
+                  color: theme.colors.text,
+                  borderColor: theme.colors.borderColor,
+                },
+              ]}
+            />
+          )}
 
           <BottomSheetFlatList
             data={filteredOptions}

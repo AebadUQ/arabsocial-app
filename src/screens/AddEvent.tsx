@@ -319,6 +319,7 @@ export default function PromoteEventScreen() {
         <BottomSheetSelect
           // label="Country"
           // labelColor={theme.colors.textLight}
+          searchable
           value={form.country}
           onChange={(v) => set("country", v)}
           options={countries.map((c) => ({ label: c, value: c }))}
