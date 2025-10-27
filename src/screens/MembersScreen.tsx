@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   FlatList,
   Keyboard,
+  Alert,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components";
@@ -31,40 +32,96 @@ import {
 } from "@/api/members";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-type Person = {
+/* ================= Types ================= */
+export type Person = {
   id: string;
   name: string;
   profession?: string;
   country?: string;
   isConnected: boolean;
-  requestId: any;
-  status: any;
+  requestId: string;
+  status: "pending" | "accepted" | "rejected" | string;
+  reqOwner?: boolean; // false means THEY sent me the request
 };
 
-// ---------- Member Card ----------
+/* ============== MemberCard ============== */
 const MemberCard = ({
   item,
+  accepted,
   onToggle,
   isPendingTab,
   onPendingAction,
 }: {
   item: Person;
+  accepted: boolean; // forced to boolean by parent
   onToggle: (id: string) => void;
   isPendingTab?: boolean;
-  onPendingAction?: (id: string, status: "accepted" | "rejected") => void;
+  onPendingAction?: (
+    id: string,
+    status: "accepted" | "rejected"
+  ) => void;
 }) => {
   const { theme } = useTheme();
 
-  // Determine button label & color'
-  const btnLabel =  item.isConnected ? "Connected" :item.status === "pending" ? "Pending"  :  "Connect";
+  // safe colors from theme
+  const textLight = theme?.colors?.textLight || "rgba(0,0,0,0.6)";
+  const whiteText = theme?.colors?.textWhite || "#fff";
+  const primary = theme?.colors?.primary || "#2563EB";
 
-console.log(",,,,,",item)
-  const btnBg =
-    item.status === "pending"
-      ? "#9CA3AF"
-      : item.isConnected
-      ? "#1E644C"
-      : theme.colors.primary;
+  const isPending = item?.status === "pending";
+
+  // if user already tapped ✅ (optimistic)
+  const forceConnected = accepted === true;
+
+  // show ✅/❌ row?
+  const shouldShowRowIfPendingTab =
+    !!isPendingTab && !!onPendingAction;
+
+  const shouldShowRowIfIncomingPending =
+    isPending && item.reqOwner === false && !!onPendingAction;
+
+  const showAcceptRejectRow =
+    !forceConnected && (shouldShowRowIfPendingTab || shouldShowRowIfIncomingPending);
+
+  // button label for single button mode
+  let btnLabel: string;
+  if (forceConnected || item.isConnected) {
+    btnLabel = "Connected";
+  } else if (isPending) {
+    btnLabel = item.reqOwner === false ? "Accept" : "Pending";
+  } else {
+    btnLabel = "Connect";
+  }
+
+  // pick button color
+  let btnBg: string = primary;
+  if (btnLabel === "Connected") {
+    btnBg = "#1E644C";
+  } else if (btnLabel === "Pending") {
+    btnBg = "#9CA3AF";
+  } else if (btnLabel === "Accept") {
+    btnBg = primary;
+  }
+
+  // tap logic for the single button
+  const handleMainPress = () => {
+    // If we can Accept
+    if (btnLabel === "Accept" && onPendingAction) {
+      onPendingAction(item.requestId, "accepted");
+      return;
+    }
+
+    // If it's Connected and user taps -> treat as reject/remove
+    if (btnLabel === "Connected" && onPendingAction) {
+      console.log(item)
+// Alert.alert("Title", item.requestId);
+      onPendingAction(item.requestId , "rejected");
+      return;
+    }
+
+    // Otherwise do normal connect/send request
+    onToggle(item.id);
+  };
 
   return (
     <View style={styles.card}>
@@ -75,17 +132,18 @@ console.log(",,,,,",item)
             <Text variant="body1" style={{ fontWeight: "500" }}>
               {item.name}
             </Text>
-            <Text variant="overline" color={theme.colors.textLight}>
+            <Text variant="overline" color={textLight}>
               Profession: {item.profession || "N/A"}
             </Text>
-            <Text variant="overline" color={theme.colors.textLight}>
+            <Text variant="overline" color={textLight}>
               Location: {item.country || "N/A"}
             </Text>
           </View>
         </View>
 
-        {isPendingTab && onPendingAction ? (
+        {showAcceptRejectRow ? (
           <View style={{ flexDirection: "row", gap: 8 }}>
+            {/* ACCEPT ✅ */}
             <TouchableOpacity
               style={{
                 width: 36,
@@ -95,10 +153,14 @@ console.log(",,,,,",item)
                 alignItems: "center",
                 justifyContent: "center",
               }}
-              onPress={() => onPendingAction(item.id, "accepted")}
+              onPress={() =>
+                onPendingAction?.(item.requestId, "accepted")
+              }
             >
-              <CheckIcon size={12} color={theme.colors.textWhite} />
+              <CheckIcon size={12} color={whiteText} />
             </TouchableOpacity>
+
+            {/* REJECT ❌ */}
             <TouchableOpacity
               style={{
                 width: 36,
@@ -108,15 +170,17 @@ console.log(",,,,,",item)
                 alignItems: "center",
                 justifyContent: "center",
               }}
-              onPress={() => onPendingAction(item.requestId, "rejected")}
+              onPress={() =>
+                onPendingAction?.(item.requestId, "rejected")
+              }
             >
-              <XIcon size={12} color={theme.colors.textWhite} />
+              <XIcon size={12} color={whiteText} />
             </TouchableOpacity>
           </View>
         ) : (
           <TouchableOpacity
             activeOpacity={0.9}
-            onPress={() => onToggle(item.id)}
+            onPress={handleMainPress}
             style={[styles.btn, { backgroundColor: btnBg }]}
           >
             <Text variant="caption" color="#fff">
@@ -129,22 +193,34 @@ console.log(",,,,,",item)
   );
 };
 
-// ---------- Home Screen ----------
+/* ============== HomeScreen ============== */
 const HomeScreen: React.FC = ({ navigation }: any) => {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
-  const dimText = theme.colors?.text ?? "#111827";
+  const dimText = theme?.colors?.text ?? "#111827";
 
   const queryClient = useQueryClient();
 
-  const [selectedTab, setSelectedTab] = useState<"all" | "connections" | "requests">("all");
-  const [connectedById, setConnectedById] = useState<Record<string, boolean>>({});
+  // tabs
+  const [selectedTab, setSelectedTab] = useState<
+    "all" | "connections" | "requests"
+  >("all");
+
+  // optimistic UI state maps
+  const [connectedById, setConnectedById] = useState<Record<string, boolean>>(
+    {}
+  );
   const [pendingById, setPendingById] = useState<Record<string, boolean>>({});
+  const [acceptedRequests, setAcceptedRequests] = useState<
+    Record<string, boolean>
+  >({});
+
+  // search
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const inputRef = useRef<TextInput>(null);
 
-  // Debounce search input
+  // debounce search
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(query.trim().toLowerCase());
@@ -152,15 +228,14 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
     return () => clearTimeout(timer);
   }, [query]);
 
-  // ---------- Handle Send Connection ----------
+  // send connection request ("Connect")
   const handleToggle = async (receiverId: string) => {
     try {
       await sendConnectionRequest(Number(receiverId));
 
-      // Update local UI state: Pending is removed, button shows Connect
-     
+      // you could also do:
+      // setPendingById(prev => ({ ...prev, [receiverId]: true }))
 
-      // Refresh queries
       queryClient.invalidateQueries({ queryKey: ["allUsers"] });
       queryClient.invalidateQueries({ queryKey: ["connectedUsers"] });
       queryClient.invalidateQueries({ queryKey: ["pendingRequests"] });
@@ -169,31 +244,56 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
     }
   };
 
-  // ---------- Handle Pending Requests ----------
-  const handlePendingAction = async (id: string, status: "accepted" | "rejected") => {
+  // accept / reject connection request
+  const handlePendingAction = async (
+    requestId: string,
+    status: "accepted" | "rejected"
+  ) => {
     try {
-      await respondToConnectionRequest(Number(id), status);
+      if (status === "accepted") {
+        // optimistic: mark request as accepted so card instantly becomes Connected
+        setAcceptedRequests((prev) => ({
+          ...prev,
+          [requestId]: true,
+        }));
+      }
 
-      // Remove from pending locally
-      setPendingById((prev) => {
-        const copy = { ...prev };
-        delete copy[id];
-        return copy;
-      });
+      await respondToConnectionRequest(Number(requestId), status);
 
-      // Refresh queries
+      if (status === "rejected") {
+        // optimistic cleanup from pending if rejected/removed
+        setPendingById((prev) => {
+          const copy = { ...prev };
+          delete copy[requestId];
+          return copy;
+        });
+
+        // also if they tapped Connected and we treated that as reject,
+        // we should un-mark it so UI doesn't still show Connected.
+        setAcceptedRequests((prev) => {
+          const copy = { ...prev };
+          delete copy[requestId];
+          return copy;
+        });
+      }
+
       queryClient.invalidateQueries({ queryKey: ["pendingRequests"] });
       queryClient.invalidateQueries({ queryKey: ["connectedUsers"] });
+      queryClient.invalidateQueries({ queryKey: ["allUsers"] });
     } catch (error) {
       console.error("Failed to update connection status", error);
     }
   };
 
-  // ---------------- React Query ----------------
+  /* -------- React Query calls -------- */
   const allUsersQuery = useQuery({
     queryKey: ["allUsers", debouncedQuery],
     queryFn: () =>
-      getAllUsersWithConnectionStatus({ page: 1, limit: 10, search: debouncedQuery }),
+      getAllUsersWithConnectionStatus({
+        page: 1,
+        limit: 10,
+        search: debouncedQuery,
+      }),
     enabled: selectedTab === "all",
   });
 
@@ -209,26 +309,31 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
     enabled: selectedTab === "requests",
   });
 
-  // ---------------- Decide which data to show ----------------
+  /* -------- which list to render -------- */
   const filteredData: Person[] = useMemo(() => {
     let base: Person[] = [];
 
-    if (selectedTab === "all") base = allUsersQuery.data?.data?.data || [];
-    else if (selectedTab === "connections") base = connectedUsersQuery.data?.data?.data || [];
-    else if (selectedTab === "requests") base = pendingRequestsQuery.data?.data?.data || [];
+    if (selectedTab === "all") {
+      base = allUsersQuery.data?.data?.data || [];
+    } else if (selectedTab === "connections") {
+      base = connectedUsersQuery.data?.data?.data || [];
+    } else if (selectedTab === "requests") {
+      base = pendingRequestsQuery.data?.data?.data || [];
+    }
 
-    // Apply local isConnected & pending toggle
+    // apply local overrides if you eventually want:
     base = base?.map((user) => ({
       ...user,
-      isConnected:  user.isConnected,
+      isConnected: user.isConnected || connectedById[user.id] || false,
       status: user.status,
     }));
 
     if (!debouncedQuery) return base;
 
+    const q = debouncedQuery;
     return base.filter((item) => {
       const hay = `${item.name} ${item.profession || ""} ${item.country || ""}`.toLowerCase();
-      return hay.includes(debouncedQuery);
+      return hay.includes(q);
     });
   }, [
     selectedTab,
@@ -240,6 +345,7 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
     debouncedQuery,
   ]);
 
+  /* -------- clear search -------- */
   const clearSearch = useCallback(() => {
     setQuery("");
     setDebouncedQuery("");
@@ -248,11 +354,18 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
   }, []);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
       <TopBar onMenuPress={() => navigation.openDrawer()} />
 
       {/* Search */}
-      <View style={[styles.searchRow, { paddingTop: Math.max(12, insets.top / 3) }]}>
+      <View
+        style={[
+          styles.searchRow,
+          { paddingTop: Math.max(12, insets.top / 3) },
+        ]}
+      >
         <View style={styles.searchBox}>
           <MagnifyingGlassIcon size={18} weight="bold" color={dimText} />
           <TextInput
@@ -269,7 +382,11 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
           />
           {query.length > 0 && (
             <TouchableOpacity onPress={clearSearch}>
-              <XCircleIcon size={18} weight="bold" color={"rgba(0,0,0,0.4)"} />
+              <XCircleIcon
+                size={18}
+                weight="bold"
+                color={"rgba(0,0,0,0.4)"}
+              />
             </TouchableOpacity>
           )}
         </View>
@@ -281,7 +398,11 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
 
       {/* Tabs */}
       <View style={styles.chipRow}>
-        <Chip label="All" active={selectedTab === "all"} onPress={() => setSelectedTab("all")} />
+        <Chip
+          label="All"
+          active={selectedTab === "all"}
+          onPress={() => setSelectedTab("all")}
+        />
         <Chip
           label="Connections"
           active={selectedTab === "connections"}
@@ -302,6 +423,7 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
         renderItem={({ item }) => (
           <MemberCard
             item={item}
+            accepted={!!acceptedRequests[item.requestId]} // force boolean
             onToggle={() => handleToggle(item.id)}
             isPendingTab={selectedTab === "requests"}
             onPendingAction={handlePendingAction}
@@ -319,10 +441,16 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
   );
 };
 
-// ---------- Styles ----------
+/* ============== Styles ============== */
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  searchRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 20, marginBottom: 32 },
+  searchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 20,
+    marginBottom: 32,
+  },
   searchBox: {
     flex: 1,
     flexDirection: "row",
@@ -352,13 +480,40 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
-  chipRow: { flexDirection: "row", gap: 8, paddingHorizontal: 20, marginBottom: 32, alignItems: "center" },
+  chipRow: {
+    flexDirection: "row",
+    gap: 8,
+    paddingHorizontal: 20,
+    marginBottom: 32,
+    alignItems: "center",
+  },
   listContent: { paddingHorizontal: 20, paddingBottom: 24 },
-  card: { paddingBottom: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "rgba(0,0,0,0.1)", marginBottom: 16 },
-  row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
-  leftWrap: { flexDirection: "row", alignItems: "center", gap: 12, flexShrink: 1 },
+  card: {
+    paddingBottom: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "rgba(0,0,0,0.1)",
+    marginBottom: 16,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  leftWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    flexShrink: 1,
+  },
   texts: { gap: 4, flexShrink: 1 },
-  btn: { width: 120, height: 36, borderRadius: 8, alignItems: "center", justifyContent: "center" },
+  btn: {
+    width: 120,
+    height: 36,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });
 
 export default HomeScreen;

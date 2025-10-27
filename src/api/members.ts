@@ -23,6 +23,8 @@ export const getAllUsersWithConnectionStatus = async (params: GetAllUsersParams)
   console.log('getAllUsersWithConnectionStatus queryParams', queryParams);
 
   const response = await api.get(`/users/all-users-with-connection-status?${queryParams}`);
+  
+  console.log("response",response)
   return response.data;
 };
 

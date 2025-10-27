@@ -289,6 +289,7 @@ const ProfileEditScreen: React.FC = () => {
         </View>
 
         <View style={{ display: "flex", gap: 20 }}>
+          
           <InputField
             label="Email"
             labelColor={theme.colors.textLight}
