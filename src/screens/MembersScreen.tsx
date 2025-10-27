@@ -31,6 +31,7 @@ import {
   sendConnectionRequest,
 } from "@/api/members";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigation } from "@react-navigation/native";
 
 /* ================= Types ================= */
 export type Person = {
@@ -62,6 +63,7 @@ const MemberCard = ({
   ) => void;
 }) => {
   const { theme } = useTheme();
+  const navigation = useNavigation<any>(); // you can strongly type later
 
   // safe colors from theme
   const textLight = theme?.colors?.textLight || "rgba(0,0,0,0.6)";
@@ -122,9 +124,16 @@ const MemberCard = ({
     // Otherwise do normal connect/send request
     onToggle(item.id);
   };
-
+ const handleCardPress = () => {
+    // only navigate to PublicProfile if connected
+    // if (forceConnected || item.isConnected) {
+      navigation.navigate("PublicProfile", { userId: item.id });
+    // }
+    // if not connected, do nothing special (you can add else { Alert... } if you want)
+  };
   return (
-    <View style={styles.card}>
+    <TouchableOpacity style={styles.card}  activeOpacity={0.8}
+      onPress={handleCardPress}>
       <View style={styles.row}>
         <View style={styles.leftWrap}>
           <Avatar />
@@ -189,7 +198,7 @@ const MemberCard = ({
           </TouchableOpacity>
         )}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 

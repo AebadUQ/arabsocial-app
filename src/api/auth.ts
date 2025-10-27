@@ -30,3 +30,8 @@ export const updateUserDetailVisibility = async (data:any) => {
   const response = await api.patch('/users/update-visibility',data);
   return response.data.data;
 };
+
+export const getPublicUserProfile = async (id:number) => {
+  const response = await api.get(`/users/user-public-profile/${id}`);
+  return response.data.data;
+};

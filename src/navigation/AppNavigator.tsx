@@ -28,6 +28,7 @@ import AddEventScreen from '@/screens/AddEvent';
 import GroupDetailScreen from '@/screens/GroupDetailScreen';
 import ProfileScreen from '@/screens/profile/ProfileScreen';
 import ProfileEditScreen from '@/screens/profile/ProfileEditScreen';
+import PublicProfileScreen from '@/screens/profile/PublicProfileScreen';
 
 import CustomBottomsheet from '@/components/CustomBottomsheet';
 
@@ -38,50 +39,104 @@ import LinearGradient from 'react-native-linear-gradient';
 
 const AuthLogo = require('../assets/images/auth-logo.png');
 
-/* -------------------------------
- * Type‑safe param lists
- * (you keep your existing types)
- * ------------------------------ */
+/* ---------------------------------
+ * Stack param types
+ * --------------------------------- */
+
+// Home tab stack
 export type HomeStackParamList = {
   Home: undefined;
   EventDetail: { id?: string } | undefined;
 };
-// ... (others omitted for brevity; keep as you had) ...
 
-/* -------------------------------
- * Navigator Instances
- * ------------------------------ */
+// Profile tab stack (private profile / edit self)
+export type ProfileStackParamList = {
+  Profile: undefined;
+  ProfileEdit: undefined;
+};
+
+// Root stack (app when logged in)
+// these are global routes you can jump to from anywhere in the app shell
+export type RootStackParamList = {
+  Main: undefined; // Drawer containing tabs etc.
+  Notifications: undefined;
+  PublicProfile: { userId: string };
+};
+
+// Auth stack (login/register flow BEFORE token)
+export type AuthStackParamList = {
+  GetStarted: undefined;
+  Login: undefined;
+  Register: undefined;
+};
+
+// Other tab stacks (optional strict typing if you want later)
+export type EventsStackParamList = {
+  Events: undefined;
+  AddEvent: undefined;
+  EventDetail: { id?: string } | undefined;
+};
+
+export type MembersStackParamList = {
+  Members: undefined;
+};
+
+export type BusinessStackParamList = {
+  Business: undefined;
+  BusinessDetail: { id?: string } | undefined;
+};
+
+export type GroupsStackParamList = {
+  Groups: undefined;
+  GroupDetail: { id?: string } | undefined;
+};
+
+export type SettingsStackParamList = {
+  Settings: undefined;
+};
+
+/* ---------------------------------
+ * Navigator instances
+ * --------------------------------- */
 const Tab = createBottomTabNavigator();
-const RootStack = createStackNavigator();
+const RootStack = createStackNavigator<RootStackParamList>();
 const Drawer = createDrawerNavigator();
 
+const AuthStackNavStack = createStackNavigator<AuthStackParamList>();
 const HomeStack = createStackNavigator<HomeStackParamList>();
-const EventsStack = createStackNavigator();
-const MembersStack = createStackNavigator();
-const BusinessStack = createStackNavigator();
-const GroupsStack = createStackNavigator();
-const SettingsStack = createStackNavigator();
-const ProfileStack = createStackNavigator();
+const EventsStack = createStackNavigator<EventsStackParamList>();
+const MembersStack = createStackNavigator<MembersStackParamList>();
+const BusinessStack = createStackNavigator<BusinessStackParamList>();
+const GroupsStack = createStackNavigator<GroupsStackParamList>();
+const SettingsStack = createStackNavigator<SettingsStackParamList>();
+const ProfileStack = createStackNavigator<ProfileStackParamList>();
 
-/* -------------------------------------------
- * Profile Stack
- * ------------------------------------------- */
+/* ---------------------------------
+ * Profile stack (private profile/edit)
+ * --------------------------------- */
 const ProfileStackNav = () => (
   <ProfileStack.Navigator screenOptions={{ headerShown: false }}>
     <ProfileStack.Screen name="Profile" component={ProfileScreen} />
     <ProfileStack.Screen name="ProfileEdit" component={ProfileEditScreen} />
+    {/* NOTE: PublicProfile is NOT here */}
   </ProfileStack.Navigator>
 );
 
-/* -------------------------------------------
- * Stacks per Tab
- * ------------------------------------------- */
+/* ---------------------------------
+ * Home tab stack
+ * --------------------------------- */
 const HomeStackNav = () => (
   <HomeStack.Navigator screenOptions={{ headerShown: false }}>
     <HomeStack.Screen name="Home" component={HomeScreen} />
+    {/* if you ALSO want event detail from Home tab, you can include:
+        <HomeStack.Screen name="EventDetail" component={EventDetailScreen} />
+    */}
   </HomeStack.Navigator>
 );
 
+/* ---------------------------------
+ * Events tab stack
+ * --------------------------------- */
 const EventsStackNav = () => (
   <EventsStack.Navigator screenOptions={{ headerShown: false }}>
     <EventsStack.Screen name="Events" component={EventScreen} />
@@ -90,35 +145,53 @@ const EventsStackNav = () => (
   </EventsStack.Navigator>
 );
 
+/* ---------------------------------
+ * Members tab stack
+ * --------------------------------- */
 const MembersStackNav = () => (
   <MembersStack.Navigator screenOptions={{ headerShown: false }}>
     <MembersStack.Screen name="Members" component={MembersScreen} />
   </MembersStack.Navigator>
 );
 
+/* ---------------------------------
+ * Business tab stack
+ * --------------------------------- */
 const BusinessStackNav = () => (
   <BusinessStack.Navigator screenOptions={{ headerShown: false }}>
     <BusinessStack.Screen name="Business" component={BusinessScreen} />
-    <BusinessStack.Screen name="BusinessDetail" component={BusinessDetailScreen} />
+    <BusinessStack.Screen
+      name="BusinessDetail"
+      component={BusinessDetailScreen}
+    />
   </BusinessStack.Navigator>
 );
 
+/* ---------------------------------
+ * Groups tab stack
+ * --------------------------------- */
 const GroupsStackNav = () => (
   <GroupsStack.Navigator screenOptions={{ headerShown: false }}>
     <GroupsStack.Screen name="Groups" component={GroupsScreen} />
-    <GroupsStack.Screen name="GroupDetail" component={GroupDetailScreen} />
+    <GroupsStack.Screen
+      name="GroupDetail"
+      component={GroupDetailScreen}
+    />
   </GroupsStack.Navigator>
 );
 
+/* ---------------------------------
+ * Settings tab stack
+ * --------------------------------- */
 const SettingsStackNav = () => (
   <SettingsStack.Navigator screenOptions={{ headerShown: false }}>
     <SettingsStack.Screen name="Settings" component={SettingsScreen} />
   </SettingsStack.Navigator>
 );
 
-/* -------------------------------------------
- * Bottom Tabs inside Drawer
- * ------------------------------------------- */
+/* ---------------------------------
+ * Bottom Tabs (inside Drawer)
+ * --------------------------------- */
 const MainTabNavigator = () => {
   useTheme();
   return (
@@ -126,27 +199,53 @@ const MainTabNavigator = () => {
       screenOptions={{ headerShown: false }}
       tabBar={(props) => <CustomBottomsheet {...props} />}
     >
-      <Tab.Screen name="HomeTab" component={HomeStackNav} options={{ title: 'Home' }} />
-      <Tab.Screen name="EventsTab" component={EventsStackNav} options={{ title: 'Events' }} />
-      <Tab.Screen name="MembersTab" component={MembersStackNav} options={{ title: 'Members' }} />
-      <Tab.Screen name="BusinessTab" component={BusinessStackNav} options={{ title: 'Business' }} />
-      <Tab.Screen name="GroupsTab" component={GroupsStackNav} options={{ title: 'Groups' }} />
-      <Tab.Screen name="SettingsTab" component={SettingsStackNav} options={{ title: 'Settings' }} />
-      <Tab.Screen name="ProfileTab" component={ProfileStackNav} options={{ title: 'Profile' }} />
+      <Tab.Screen
+        name="HomeTab"
+        component={HomeStackNav}
+        options={{ title: 'Home' }}
+      />
+      <Tab.Screen
+        name="EventsTab"
+        component={EventsStackNav}
+        options={{ title: 'Events' }}
+      />
+      <Tab.Screen
+        name="MembersTab"
+        component={MembersStackNav}
+        options={{ title: 'Members' }}
+      />
+      <Tab.Screen
+        name="BusinessTab"
+        component={BusinessStackNav}
+        options={{ title: 'Business' }}
+      />
+      <Tab.Screen
+        name="GroupsTab"
+        component={GroupsStackNav}
+        options={{ title: 'Groups' }}
+      />
+      <Tab.Screen
+        name="SettingsTab"
+        component={SettingsStackNav}
+        options={{ title: 'Settings' }}
+      />
+      <Tab.Screen
+        name="ProfileTab"
+        component={ProfileStackNav}
+        options={{ title: 'Profile' }}
+      />
     </Tab.Navigator>
   );
 };
 
-/* -------------------------------------------
+/* ---------------------------------
  * Custom Drawer Content
- * ------------------------------------------- */
+ * --------------------------------- */
 function CustomDrawerContent(props: any) {
   const { logout } = useAuth();
 
   const handleLogout = async () => {
     await logout();
-    // after logout, context will cause token = null and user = null,
-    // navigator will switch to AuthStack
   };
 
   return (
@@ -165,12 +264,23 @@ function CustomDrawerContent(props: any) {
             paddingHorizontal: 16,
           }}
         >
-          <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 32 }}>
-            <Image source={AuthLogo} style={{ width: 110, height: 52, resizeMode: 'contain' }} />
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'center',
+              marginBottom: 32,
+            }}
+          >
+            <Image
+              source={AuthLogo}
+              style={{ width: 110, height: 52, resizeMode: 'contain' }}
+            />
           </View>
 
           <TouchableOpacity
-            onPress={() => props.navigation.navigate('MainTabs', { screen: 'SettingsTab' })}
+            onPress={() =>
+              props.navigation.navigate('MainTabs', { screen: 'SettingsTab' })
+            }
             style={{
               borderRadius: 10,
               backgroundColor: appTheme.colors.primaryDark,
@@ -182,12 +292,18 @@ function CustomDrawerContent(props: any) {
               marginBottom: 10,
             }}
           >
-            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>Settings</Text>
+            <Text
+              style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}
+            >
+              Settings
+            </Text>
             <Gear size={22} color="#fff" />
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => props.navigation.navigate('MainTabs', { screen: 'GroupsTab' })}
+            onPress={() =>
+              props.navigation.navigate('MainTabs', { screen: 'GroupsTab' })
+            }
             style={{
               borderRadius: 10,
               backgroundColor: appTheme.colors.primaryDark,
@@ -198,7 +314,11 @@ function CustomDrawerContent(props: any) {
               justifyContent: 'space-between',
             }}
           >
-            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>Resources</Text>
+            <Text
+              style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}
+            >
+              Resources
+            </Text>
             <InfoIcon size={22} color="#fff" />
           </TouchableOpacity>
         </DrawerContentScrollView>
@@ -216,7 +336,11 @@ function CustomDrawerContent(props: any) {
               justifyContent: 'space-between',
             }}
           >
-            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>Logout</Text>
+            <Text
+              style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}
+            >
+              Logout
+            </Text>
             <SignOutIcon size={22} color="#fff" />
           </TouchableOpacity>
         </View>
@@ -225,9 +349,9 @@ function CustomDrawerContent(props: any) {
   );
 }
 
-/* -------------------------------------------
+/* ---------------------------------
  * Drawer wraps Tabs
- * ------------------------------------------- */
+ * --------------------------------- */
 const RootDrawer = () => (
   <Drawer.Navigator
     initialRouteName="MainTabs"
@@ -244,25 +368,24 @@ const RootDrawer = () => (
   </Drawer.Navigator>
 );
 
-/* -------------------------------------------
- * Auth Stack (GetStarted / Login / Register)
- * ------------------------------------------- */
-const AuthStack = () => (
-  <RootStack.Navigator screenOptions={{ headerShown: false }}>
-    <RootStack.Screen name="GetStarted" component={GetStartedScreen} />
-    <RootStack.Screen name="Login" component={LoginScreen} />
-    <RootStack.Screen name="Register" component={RegisterScreen} />
-  </RootStack.Navigator>
+/* ---------------------------------
+ * Auth stack (unauthenticated flow)
+ * --------------------------------- */
+const AuthStackNav = () => (
+  <AuthStackNavStack.Navigator screenOptions={{ headerShown: false }}>
+    <AuthStackNavStack.Screen name="GetStarted" component={GetStartedScreen} />
+    <AuthStackNavStack.Screen name="Login" component={LoginScreen} />
+    <AuthStackNavStack.Screen name="Register" component={RegisterScreen} />
+  </AuthStackNavStack.Navigator>
 );
 
-/* -------------------------------------------
+/* ---------------------------------
  * App Navigator: Switch based on auth state
- * ------------------------------------------- */
+ * --------------------------------- */
 const AppNavigator: React.FC = () => {
   const { token, loading } = useAuth();
 
   if (loading) {
-    // You might return a splash screen here
     return null;
   }
 
@@ -270,15 +393,31 @@ const AppNavigator: React.FC = () => {
     <NavigationContainer>
       {token ? (
         <RootStack.Navigator screenOptions={{ headerShown: false }}>
+          {/* whole app shell (drawer + tabs) */}
           <RootStack.Screen name="Main" component={RootDrawer} />
+
+          {/* notifications modal-like */}
           <RootStack.Screen
             name="Notifications"
             component={NotificationsScreen}
-            options={{ presentation: 'transparentModal', animation: 'none', headerShown: false }}
+            options={{
+              presentation: 'transparentModal',
+              animation: 'none',
+              headerShown: false,
+            }}
+          />
+
+          {/* global public profile */}
+          <RootStack.Screen
+            name="PublicProfile"
+            component={PublicProfileScreen}
+            options={{
+              headerShown: false,
+            }}
           />
         </RootStack.Navigator>
       ) : (
-        <AuthStack />
+        <AuthStackNav />
       )}
     </NavigationContainer>
   );
