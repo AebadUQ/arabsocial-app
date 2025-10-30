@@ -82,7 +82,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     marginBottom:8,
-    marginTop:18
   },
   leftBtn: {
     height:40,
