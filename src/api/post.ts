@@ -13,7 +13,10 @@ export const getAllPost = async (params: {
   console.log("rassds",response.data)
   return response.data.data;
 };
-
+export const createPost = async ({  content }: {  content: string; }) => {
+  const res = await api.post(`/posts/create`, { content });
+  return res.data?.data; // server ka created comment object
+};
 export const getPostComments = async (params: {
   postId: number | string;
   page?: number;
@@ -32,5 +35,25 @@ export const getPostComments = async (params: {
 };
 export const addPostComment = async ({ postId, content }: { postId: number | string; content: string; }) => {
   const res = await api.post(`/posts/comments/${postId}`, { content });
+  return res.data?.data; // server ka created comment object
+};
+export const getPostCommentsReplies = async (params: {
+  commentId: number | string;
+  page?: number;
+  limit?: number;
+}): Promise<any> => {
+  const { commentId, page = 1, limit = 3 } = params;
+  const query = new URLSearchParams({ page: String(page), limit: String(limit) }).toString();
+  const res = await api.get(`/posts/comments/replies/${commentId}?${query}`);
+
+  // Expecting same wrapper: { success, message, data: { data: [...], meta: {...} } }
+  const payload = res.data?.data ?? {};
+  return {
+    data: payload.data ?? [],
+    meta: payload.meta ?? { total: 0, page, lastPage: 1 },
+  };
+};
+export const addReplytoPost = async ({ commentId, content }: { commentId: number | string; content: string; }) => {
+  const res = await api.post(`/posts/comments/replies/${commentId}`, { content });
   return res.data?.data; // server ka created comment object
 };

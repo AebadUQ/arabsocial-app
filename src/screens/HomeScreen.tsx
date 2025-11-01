@@ -9,21 +9,23 @@ import {
   TouchableOpacity,
   TextInput,
   Image,
-  Text
+  Text,
 } from "react-native";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@/theme/ThemeContext";
 import TopBar from "@/components/common/TopBar";
 import PostCard, { ApiPost } from "@/components/home/PostCard";
 import { getAllPost, getPostComments } from "@/api/post";
+import { createPost } from "@/api/post"; // ✅ NEW: use your createPost
 import ImagePickerField, {
   ImagePickerFieldHandle,
 } from "@/components/common/ImagePicker";
 import type { Asset } from "react-native-image-picker";
 import { ImageSquareIcon, PaperPlaneRightIcon } from "phosphor-react-native";
 import { useAuth } from "@/context/Authcontext";
-import CommentsSheet, { CommentsSheetHandle } from "@/components/home/CommentSheet";
-
+import CommentsSheet, {
+  CommentsSheetHandle,
+} from "@/components/home/CommentSheet";
 
 const PAGE_SIZE = 10;
 
@@ -39,6 +41,7 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
   // composer
   const [newPost, setNewPost] = useState("");
   const [pickedImage, setPickedImage] = useState<Asset | null>(null);
+  const [posting, setPosting] = useState(false); // ✅ avoid double submits
 
   // feed loader
   const {
@@ -69,17 +72,22 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
     return data.pages.flatMap((page) => page.data) as ApiPost[];
   }, [data]);
 
-  // optimistic add post
-  const handleAddPost = () => {
+  // ✅ optimistic add post + server replace
+  const handleAddPost = async () => {
+    if (posting) return;
     const text = newPost.trim();
     const imgUri = pickedImage?.uri;
     if (!text && !imgUri) return;
 
+    // NOTE: your createPost only accepts { content }, so image won't be uploaded.
+    // TODO: switch to multipart/form-data endpoint to support image upload.
+    const tempId = `temp-${Date.now()}`;
+
     const fakePost: ApiPost = {
-      id: Date.now(),
+      id: tempId as unknown as number, // keep type happy; we’ll replace with real numeric id
       authorId: user?.id ?? 0,
-      content: text,
-      image_url: imgUri || null,
+      content: text + (imgUri ? "\n\n(attachment pending upload)" : ""),
+      image_url: imgUri || null, // UI preview only; server won’t persist it yet
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       likes_count: 0,
@@ -94,6 +102,7 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
       },
     };
 
+    // 1) Optimistically prepend to first page
     queryClient.setQueryData(["posts"], (oldData: any) => {
       if (!oldData) {
         return {
@@ -104,8 +113,9 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
         };
       }
       const newPages = [...oldData.pages];
-      if (!newPages[0])
+      if (!newPages[0]) {
         newPages[0] = { data: [], meta: { page: 1, lastPage: 1, total: 0 } };
+      }
       newPages[0] = {
         ...newPages[0],
         data: [fakePost, ...newPages[0].data],
@@ -117,12 +127,74 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
       return { ...oldData, pages: newPages };
     });
 
+    // Clear composer immediately
     setNewPost("");
     setPickedImage(null);
+
+    // 2) Call server
+    try {
+      setPosting(true);
+      const created = await createPost({ content: text });
+      // Shape assumed: { id, content, image_url?, created_at, updated_at, ... }
+      if (created?.id) {
+        // 3) Replace temp in cache with real post
+        queryClient.setQueryData(["posts"], (oldData: any) => {
+          if (!oldData?.pages) return oldData;
+          const newPages = oldData.pages.map((pg: any, idx: number) => {
+            if (!Array.isArray(pg.data)) return pg;
+            return {
+              ...pg,
+              data: pg.data.map((p: ApiPost) =>
+                String(p.id) === String(tempId) ? { ...created } : p
+              ),
+            };
+          });
+          return { ...oldData, pages: newPages };
+        });
+      } else {
+        // If server didn’t return an id, rollback
+        queryClient.setQueryData(["posts"], (oldData: any) => {
+          if (!oldData?.pages) return oldData;
+          const newPages = oldData.pages.map((pg: any) => ({
+            ...pg,
+            data: pg.data.filter((p: ApiPost) => String(p.id) !== String(tempId)),
+            meta: {
+              ...pg.meta,
+              total:
+                typeof pg.meta?.total === "number"
+                  ? Math.max(0, pg.meta.total - 1)
+                  : pg.meta?.total,
+            },
+          }));
+          return { ...oldData, pages: newPages };
+        });
+      }
+    } catch (e) {
+      // 4) Rollback on error
+      queryClient.setQueryData(["posts"], (oldData: any) => {
+        if (!oldData?.pages) return oldData;
+        const newPages = oldData.pages.map((pg: any) => ({
+          ...pg,
+          data: pg.data.filter((p: ApiPost) => String(p.id) !== String(tempId)),
+          meta: {
+            ...pg.meta,
+            total:
+              typeof pg.meta?.total === "number"
+                ? Math.max(0, pg.meta.total - 1)
+                : pg.meta?.total,
+          },
+        }));
+        return { ...oldData, pages: newPages };
+      });
+    } finally {
+      setPosting(false);
+      // Optionally refetch to be 100% consistent with server-side order/meta
+      // await queryClient.invalidateQueries({ queryKey: ["posts"] });
+    }
   };
 
   const onPickImage = () => pickerRef.current?.open();
-  const canSend = newPost.trim().length > 0 || !!pickedImage?.uri;
+  const canSend = (newPost.trim().length > 0 || !!pickedImage?.uri) && !posting;
 
   const keyExtractor = useCallback((item: ApiPost) => String(item.id), []);
   const openComments = useCallback(
@@ -156,6 +228,7 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
       data: res?.data ?? [],
       total: res?.meta?.total ?? res?.data?.length ?? 0,
     };
+    // (If your API already returns {data,meta:{total}}, you can pass it straight through.)
   };
 
   return (
@@ -173,6 +246,7 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
           multiline
           numberOfLines={4}
           textAlignVertical="top"
+          editable={!posting}
         />
 
         {pickedImage?.uri && (
@@ -181,12 +255,22 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
           </View>
         )}
 
-        <TouchableOpacity onPress={onPickImage} style={styles.imageIcon} hitSlop={10}>
+        <TouchableOpacity
+          onPress={onPickImage}
+          style={styles.imageIcon}
+          hitSlop={10}
+          disabled={posting}
+        >
           <ImageSquareIcon size={22} weight="regular" color="#9AA0A6" />
         </TouchableOpacity>
 
         {canSend && (
-          <TouchableOpacity onPress={handleAddPost} style={styles.sendIcon} hitSlop={10}>
+          <TouchableOpacity
+            onPress={handleAddPost}
+            style={styles.sendIcon}
+            hitSlop={10}
+            disabled={posting}
+          >
             <PaperPlaneRightIcon size={22} weight="fill" color={theme.colors.primary} />
           </TouchableOpacity>
         )}
