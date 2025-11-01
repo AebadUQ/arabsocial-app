@@ -15,13 +15,12 @@ import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@/theme/ThemeContext";
 import TopBar from "@/components/common/TopBar";
 import PostCard, { ApiPost } from "@/components/home/PostCard";
-import { getAllPost, getPostComments } from "@/api/post";
-import { createPost } from "@/api/post"; // ✅ NEW: use your createPost
+import { getAllPost, getPostComments, createPost, likePost } from "@/api/post";
 import ImagePickerField, {
   ImagePickerFieldHandle,
 } from "@/components/common/ImagePicker";
 import type { Asset } from "react-native-image-picker";
-import { ImageSquareIcon, PaperPlaneRightIcon } from "phosphor-react-native";
+import { ImageSquareIcon, PaperPlaneRightIcon, XCircle } from "phosphor-react-native";
 import { useAuth } from "@/context/Authcontext";
 import CommentsSheet, {
   CommentsSheetHandle,
@@ -35,13 +34,15 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
   const pickerRef = useRef<ImagePickerFieldHandle>(null);
   const { user } = useAuth();
 
-  // ---- CommentsSheet ref ----
   const commentsRef = useRef<CommentsSheetHandle>(null);
 
   // composer
   const [newPost, setNewPost] = useState("");
   const [pickedImage, setPickedImage] = useState<Asset | null>(null);
-  const [posting, setPosting] = useState(false); // ✅ avoid double submits
+  const [posting, setPosting] = useState(false);
+
+  // like in-flight guards per post
+  const [likingMap, setLikingMap] = useState<Record<string, boolean>>({});
 
   // feed loader
   const {
@@ -72,22 +73,20 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
     return data.pages.flatMap((page) => page.data) as ApiPost[];
   }, [data]);
 
-  // ✅ optimistic add post + server replace
+  // optimistic add post
   const handleAddPost = async () => {
     if (posting) return;
     const text = newPost.trim();
     const imgUri = pickedImage?.uri;
     if (!text && !imgUri) return;
 
-    // NOTE: your createPost only accepts { content }, so image won't be uploaded.
-    // TODO: switch to multipart/form-data endpoint to support image upload.
     const tempId = `temp-${Date.now()}`;
 
     const fakePost: ApiPost = {
-      id: tempId as unknown as number, // keep type happy; we’ll replace with real numeric id
+      id: tempId as unknown as number,
       authorId: user?.id ?? 0,
       content: text + (imgUri ? "\n\n(attachment pending upload)" : ""),
-      image_url: imgUri || null, // UI preview only; server won’t persist it yet
+      image_url: imgUri || null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       likes_count: 0,
@@ -102,14 +101,11 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
       },
     };
 
-    // 1) Optimistically prepend to first page
     queryClient.setQueryData(["posts"], (oldData: any) => {
       if (!oldData) {
         return {
           pageParams: [1],
-          pages: [
-            { data: [fakePost], meta: { page: 1, lastPage: 1, total: 1 } },
-          ],
+          pages: [{ data: [fakePost], meta: { page: 1, lastPage: 1, total: 1 } }],
         };
       }
       const newPages = [...oldData.pages];
@@ -119,81 +115,112 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
       newPages[0] = {
         ...newPages[0],
         data: [fakePost, ...newPages[0].data],
-        meta: {
-          ...newPages[0].meta,
-          total: (newPages[0].meta?.total || 0) + 1,
-        },
+        meta: { ...newPages[0].meta, total: (newPages[0].meta?.total || 0) + 1 },
       };
       return { ...oldData, pages: newPages };
     });
 
-    // Clear composer immediately
     setNewPost("");
     setPickedImage(null);
 
-    // 2) Call server
     try {
       setPosting(true);
       const created = await createPost({ content: text });
-      // Shape assumed: { id, content, image_url?, created_at, updated_at, ... }
       if (created?.id) {
-        // 3) Replace temp in cache with real post
         queryClient.setQueryData(["posts"], (oldData: any) => {
           if (!oldData?.pages) return oldData;
-          const newPages = oldData.pages.map((pg: any, idx: number) => {
-            if (!Array.isArray(pg.data)) return pg;
-            return {
-              ...pg,
-              data: pg.data.map((p: ApiPost) =>
-                String(p.id) === String(tempId) ? { ...created } : p
-              ),
-            };
-          });
+          const newPages = oldData.pages.map((pg: any) => ({
+            ...pg,
+            data: pg.data.map((p: ApiPost) =>
+              String(p.id) === String(tempId) ? { ...created } : p
+            ),
+          }));
           return { ...oldData, pages: newPages };
         });
       } else {
-        // If server didn’t return an id, rollback
+        // rollback
         queryClient.setQueryData(["posts"], (oldData: any) => {
           if (!oldData?.pages) return oldData;
           const newPages = oldData.pages.map((pg: any) => ({
             ...pg,
             data: pg.data.filter((p: ApiPost) => String(p.id) !== String(tempId)),
-            meta: {
-              ...pg.meta,
-              total:
-                typeof pg.meta?.total === "number"
-                  ? Math.max(0, pg.meta.total - 1)
-                  : pg.meta?.total,
-            },
+            meta: { ...pg.meta, total: Math.max(0, (pg.meta?.total || 1) - 1) },
           }));
           return { ...oldData, pages: newPages };
         });
       }
-    } catch (e) {
-      // 4) Rollback on error
+    } catch {
       queryClient.setQueryData(["posts"], (oldData: any) => {
         if (!oldData?.pages) return oldData;
         const newPages = oldData.pages.map((pg: any) => ({
           ...pg,
           data: pg.data.filter((p: ApiPost) => String(p.id) !== String(tempId)),
-          meta: {
-            ...pg.meta,
-            total:
-              typeof pg.meta?.total === "number"
-                ? Math.max(0, pg.meta.total - 1)
-                : pg.meta?.total,
-          },
+          meta: { ...pg.meta, total: Math.max(0, (pg.meta?.total || 1) - 1) },
         }));
         return { ...oldData, pages: newPages };
       });
     } finally {
       setPosting(false);
-      // Optionally refetch to be 100% consistent with server-side order/meta
-      // await queryClient.invalidateQueries({ queryKey: ["posts"] });
     }
   };
 
+  // optimistic like
+  const handleToggleLike = useCallback(
+    async (postId: number | string) => {
+      const key = String(postId);
+      if (likingMap[key]) return;
+      setLikingMap((m) => ({ ...m, [key]: true }));
+
+      let prevIsLiked = false;
+      queryClient.setQueryData(["posts"], (oldData: any) => {
+        if (!oldData?.pages) return oldData;
+        const newPages = oldData.pages.map((pg: any) => ({
+          ...pg,
+          data: pg.data.map((p: ApiPost) => {
+            if (String(p.id) !== key) return p;
+            prevIsLiked = p.isLikedByMe;
+            const next = !p.isLikedByMe;
+            return {
+              ...p,
+              isLikedByMe: next,
+              likes_count: Math.max(0, p.likes_count + (next ? 1 : -1)),
+            };
+          }),
+        }));
+        return { ...oldData, pages: newPages };
+      });
+
+      try {
+        await likePost({ postId });
+      } catch {
+        // rollback
+        queryClient.setQueryData(["posts"], (oldData: any) => {
+          if (!oldData?.pages) return oldData;
+          const newPages = oldData.pages.map((pg: any) => ({
+            ...pg,
+            data: pg.data.map((p: ApiPost) => {
+              if (String(p.id) !== key) return p;
+              const desired = prevIsLiked;
+              const delta = desired === p.isLikedByMe ? 0 : (desired ? 1 : -1);
+              return {
+                ...p,
+                isLikedByMe: desired,
+                likes_count: Math.max(0, p.likes_count + delta),
+              };
+            }),
+          }));
+          return { ...oldData, pages: newPages };
+        });
+      } finally {
+        setLikingMap((m) => ({ ...m, [key]: false }));
+      }
+    },
+    [queryClient, likingMap]
+  );
+
   const onPickImage = () => pickerRef.current?.open();
+  const removePicked = () => setPickedImage(null);
+
   const canSend = (newPost.trim().length > 0 || !!pickedImage?.uri) && !posting;
 
   const keyExtractor = useCallback((item: ApiPost) => String(item.id), []);
@@ -208,34 +235,30 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
         post={item}
         currentUserId={user?.id}
         onOpenComments={() => openComments(item)}
+        onToggleLike={() => handleToggleLike(item.id)}
       />
     ),
-    [user?.id, openComments]
+    [user?.id, openComments, handleToggleLike]
   );
 
   const onEndReached = () => {
     if (hasNextPage && !isFetchingNextPage) fetchNextPage();
   };
 
-  // adapter for CommentsSheet -> your API
   const loadCommentsPage = async (
     postId: number | string,
     page: number,
     limit: number
   ) => {
     const res = await getPostComments({ postId, page, limit });
-    return {
-      data: res?.data ?? [],
-      total: res?.meta?.total ?? res?.data?.length ?? 0,
-    };
-    // (If your API already returns {data,meta:{total}}, you can pass it straight through.)
+    return { data: res?.data ?? [], total: res?.meta?.total ?? res?.data?.length ?? 0 };
   };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <TopBar onMenuPress={() => navigation.openDrawer()} />
 
-      {/* composer */}
+      {/* composer (column layout so preview stays inside box) */}
       <View style={styles.inputWrap}>
         <TextInput
           placeholder="Ask for help or give suggestions"
@@ -249,12 +272,22 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
           editable={!posting}
         />
 
+        {/* preview stays INSIDE the box (no absolute) */}
         {pickedImage?.uri && (
-          <View style={styles.previewWrap}>
-            <Image source={{ uri: pickedImage.uri }} style={styles.preview} />
+          <View style={styles.previewContainer}>
+            <Image source={{ uri: pickedImage.uri }} style={styles.previewImage} />
+            <TouchableOpacity
+              onPress={removePicked}
+              hitSlop={10}
+              style={styles.removeBadge}
+              disabled={posting}
+            >
+              <XCircle size={18} weight="fill" color="#fff" />
+            </TouchableOpacity>
           </View>
         )}
 
+        {/* actions anchored inside the box (absolute to inputWrap but still clipped) */}
         <TouchableOpacity
           onPress={onPickImage}
           style={styles.imageIcon}
@@ -331,7 +364,6 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
         />
       )}
 
-      {/* ✅ Reusable Comments Sheet */}
       <CommentsSheet
         ref={commentsRef}
         loadPage={loadCommentsPage}
@@ -345,8 +377,8 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   inputWrap: {
     position: "relative",
-    flexDirection: "row",
-    alignItems: "flex-start",
+    flexDirection: "column", // 🔁 column so children (input + preview) stay inside
+    alignItems: "stretch",
     paddingHorizontal: 12,
     paddingVertical: 12,
     backgroundColor: "white",
@@ -355,23 +387,43 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: "#EEE",
+    overflow: "hidden", // ensures absolutely placed icons don't visually spill
   },
-  input: { flex: 1, minHeight: 32, paddingRight: 56, fontSize: 14 },
-  imageIcon: { position: "absolute", top: 10, right: 12 },
-  sendIcon: { position: "absolute", bottom: 10, right: 12 },
-  previewWrap: {
-    position: "absolute",
-    left: 12,
-    bottom: 10,
-    width: 80,
-    height: 80,
-    borderRadius: 8,
+  input: {
+    minHeight: 48,
+    fontSize: 14,
+    paddingRight: 56, // space for send icon
+    paddingTop: 6,
+    paddingBottom: 6,
+  },
+
+  // preview INSIDE box
+  previewContainer: {
+    marginTop: 10,
+    borderRadius: 10,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: "#e5e5e5",
-    backgroundColor: "#f2f2f2",
+    backgroundColor: "#f7f7f7",
   },
-  preview: { width: "100%", height: "100%" },
+  previewImage: {
+    width: "100%",
+    height: 180, // fixed height (can adjust)
+    resizeMode: "cover",
+  },
+  removeBadge: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    borderRadius: 12,
+    padding: 2,
+  },
+
+  // icons sit inside the same box (top-right / bottom-right)
+  imageIcon: { position: "absolute", top: 10, right: 12 },
+  sendIcon: { position: "absolute", bottom: 10, right: 12 },
+
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   retryBtn: { marginTop: 10, paddingHorizontal: 20, paddingVertical: 8, borderRadius: 6 },
 });

@@ -1,4 +1,4 @@
-import React, { memo, useState } from "react";
+import React, { memo, useEffect, useState } from "react";
 import { View, Image, StyleSheet, TouchableOpacity } from "react-native";
 import { useTheme } from "@/theme/ThemeContext";
 import { Text } from "@/components";
@@ -6,8 +6,8 @@ import { ThumbsUpIcon, ChatCircleIcon, DotsThreeVertical } from "phosphor-react-
 import { theme } from "@/theme/theme";
 
 export type ApiPost = {
-  id: number;
-  authorId: number;
+  id: number | string;                    // <- allow string temp ids too
+  authorId: number | string;
   content: string;
   image_url: string | null;
   created_at: string;
@@ -17,7 +17,7 @@ export type ApiPost = {
   is_active: boolean;
   isLikedByMe: boolean;
   author: {
-    id: number;
+    id: number | string;
     name: string;
     image: string | null;
     country: string | null;
@@ -26,8 +26,9 @@ export type ApiPost = {
 
 type Props = {
   post: ApiPost;
-  currentUserId?: number | null;
-  onOpenComments?: (post: ApiPost) => void; // parent handles API & bottom sheet
+  currentUserId?: number | string | null;
+  onOpenComments?: (post: ApiPost) => void; 
+  onToggleLike?: () => void;              // ✅ parent will call API + optimistic cache
 };
 
 const AVATAR = 28;
@@ -68,12 +69,29 @@ const UserAvatar = ({ uri, fallback }: { uri: string | null; fallback: string })
   );
 };
 
-const PostCard: React.FC<Props> = ({ post, currentUserId, onOpenComments }) => {
+const PostCard: React.FC<Props> = ({ post, currentUserId, onOpenComments, onToggleLike }) => {
   const { theme: activeTheme } = useTheme();
-  const [liked, setLiked] = useState(post.isLikedByMe);
 
-  const likeCount = post.likes_count + (liked && !post.isLikedByMe ? 1 : 0);
-  const isMine = currentUserId != null && post.authorId === currentUserId;
+  // 🔁 tiny optimistic UI so tap feels instant (but still synced with props)
+  const [liked, setLiked] = useState(post.isLikedByMe);
+  const [likeCount, setLikeCount] = useState(post.likes_count);
+
+  // props change (from cache/server) => sync local
+  useEffect(() => {
+    setLiked(post.isLikedByMe);
+    setLikeCount(post.likes_count);
+  }, [post.isLikedByMe, post.likes_count]);
+
+  const handleLikePress = () => {
+    // optimistic local snap
+    setLiked((v) => !v);
+    setLikeCount((c) => Math.max(0, c + (liked ? -1 : 1)));
+
+    // parent ko bolo -> API + cache reconcile
+    onToggleLike?.();
+  };
+
+  const isMine = currentUserId != null && String(post.authorId) === String(currentUserId);
 
   return (
     <View style={styles.card}>
@@ -103,19 +121,19 @@ const PostCard: React.FC<Props> = ({ post, currentUserId, onOpenComments }) => {
       </View>
 
       {/* Content */}
-      {!!post.content && <Text variant="body1" color={activeTheme.colors.text}>{post.content}</Text>}
+      {!!post.content && (
+        <Text variant="body1" color={activeTheme.colors.text}>
+          {post.content}
+        </Text>
+      )}
 
-      {post.image_url && (
+      {!!post.image_url && (
         <Image source={{ uri: post.image_url }} style={styles.image} resizeMode="cover" />
       )}
 
       {/* Actions */}
       <View style={styles.actions}>
-        <TouchableOpacity
-          style={styles.action}
-          onPress={() => setLiked((v) => !v)}
-          activeOpacity={0.7}
-        >
+        <TouchableOpacity style={styles.action} onPress={handleLikePress} activeOpacity={0.7}>
           <ThumbsUpIcon
             size={20}
             color={liked ? activeTheme.colors.primary : activeTheme.colors.text}

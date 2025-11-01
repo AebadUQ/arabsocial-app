@@ -57,3 +57,8 @@ export const addReplytoPost = async ({ commentId, content }: { commentId: number
   const res = await api.post(`/posts/comments/replies/${commentId}`, { content });
   return res.data?.data; // server ka created comment object
 };
+export const likePost = async ({postId}:{postId:number | string})=>{
+    const res = await api.post(`/posts/like/${postId}`);
+  return res.data?.data; 
+
+}
