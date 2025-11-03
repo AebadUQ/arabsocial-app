@@ -23,8 +23,8 @@ import RegisterScreen from "@/screens/RegisterScreen";
 import HomeScreen from "@/screens/HomeScreen";
 import EventScreen from "@/screens/EventScreen";
 import MembersScreen from "@/screens/MembersScreen";
-import BusinessScreen from "@/screens/BusinessScreen";
-import BusinessDetailScreen from "@/screens/BusinessDetail";
+import BusinessScreen from "@/screens/business/BusinessScreen";
+import BusinessDetailScreen from "@/screens/business/BusinessDetail";
 import GroupsScreen from "@/screens/GroupScreen";
 import SettingsScreen from "@/screens/SettingsScreen";
 import NotificationsScreen from "@/screens/NotificationScreen";
@@ -34,6 +34,7 @@ import GroupDetailScreen from "@/screens/GroupDetailScreen";
 import ProfileScreen from "@/screens/profile/ProfileScreen";
 import ProfileEditScreen from "@/screens/profile/ProfileEditScreen";
 import PublicProfileScreen from "@/screens/profile/PublicProfileScreen";
+import CreateBusiness from '@/screens/business/CreateBusiness'
 
 import CustomBottomsheet from "@/components/CustomBottomsheet";
 
@@ -93,7 +94,10 @@ export type MembersStackParamList = {
 // Business tab stack
 export type BusinessStackParamList = {
   Business: undefined;
+  CreateBusiness: undefined;
+
   BusinessDetail: { id?: string } | undefined;
+  
 };
 
 // Groups tab stack
@@ -178,6 +182,8 @@ const MembersStackNav = () => (
 const BusinessStackNav = () => (
   <BusinessStack.Navigator screenOptions={defaultNoHeader}>
     <BusinessStack.Screen name="Business" component={BusinessScreen} />
+    <BusinessStack.Screen name="CreateBusiness" component={CreateBusiness} />
+
     <BusinessStack.Screen
       name="BusinessDetail"
       component={BusinessDetailScreen}

@@ -682,6 +682,7 @@ const CommentsSheet = forwardRef<CommentsSheetHandle, Props>(
         keyboardBlurBehavior="none"
         android_keyboardInputMode="adjustResize"
         backdropComponent={renderBackdrop}
+        topInset={insets.top + 20}
         handleIndicatorStyle={{ backgroundColor: theme.colors.primary }}
         backgroundStyle={{
           backgroundColor: theme.colors.background,
