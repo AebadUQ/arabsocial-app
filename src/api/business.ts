@@ -27,3 +27,47 @@ export const getBusinessDetail= async (id:any) => {
   const response = await api.get(`/business/${id}`);
   return response.data.data;
 };
+export const updateBusiness=async (
+  id: string | number,
+  data: Record<string, any> | FormData
+)=>{
+    const response = await api.put(`/business/${id}`,data);
+    return response.data.data
+}
+
+export const getAllMyBusiness = async (params: {
+  page?: number;
+  limit?: number;
+  search?: string;
+} = {}) => {
+  const { page = 1, limit = 10, search } = params;
+
+  const queryParams = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+    ...(search ? { search } : {}),
+  }).toString();
+
+  console.log("queryParams", queryParams);
+
+  const response = await api.get(`/business/my-business?${queryParams}`);
+  return response.data;
+};
+export const getAllFeaturedBusinesses = async (params: {
+  page?: number;
+  limit?: number;
+  search?: string;
+} = {}) => {
+  const { page = 1, limit = 10, search } = params;
+
+  const queryParams = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+    ...(search ? { search } : {}),
+  }).toString();
+
+  console.log("queryParams", queryParams);
+
+  const response = await api.get(`/business/featured-businesses?${queryParams}`);
+  return response.data;
+};

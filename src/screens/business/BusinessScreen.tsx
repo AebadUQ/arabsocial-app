@@ -1,122 +1,262 @@
+// screens/Business/BusinessScreen.tsx
 import React, { useMemo, useRef, useState, useCallback } from "react";
 import {
   StyleSheet,
   FlatList,
   View,
-  TouchableOpacity,
   TextInput,
-  Image,
   Keyboard,
   ActivityIndicator,
 } from "react-native";
-import { Text } from "@/components";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/theme/ThemeContext";
-import {
-  MagnifyingGlass as MagnifyingGlassIcon,
-  XCircle as XCircleIcon,
-  Plus as PlusIcon,
-} from "phosphor-react-native";
 import TopBar from "@/components/common/TopBar";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { getAllApprovedBusiness } from "@/api/business";
+import {
+  getAllApprovedBusiness,
+  getAllMyBusiness,
+  getAllFeaturedBusinesses,
+} from "@/api/business";
 import { useNavigation } from "@react-navigation/native";
+import { Text } from "@/components";
+import SearchBar from "@/components/business/SearchBar";
+import AddFab from "@/components/business/FabButton";
+import BusinessCard, {
+  ApiBusiness as ApiBusinessBase,
+} from "@/components/business/BusinessCard";
+import FeaturedBusinessCard from "@/components/business/FeaturedBusinessCard";
+import MyBusinessCard from "@/components/business/MyBusinessCard";
+import { Star, SuitcaseIcon } from "phosphor-react-native";
 
-type ApiBusiness = {
-  id: string | number;
-  name: string;
-  categories?: string[];
-  business_logo?: string | null | undefined;
-  about_me?: string | null;
-  city?: string | null;
-  country?: string | null;
-  business_type?: "online" | "physical" | "hybrid" | string | null;
+// -------- Types --------
+type ApiBusiness = ApiBusinessBase & {
+  open_positions?: number | null;
+  is_featured?: boolean | null;
   promo_code?: string | null;
-  discount?: string | null;
 };
 
-const CARD_RADIUS = 12;
+// -------- Constants --------
 const LIMIT = 10;
+const MY_LIMIT = 12;
+const FEATURE_LIMIT = 10;
 
-// ------- Card -------
-const BusinessCard = ({ item }: { item: ApiBusiness }) => {
+// -------- Pagination helper --------
+type MetaShape = {
+  nextPage?: number | null;
+  hasNextPage?: boolean;
+  page?: number;
+  totalPages?: number;
+};
+
+function computeNextPage(
+  meta: MetaShape | undefined,
+  pageParam: number,
+  pageSize: number,
+  itemsLength: number
+): number | undefined {
+  if (meta && typeof meta.nextPage === "number") return meta.nextPage;
+  if (meta && meta.hasNextPage === true) return pageParam + 1;
+  if (meta && meta.hasNextPage === false) return undefined;
+  if (meta && typeof meta.page === "number" && typeof meta.totalPages === "number") {
+    return meta.page < meta.totalPages ? pageParam + 1 : undefined;
+  }
+  return itemsLength === pageSize ? pageParam + 1 : undefined;
+}
+
+/* ---------------- Horizontal: My Businesses ---------------- */
+const MyBusinessesRow = () => {
   const { theme } = useTheme();
-    const navigation = useNavigation<any>(); // if you have typed RootStackParamList, replace `any`
-  
-  const category = item.categories?.[0] ?? "—";
-  const location = [item.city, item.country].filter(Boolean).join(", ");
-  const logoUri = item.business_logo || "";
-const handlePress = () => {
-    console.log(item.id)
-    // go to detail screen and pass id
-    navigation.navigate("BusinessDetail", { businessId: item.id });
-  };
+  const fetchingMoreRef = useRef(false);
+
+  const { data, isPending, isFetchingNextPage, fetchNextPage, hasNextPage } =
+    useInfiniteQuery({
+      queryKey: ["myBusinesses"],
+      initialPageParam: 1,
+      queryFn: async ({ pageParam }) => {
+        const res = await getAllMyBusiness({ page: pageParam as number, limit: MY_LIMIT });
+        const raw = (res?.data?.data as any[]) ?? (res?.data as any[]) ?? res ?? [];
+        const items: ApiBusiness[] = raw.map((b) => ({
+          ...b,
+          open_positions: b?.open_positions ?? b?.jobs_count ?? b?.openJobs ?? 0,
+        }));
+        const meta = (res?.data?.meta ?? {}) as MetaShape;
+        const nextPage = computeNextPage(meta, pageParam as number, MY_LIMIT, items.length);
+        return { data: items, nextPage };
+      },
+      getNextPageParam: (lastPage) => lastPage?.nextPage ?? undefined,
+    });
+
+  const myBusinesses: ApiBusiness[] = useMemo(
+    () => data?.pages?.flatMap((p: any) => p.data) || [],
+    [data]
+  );
+
+  if (isPending) {
+    return (
+      <View style={{ paddingBottom: 8 }}>
+         <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          marginBottom: 8,
+          gap: 10,
+        }}
+      >
+        <SuitcaseIcon  color={theme.colors.primary} size={16} />
+        <Text variant="body1">My Business</Text>
+      </View>
+
+        <ActivityIndicator color={theme.colors.primary} />
+      </View>
+    );
+  }
+
+  if (!myBusinesses.length) return null;
+
   return (
-     <TouchableOpacity
-          style={[styles.cardWrap, { backgroundColor: "#fff" }]}
-          activeOpacity={0.9}
-          onPress={handlePress}
-        >
-      <View style={styles.cardImgWrap}>
-        {logoUri ? (
-          <Image source={{ uri: logoUri }} style={styles.cardImg} resizeMode="cover" />
-        ) : (
-          <View
-            style={[
-              styles.cardImg,
-              { backgroundColor: (theme.colors as any)?.darkGray || "rgba(0,0,0,0.06)" },
-            ]}
-          />
-        )}
-
-        {!!item.promo_code && (
-          <View style={[styles.badge, { backgroundColor: theme.colors.primary }]}>
-            <Text variant="overline" style={{ color: "#fff", fontWeight: "700" }}>
-              {item.promo_code}
-            </Text>
-          </View>
-        )}
+    <View style={{ paddingBottom: 8 }}>
+         <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          marginBottom: 8,
+          gap: 10,
+        }}
+      >
+        <SuitcaseIcon  color={theme.colors.primary} size={16} />
+        <Text variant="body1">My Businesses</Text>
       </View>
 
-      <View style={styles.cardBody}>
-        <Text variant="body1" style={{ fontWeight: "600" }}>{item.name}</Text>
-
-        <View style={{ marginTop: 4, flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-          <Text variant="overline" color={theme.colors.textLight}>Category: {category}</Text>
-          {location ? (
-            <Text variant="overline" color={theme.colors.textLight}> • {location}</Text>
-          ) : null}
-          {item.business_type ? (
-            <Text variant="overline" color={theme.colors.textLight}> • {item.business_type}</Text>
-          ) : null}
-        </View>
-
-        {!!item.about_me && (
-          <Text variant="caption" color={theme.colors.textLight} style={{ marginTop: 6 }} numberOfLines={2}>
-            {item.about_me}
-          </Text>
-        )}
-      </View>
-    </TouchableOpacity>
+      <FlatList
+        data={myBusinesses}
+        keyExtractor={(item) => String(item.id)}
+        contentContainerStyle={{  paddingBottom: 6 }}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        renderItem={({ item }) => <MyBusinessCard item={item} />}
+        onEndReached={() => {
+          if (!hasNextPage || isFetchingNextPage || fetchingMoreRef.current) return;
+          fetchingMoreRef.current = true;
+          fetchNextPage().finally(() => (fetchingMoreRef.current = false));
+        }}
+        onEndReachedThreshold={0.2}
+        onMomentumScrollBegin={() => {
+          fetchingMoreRef.current = false;
+        }}
+        ListFooterComponent={
+          isFetchingNextPage ? (
+            <View style={{ justifyContent: "center", alignItems: "center", paddingHorizontal: 6 }}>
+              <ActivityIndicator />
+            </View>
+          ) : null
+        }
+      />
+    </View>
   );
 };
 
-// ------- Screen -------
+/* ---------------- Horizontal: Featured Businesses ---------------- */
+const FeaturedBusinessesRow = () => {
+  const { theme } = useTheme();
+  const fetchingMoreRef = useRef(false);
+
+  const { data, isPending, isFetchingNextPage, fetchNextPage, hasNextPage } =
+    useInfiniteQuery({
+      queryKey: ["featuredBusinesses"],
+      initialPageParam: 1,
+      queryFn: async ({ pageParam }) => {
+        const res = await getAllFeaturedBusinesses({
+          page: pageParam as number,
+          limit: FEATURE_LIMIT,
+        });
+        const raw = (res?.data?.data as any[]) ?? (res?.data as any[]) ?? res ?? [];
+        const items: ApiBusiness[] = raw.map((b) => ({
+          ...b,
+          open_positions: b?.open_positions ?? b?.jobs_count ?? b?.openJobs ?? 0,
+          is_featured: b?.is_featured ?? true,
+        }));
+        const meta = (res?.data?.meta ?? {}) as MetaShape;
+        const nextPage = computeNextPage(meta, pageParam as number, FEATURE_LIMIT, items.length);
+        return { data: items, nextPage };
+      },
+      getNextPageParam: (lastPage) => lastPage?.nextPage ?? undefined,
+    });
+
+  const featured: ApiBusiness[] = useMemo(
+    () => data?.pages?.flatMap((p: any) => p.data) || [],
+    [data]
+  );
+
+  if (isPending) {
+    return (
+      <View style={{ paddingBottom: 8 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
+          <Text variant="body1">Featured</Text>
+        </View>
+        <ActivityIndicator />
+      </View>
+    );
+  }
+
+  if (!featured.length) return null;
+
+  return (
+    <View style={{ paddingBottom: 8 }}>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          marginBottom: 8,
+          gap: 10,
+        }}
+      >
+        <Star weight="fill" color={theme.colors.primary} size={16} />
+          <Text variant="body1">Featured</Text>
+      </View>
+
+      <FlatList
+        data={featured}
+        keyExtractor={(item) => String(item.id)}
+        contentContainerStyle={{  paddingBottom: 6 }}
+        renderItem={({ item }) => <FeaturedBusinessCard item={item} />}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        onEndReached={() => {
+          if (!hasNextPage || isFetchingNextPage || fetchingMoreRef.current) return;
+          fetchingMoreRef.current = true;
+          fetchNextPage().finally(() => (fetchingMoreRef.current = false));
+        }}
+        onEndReachedThreshold={0.2}
+        onMomentumScrollBegin={() => {
+          fetchingMoreRef.current = false;
+        }}
+        ListFooterComponent={
+          isFetchingNextPage ? (
+            <View style={{ justifyContent: "center", alignItems: "center", paddingHorizontal: 6 }}>
+              <ActivityIndicator />
+            </View>
+          ) : null
+        }
+      />
+    </View>
+  );
+};
+
+/* ---------------- Main Screen (one vertical FlatList controls page scroll) ---------------- */
 const BusinessScreen: React.FC = ({ navigation }: any) => {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
+  const nav = useNavigation<any>();
 
   const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [selectedCategory] = useState<string>("");
   const inputRef = useRef<TextInput>(null);
-  const dimText = theme.colors?.text ?? "#111827";
 
-  // Prevent double firing of onEndReached
   const fetchingMoreRef = useRef(false);
 
   const {
     data,
-    isLoading,
+    isPending,
     isFetchingNextPage,
     fetchNextPage,
     hasNextPage,
@@ -132,35 +272,11 @@ const BusinessScreen: React.FC = ({ navigation }: any) => {
         ...(selectedCategory ? { categories: selectedCategory } : {}),
       });
 
-      // Expect server like:
-      // { data: ApiBusiness[], meta?: { page:number, nextPage?:number, hasNextPage?:boolean, totalPages?:number } }
       const items: ApiBusiness[] =
-        (res?.data?.data as ApiBusiness[]) ??
-        (res?.data as ApiBusiness[]) ??
-        [];
+        (res?.data?.data as ApiBusiness[]) ?? (res?.data as ApiBusiness[]) ?? [];
 
-      const meta = (res?.data?.meta ?? {}) as {
-        page?: number;
-        nextPage?: number | null;
-        hasNextPage?: boolean;
-        totalPages?: number;
-      };
-
-      // Prefer server meta; fallback to heuristic
-      let nextPage: number | undefined = undefined;
-      if (typeof meta.nextPage !== "undefined") {
-        nextPage = meta.nextPage ?? undefined;
-      } else if (typeof meta.hasNextPage !== "undefined" && typeof pageParam === "number") {
-        nextPage = meta.hasNextPage ? pageParam + 1 : undefined;
-      } else if (
-        typeof meta.totalPages !== "undefined" &&
-        typeof meta.page !== "undefined" &&
-        typeof pageParam === "number"
-      ) {
-        nextPage = meta.page < meta.totalPages ? pageParam + 1 : undefined;
-      } else if (typeof pageParam === "number") {
-        nextPage = items.length === LIMIT ? pageParam + 1 : undefined;
-      }
+      const meta = (res?.data?.meta ?? {}) as MetaShape;
+      const nextPage = computeNextPage(meta, pageParam as number, LIMIT, items.length);
 
       return { data: items, nextPage };
     },
@@ -179,175 +295,84 @@ const BusinessScreen: React.FC = ({ navigation }: any) => {
     refetch();
   }, [refetch]);
 
-  const handleEndReached = useCallback(() => {
-    if (!hasNextPage || isFetchingNextPage || fetchingMoreRef.current) return;
-    fetchingMoreRef.current = true;
-    fetchNextPage().finally(() => {
-      fetchingMoreRef.current = false;
-    });
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
-
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <TopBar onMenuPress={() => navigation.openDrawer()} />
 
-      {/* Search */}
-      <View style={[styles.searchRow, { paddingTop: Math.max(12, insets.top / 3) }]}>
-        <View style={styles.searchBox}>
-          <MagnifyingGlassIcon size={18} weight="bold" color={dimText} />
-          <TextInput
-            ref={inputRef}
-            value={search}
-            onChangeText={setSearch}
-            placeholder="Search businesses"
-            placeholderTextColor="rgba(0,0,0,0.4)"
-            style={[styles.searchInput, { color: dimText }]}
-            returnKeyType="search"
-          />
-          {search.length > 0 && (
-            <TouchableOpacity onPress={clearSearch} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <XCircleIcon size={18} weight="bold" color={"rgba(0,0,0,0.4)"} />
-            </TouchableOpacity>
-          )}
-        </View>
+      {/* ONE vertical FlatList controls the entire page scroll, with a big header */}
+      <FlatList
+        data={businesses}
+        keyExtractor={(item) => String(item.id)}
+        renderItem={({ item }) => <BusinessCard item={item} />}
+        contentContainerStyle={[styles.content, { paddingBottom: 16 + insets.bottom + 72 }]}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={
+          <View style={{ display: "flex", gap: 24 }}>
+            <SearchBar ref={inputRef} value={search} onChange={setSearch} onClear={clearSearch} />
+            <FeaturedBusinessesRow />
+            <MyBusinessesRow />
+               <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          marginBottom: 8,
+          gap: 10,
+        }}
+      >
+        <Text variant="body1">All Businesses</Text>
       </View>
 
-      {/* List */}
-      {isLoading ? (
-        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={{ marginTop: 8 }}>Loading businesses...</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={businesses}
-          keyExtractor={(item) => String(item.id)}
-          contentContainerStyle={[styles.content, { paddingBottom: 16 + insets.bottom + 72 }]}
-          showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={() => navigation.navigate("BusinessDetail" as never, { business: item } as never)}
-            >
-              <BusinessCard item={item} />
-            </TouchableOpacity>
-          )}
-          // ↓ Debounce + guard
-          onMomentumScrollBegin={() => { fetchingMoreRef.current = false; }}
-          onEndReached={handleEndReached}
-          onEndReachedThreshold={0.2}
-          removeClippedSubviews
-          ListFooterComponent={
-            isFetchingNextPage ? (
-              <View style={{ paddingVertical: 20 }}>
-                <ActivityIndicator color={theme.colors.primary} />
-              </View>
-            ) : null
-          }
-          ListEmptyComponent={
-            <View style={{ padding: 24, alignItems: "center" }}>
-              <Text>
-                No businesses found
-                {selectedCategory ? ` in ${selectedCategory}` : ""}
-                {search ? ` for “${search}”` : ""}.
-              </Text>
+          </View>
+        }
+        ListEmptyComponent={
+          isPending ? (
+            <View style={{ paddingVertical: 40, alignItems: "center" }}>
+              <ActivityIndicator size="large" color={theme.colors.primary} />
+              <Text style={{ marginTop: 8 }}>Loading businesses...</Text>
             </View>
-          }
-          refreshing={isLoading}
-          onRefresh={refetch}
-          keyboardShouldPersistTaps="handled"
-        />
-      )}
+          ) : (
+            <View style={{ padding: 24, alignItems: "center" }}>
+              <Text>No businesses found{search ? ` for “${search}”` : ""}.</Text>
+            </View>
+          )
+        }
+        ListFooterComponent={
+          isFetchingNextPage ? (
+            <View >
+              <ActivityIndicator color={theme.colors.primary} />
+            </View>
+          ) : null
+        }
+        onEndReached={() => {
+          if (!hasNextPage || isFetchingNextPage || fetchingMoreRef.current) return;
+          fetchingMoreRef.current = true;
+          fetchNextPage().finally(() => {
+            fetchingMoreRef.current = false;
+          });
+        }}
+        onEndReachedThreshold={0.2}
+        onMomentumScrollBegin={() => {
+          fetchingMoreRef.current = false;
+        }}
+        refreshing={isPending}
+        onRefresh={refetch}
+        keyboardShouldPersistTaps="handled"
+        removeClippedSubviews
+      />
 
       {/* FAB */}
-      <TouchableOpacity
-        activeOpacity={0.9}
-        style={[
-          styles.fab,
-          { backgroundColor: theme.colors.primary, bottom: (insets.bottom || 16) + 16 },
-        ]}
-        onPress={() => navigation.navigate("CreateBusiness" as never)}
-        accessibilityRole="button"
-        accessibilityLabel="Add new business"
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-      >
-        <PlusIcon size={26} weight="bold" color="#fff" />
-      </TouchableOpacity>
+      <AddFab
+        color={theme.colors.primary}
+        bottom={(insets.bottom || 16) + 16}
+        onPress={() => nav.navigate("CreateBusiness" as never)}
+      />
     </SafeAreaView>
   );
 };
 
+export default BusinessScreen;
+
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { padding: 20 },
-
-  // Search + Filter
-  searchRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingHorizontal: 20,
-    marginBottom: 12,
-  },
-  searchBox: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 999,
-    paddingHorizontal: 16,
-    paddingVertical: 11,
-    gap: 8,
-    backgroundColor: "#fff",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  searchInput: { flex: 1, paddingVertical: 0 },
-
-  // Card
-  cardWrap: {
-    backgroundColor: "#fff",
-    borderRadius: CARD_RADIUS,
-    overflow: "hidden",
-    marginBottom: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(0,0,0,0.06)",
-  },
-  cardImgWrap: {
-    position: "relative",
-    width: "100%",
-    height: 160,
-    overflow: "hidden",
-  },
-  cardImg: { width: "100%", height: "100%" },
-  badge: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  cardBody: { paddingHorizontal: 12, paddingVertical: 12 },
-
-  // FAB
-  fab: {
-    position: "absolute",
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 9,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 6,
-  },
+  content: { paddingHorizontal: 20 },
 });
-
-export default BusinessScreen;

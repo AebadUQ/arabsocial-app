@@ -81,7 +81,6 @@ const styles = StyleSheet.create({
     justifyContent:'space-between',
     alignItems: 'center',
     gap: 12,
-    marginBottom:8,
   },
   leftBtn: {
     height:40,

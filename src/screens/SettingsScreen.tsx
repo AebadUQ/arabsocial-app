@@ -33,13 +33,7 @@ const SettingsScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: {
-    height: 56,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 12,
-  },
+  
   backBtn: {
     backgroundColor: "rgba(0,0,0,0.45)",
     width: 44,
@@ -48,18 +42,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  backIcon: {
-    fontSize: 22,
-  },
-  title: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  rightSpacer: {
-    width: 44, // balances the back button space
-  },
+ 
   content: {
     padding: 20,
   },

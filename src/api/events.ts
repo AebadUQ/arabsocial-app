@@ -52,3 +52,10 @@ export const getEventsDetail= async (id:any) => {
   const response = await api.get(`/events/${id}`);
   return response.data.data;
 };
+export const updateEvent=async (
+  id: string | number,
+  data: Record<string, any> | FormData
+)=>{
+    const response = await api.put(`/events/${id}`,data);
+    return response.data.data
+}

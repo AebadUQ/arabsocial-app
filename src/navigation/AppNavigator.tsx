@@ -42,6 +42,7 @@ import { Gear, InfoIcon, SignOutIcon } from "phosphor-react-native";
 import { theme as appTheme } from "@/theme/theme";
 import { Image, Text, TouchableOpacity, View } from "react-native";
 import LinearGradient from "react-native-linear-gradient";
+import EditBusinessScreen from "@/screens/business/EditBusiness";
 
 /* ---------------------------------
  * Assets
@@ -97,6 +98,8 @@ export type BusinessStackParamList = {
   CreateBusiness: undefined;
 
   BusinessDetail: { id?: string } | undefined;
+  EditBusiness: { id?: string } | undefined;
+
   
 };
 
@@ -183,11 +186,15 @@ const BusinessStackNav = () => (
   <BusinessStack.Navigator screenOptions={defaultNoHeader}>
     <BusinessStack.Screen name="Business" component={BusinessScreen} />
     <BusinessStack.Screen name="CreateBusiness" component={CreateBusiness} />
-
+<BusinessStack.Screen
+      name="EditBusiness"
+      component={EditBusinessScreen}
+    />
     <BusinessStack.Screen
       name="BusinessDetail"
       component={BusinessDetailScreen}
     />
+    
   </BusinessStack.Navigator>
 );
 
