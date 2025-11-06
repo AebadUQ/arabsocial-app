@@ -43,6 +43,9 @@ import { theme as appTheme } from "@/theme/theme";
 import { Image, Text, TouchableOpacity, View } from "react-native";
 import LinearGradient from "react-native-linear-gradient";
 import EditBusinessScreen from "@/screens/business/EditBusiness";
+import CreateJobScreen from "@/screens/business/CreateJob";
+import JobDetailScreen from "@/screens/business/JobDetails";
+import EditJobScreen from "@/screens/business/EditJob";
 
 /* ---------------------------------
  * Assets
@@ -99,6 +102,9 @@ export type BusinessStackParamList = {
 
   BusinessDetail: { id?: string } | undefined;
   EditBusiness: { id?: string } | undefined;
+  PostJob: { id?: string } | undefined;
+  JobDetail: { id?: string } | undefined;
+  EditJob: { id?: string } | undefined;
 
   
 };
@@ -191,10 +197,21 @@ const BusinessStackNav = () => (
       component={EditBusinessScreen}
     />
     <BusinessStack.Screen
+      name="PostJob"
+      component={CreateJobScreen}
+    />
+    <BusinessStack.Screen
       name="BusinessDetail"
       component={BusinessDetailScreen}
     />
-    
+    <BusinessStack.Screen
+      name="JobDetail"
+      component={JobDetailScreen}
+    />
+    <BusinessStack.Screen
+      name="EditJob"
+      component={EditJobScreen}
+    />
   </BusinessStack.Navigator>
 );
 

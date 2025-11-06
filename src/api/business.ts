@@ -71,3 +71,21 @@ export const getAllFeaturedBusinesses = async (params: {
   const response = await api.get(`/business/featured-businesses?${queryParams}`);
   return response.data;
 };
+
+export const createJobs = async (data: any) => {
+  const response = await api.post('/business/create-job', data);
+  return response.data;
+};
+
+export const getJobDetails= async (id:any) => {
+  const response = await api.get(`/business/job/${id}`);
+  return response.data.data;
+};
+
+export const updateJob=async (
+  id: string | number,
+  data: Record<string, any> | FormData
+)=>{
+    const response = await api.patch(`/business/edit-job/${id}`,data);
+    return response.data
+}

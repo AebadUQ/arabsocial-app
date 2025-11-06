@@ -21,10 +21,23 @@ import {
   EnvelopeSimple,
   InstagramLogo,
   FacebookLogo,
+  CaretRight,
 } from "phosphor-react-native";
 import { Text } from "@/components";
 import { useTheme } from "@/theme/ThemeContext";
 import { getBusinessDetail } from "@/api/business";
+
+/* ----------------------------- Types ----------------------------- */
+type ApiJob = {
+  id: number | string;
+  title: string;
+  job_type?: string | null;        // "full-time" | "part-time" | "remote" | etc.
+  location?: string | null;        // e.g. "Karachi, PK"
+  status?: string | null;          // "published" | etc.
+  application_link?: string | null;
+  created_at?: string | null;
+  description?: string | null;     // optional (if you add later)
+};
 
 type ApiBusiness = {
   id: string | number;
@@ -43,6 +56,7 @@ type ApiBusiness = {
   business_type?: "online" | "physical" | "hybrid" | string | null;
   promo_code?: string | null;
   discount?: string | null;
+  Job?: ApiJob[] | null;
 };
 
 const CTA_HEIGHT = 56;
@@ -112,13 +126,18 @@ const BusinessDetail: React.FC = () => {
 
   const onRefresh = useCallback(() => fetchDetail(true), [fetchDetail]);
 
-  // ---------- helpers ----------
+  /* ----------------------------- helpers ----------------------------- */
+  const humanize = (s?: string | null) =>
+    (s ?? "").replace(/[_-]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
   const openLink = (url?: string | null) => {
     if (!url) return;
     let final = url.trim();
     if (!/^https?:\/\//i.test(final)) final = "https://" + final;
     Linking.openURL(final).catch(() => {});
   };
+
+  const openExternal = (url?: string | null) => openLink(url);
 
   const callPhone = (p?: string | null) => {
     if (!p) return;
@@ -130,7 +149,7 @@ const BusinessDetail: React.FC = () => {
     Linking.openURL(`mailto:${e}`).catch(() => {});
   };
 
-  // ---------- Loading & Empty ----------
+  /* ---------------------- Loading & Empty states --------------------- */
   if (loading) {
     return (
       <SafeAreaView
@@ -163,7 +182,7 @@ const BusinessDetail: React.FC = () => {
     );
   }
 
-  // ---------- MAIN UI ----------
+  /* ------------------------------ MAIN UI ---------------------------- */
   const title = business.name ?? "Business";
   const bannerUri = business.business_logo || "";
   const chips: string[] = [
@@ -291,10 +310,74 @@ const BusinessDetail: React.FC = () => {
             </TouchableOpacity>
           )}
         </View>
+
+        {/* ---------- Job Openings ---------- */}
+        {!!business.Job?.length && (
+          <View style={styles.jobsSection}>
+            <Text variant="h6" style={[styles.jobsTitle, { color: theme.colors.text }]}>
+              Job Openings
+            </Text>
+
+            {business.Job.map((job: ApiJob) => {
+              const badgeLabel = job.job_type ? humanize(job.job_type) : "Open";
+              return (
+                <TouchableOpacity
+                  key={job.id}
+                  activeOpacity={0.9}
+                  style={[styles.jobCard, { borderColor: theme.colors.primaryLight }]}
+                  // onPress={() => openExternal(job.application_link)}
+                >
+                  {/* Title + chevron */}
+                  <View style={styles.jobHeader}>
+                    <Text variant="body1" style={[styles.jobTitle, { color: theme.colors.text }]}>
+                      {job.title}
+                    </Text>
+<TouchableOpacity
+  activeOpacity={0.7}
+  onPress={() => navigation.navigate("JobDetail", { jobId: job.id })}
+>
+  <CaretRight size={18} color={"rgba(0,0,0,0.35)"} weight="bold" />
+</TouchableOpacity>  
+
+                </View>
+                  {/* Short line / description (optional) */}
+                  {!!job.description && (
+                    <Text
+                      variant="body2"
+                      style={[styles.jobDesc, { color: theme.colors.textLight ?? theme.colors.text }]}
+                      numberOfLines={2}
+                    >
+                      {job.description}
+                    </Text>
+                  )}
+                  {/* Badge + location */}
+                  <View style={styles.jobMetaRow}>
+                    <View style={[styles.badge, { backgroundColor: theme.colors.primaryLight }]}>
+                      <Text variant="overline" style={{ color: theme.colors.primaryDark }}>
+                        {badgeLabel}
+                      </Text>
+                    </View>
+
+                    {!!job.location && (
+                      <View style={styles.locRow}>
+                        <MapPin size={14} color={theme.colors.primaryDark} />
+                        <Text variant="caption" color={theme.colors.primaryDark}>
+                          {job.location}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+
+                  
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
       </ScrollView>
 
       {/* ---------- Sticky Bottom CTA ---------- */}
-      <View style={styles.ctaWrap}>
+      <View style={[styles.ctaWrap, { paddingBottom: Math.max(insets.bottom, 8) }]}>
         <TouchableOpacity
           activeOpacity={0.9}
           onPress={() => {
@@ -322,6 +405,7 @@ const BusinessDetail: React.FC = () => {
   );
 };
 
+/* ------------------------------ Styles ----------------------------- */
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 16 },
@@ -389,6 +473,63 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 8,
   },
+
+  /* ---- Jobs ---- */
+  jobsSection: {
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  jobsTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    marginBottom: 12,
+  },
+  jobCard: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    marginBottom: 12,
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  jobHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  jobTitle: {
+    fontWeight: "700",
+    fontSize: 16,
+    flex: 1,
+    paddingRight: 8,
+  },
+  jobMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginVertical: 8,
+  },
+  badge: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  locRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  jobDesc: {
+    lineHeight: 18,
+  },
+
+  /* ---- CTA ---- */
   ctaWrap: {
     position: "absolute",
     left: 0,

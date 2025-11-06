@@ -19,6 +19,7 @@ import BottomSheetSelect from "@/components/BottomSheetSelect";
 import { useTheme } from "@/theme/ThemeContext";
 import {
   ArrowLeft as ArrowLeftIcon,
+  BriefcaseIcon,
   ImageSquare as ImageSquareIcon,
 } from "phosphor-react-native";
 import { getBusinessDetail, updateBusiness } from "@/api/business";
@@ -232,15 +233,32 @@ const EditBusinessScreen: React.FC = () => {
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: theme.colors.background }]}>
       {/* Top Bar */}
-      <View style={styles.topBar}>
-        <TouchableOpacity style={styles.navBtn} onPress={() => navigation.goBack()}>
-          <ArrowLeftIcon size={24} color={"white"} />
-        </TouchableOpacity>
-        <Text variant="body1" color={theme.colors.text} style={{ fontWeight: "600" }}>
-          Edit Business
-        </Text>
-        <View style={[styles.navBtn, { opacity: 0 }]} />
-      </View>
+    <View style={styles.topBar}>
+  {/* Left: back + title */}
+  <View style={styles.leftWrap}>
+    <TouchableOpacity style={styles.navBtn} onPress={() => navigation.goBack()}>
+      <ArrowLeftIcon size={20} weight="bold" color="#fff" />
+    </TouchableOpacity>
+    <Text
+      variant="body1"
+      color={theme.colors.text}
+      style={styles.title}
+      numberOfLines={1}
+    >
+      Edit Business
+    </Text>
+  </View>
+
+  {/* Right: Post a Job */}
+  <TouchableOpacity
+    style={styles.ctaBtn}
+    onPress={() => navigation.navigate("PostJob", { businessId })}
+    activeOpacity={0.9}
+  >
+    <BriefcaseIcon size={16} weight="fill" color="#fff" />
+    <Text style={styles.ctaText}>Post a Job</Text>
+  </TouchableOpacity>
+</View>
 
       {isDetailPending ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
@@ -420,21 +438,8 @@ const EditBusinessScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  topBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  navBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#1BAD7A",
-  },
+  
+  
   content: { padding: 16 },
   sectionLabel: { marginBottom: 8, fontWeight: "600" },
   fieldGap: { marginTop: 16 },
@@ -468,6 +473,44 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 20,
   },
+  topBar: {
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+  paddingHorizontal: 16,
+  paddingVertical: 12,
+},
+
+leftWrap: {
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 10,
+  flexShrink: 1, // keep title from pushing CTA
+},
+
+navBtn: {
+  width: 40,
+  height: 40,
+  borderRadius: 20,
+  alignItems: "center",
+  justifyContent: "center",
+  backgroundColor: "#1BAD7A",
+},
+
+title: { fontWeight: "700", maxWidth: 180 }, // tweak width if needed
+
+ctaBtn: {
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 8,
+  paddingHorizontal: 14,
+  height: 40,
+  borderRadius: 999,
+  backgroundColor: "#1BAD7A",
+},
+
+ctaText: { color: "#fff", fontWeight: "700" },
+
 });
 
 export default EditBusinessScreen;
