@@ -49,8 +49,9 @@ export const getAllMyBusiness = async (params: {
   }).toString();
 
   console.log("queryParams", queryParams);
-
   const response = await api.get(`/business/my-business?${queryParams}`);
+  console.log("responseresponseresponse",response.data)
+
   return response.data;
 };
 export const getAllFeaturedBusinesses = async (params: {

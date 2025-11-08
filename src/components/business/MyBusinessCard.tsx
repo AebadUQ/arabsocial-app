@@ -14,73 +14,126 @@ export type MyBiz = {
   id: string | number;
   name: string;
   categories?: string[];
-  business_logo?: string | null;
+  // business_logo?: string | null; // reserved for future use
   city?: string | null;
   country?: string | null;
   open_positions?: number | null;
+  Job?: any[];
 };
 
 type Props = {
-  item: any;
+  item: MyBiz;
   onPressCard?: () => void;
   onPressManage?: () => void;
 };
 
-export default function MyBusinessCard({ item, onPressCard, onPressManage }: Props) {
+const CARD_WIDTH = 310;
+
+export default function MyBusinessCard({
+  item,
+  onPressCard,
+  onPressManage,
+}: Props) {
   const { theme } = useTheme();
   const nav = useNavigation<any>();
 
   const category = (item.categories?.[0] || "").toUpperCase();
   const location = [item.city, item.country].filter(Boolean).join(", ");
-  const logo = item.business_logo || "";
-  const openCount = item.open_positions ?? 0;
+  const openCount = item.Job?.length ?? 0;
+  const jobsLabel =
+    openCount === 1 ? "1 Open Position" : `${openCount} Open Positions`;
 
   const handleManage = () =>
-    onPressManage ? onPressManage() : nav.navigate("EditBusiness" as never, { businessId: item.id } as never);
+    onPressManage
+      ? onPressManage()
+      : nav.navigate("EditBusiness" as never, { businessId: item.id } as never);
 
   const handleCard = () =>
-    onPressCard ? onPressCard() : nav.navigate("BusinessDetail" as never, { businessId: item.id } as never);
+    onPressCard
+      ? onPressCard()
+      : nav.navigate("BusinessDetail" as never, { businessId: item.id } as never);
 
   return (
     <TouchableOpacity
       activeOpacity={0.9}
-      style={[styles.card, { backgroundColor: "#F8FBF9", borderColor: "rgba(0,0,0,0.08)" }]}
+      style={[
+        styles.card,
+        {
+          backgroundColor: "#F8FBF9",
+          borderColor: "rgba(0,0,0,0.08)",
+        },
+      ]}
       onPress={handleCard}
     >
       {/* Top row */}
       <View style={styles.row}>
-        <View style={[styles.logoWrap, { backgroundColor: theme.colors.primaryLight }]}>
-          {logo ? (
-            <Image source={{ uri: logo }} style={styles.logo} />
-          ) : (
-            <View style={[styles.logo, { backgroundColor: theme.colors.primaryLight }]} />
-          )}
+        {/* Static image */}
+        <View
+          style={[
+            styles.logoWrap,
+            { backgroundColor: theme.colors.primaryLight },
+          ]}
+        >
+          <Image
+            source={require("@/assets/images/event1.jpg")}
+            style={styles.logo}
+            resizeMode="cover"
+          />
         </View>
 
+        {/* Text block */}
         <View style={{ flex: 1, marginLeft: 12 }}>
-          <Text style={{ fontWeight: "700" }}>{item.name}</Text>
+          <Text style={{ fontWeight: "700" }} numberOfLines={1}>
+            {item.name}
+          </Text>
 
           {!!category && (
-            <Text variant="overline" color={theme.colors.textLight}>
+            <Text
+              variant="overline"
+              color={theme.colors.textLight}
+              style={{ marginTop: 4 }}
+              numberOfLines={1}
+            >
               {category}
             </Text>
           )}
 
-          {!!location && (
-            <View style={styles.locRow}>
-              <MapPinIcon size={14} weight="fill" color="#E25757" style={{ marginRight: 6 }} />
-              <Text numberOfLines={1} style={[styles.locText, { color: theme.colors.textLight }]}>
-                {location}
-              </Text>
-            </View>
-          )}
+          {/* Location below category */}
+          <View style={styles.locRow}>
+            <MapPinIcon
+              size={14}
+              weight="fill"
+              color="#E25757"
+              style={{ marginRight: 6 }}
+            />
+            <Text
+              numberOfLines={1}
+              style={[styles.locText, { color: theme.colors.textLight }]}
+            >
+              {location || "N/A"}
+            </Text>
+          </View>
         </View>
 
+        {/* Open positions on right */}
         {openCount > 0 && (
-          <View style={[styles.pill, { backgroundColor: "rgba(27,173,122,0.15)" }]}>
-            <BriefcaseIcon size={16} weight="fill" color="#1BAD7A" style={{ marginRight: 6 }} />
-            <Text style={[styles.pillText, { color: "#1BAD7A" }]} numberOfLines={1}>
-              {openCount} Open Positions
+          <View
+            style={[
+              styles.pill,
+              { backgroundColor: "rgba(27,173,122,0.15)" },
+            ]}
+          >
+            <BriefcaseIcon
+              size={14}
+              weight="fill"
+              color="#1BAD7A"
+              style={{ marginRight: 6 }}
+            />
+            <Text
+              style={[styles.pillText, { color: "#1BAD7A" }]}
+              numberOfLines={1}
+            >
+              {jobsLabel}
             </Text>
           </View>
         )}
@@ -98,16 +151,22 @@ export default function MyBusinessCard({ item, onPressCard, onPressManage }: Pro
         ]}
         onPress={handleManage}
       >
-        <PencilIcon size={18} weight="bold" color={theme.colors.primary} style={{ marginRight: 8 }} />
-        <Text variant="body1" color={theme.colors.primary} fontWeight="bold">
+        <PencilIcon
+          size={18}
+          weight="bold"
+          color={theme.colors.primary}
+          style={{ marginRight: 8 }}
+        />
+        <Text
+          variant="body1"
+          color={theme.colors.primary}
+        >
           Manage Business
         </Text>
       </TouchableOpacity>
     </TouchableOpacity>
   );
 }
-
-const CARD_WIDTH = 310;
 
 const styles = StyleSheet.create({
   card: {
@@ -122,26 +181,42 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  row: { flexDirection: "row", alignItems: "flex-start" },
+  row: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
   logoWrap: {
     width: 62,
     height: 62,
     borderRadius: 12,
     overflow: "hidden",
   },
-  logo: { width: "100%", height: "100%" },
-  locRow: { marginTop: 6, flexDirection: "row", alignItems: "center", maxWidth: 220 },
-  locText: { fontSize: 13 },
+  logo: {
+    width: "100%",
+    height: "100%",
+  },
+  locRow: {
+    marginTop: 4,
+    flexDirection: "row",
+    alignItems: "center",
+    maxWidth: 220,
+  },
+  locText: {
+    fontSize: 13,
+  },
   pill: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 10,
-    height: 28,
+    paddingVertical: 4,
     borderRadius: 999,
     alignSelf: "flex-start",
     marginLeft: 8,
   },
-  pillText: { fontSize: 12, fontWeight: "700" },
+  pillText: {
+    fontSize: 10,
+    fontWeight: "700",
+  },
   manageBtn: {
     marginTop: 12,
     height: 44,

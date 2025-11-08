@@ -7,8 +7,10 @@ import {
   TextInput,
   Keyboard,
   ActivityIndicator,
+  TouchableOpacity,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import LinearGradient from "react-native-linear-gradient";
 import { useTheme } from "@/theme/ThemeContext";
 import TopBar from "@/components/common/TopBar";
 import { useInfiniteQuery } from "@tanstack/react-query";
@@ -28,19 +30,19 @@ import FeaturedBusinessCard from "@/components/business/FeaturedBusinessCard";
 import MyBusinessCard from "@/components/business/MyBusinessCard";
 import { Star, SuitcaseIcon } from "phosphor-react-native";
 
-// -------- Types --------
+/* -------- Types -------- */
 type ApiBusiness = ApiBusinessBase & {
   open_positions?: number | null;
   is_featured?: boolean | null;
   promo_code?: string | null;
 };
 
-// -------- Constants --------
+/* -------- Constants -------- */
 const LIMIT = 10;
 const MY_LIMIT = 12;
 const FEATURE_LIMIT = 10;
 
-// -------- Pagination helper --------
+/* -------- Pagination helper -------- */
 type MetaShape = {
   nextPage?: number | null;
   hasNextPage?: boolean;
@@ -74,6 +76,7 @@ const MyBusinessesRow = () => {
       initialPageParam: 1,
       queryFn: async ({ pageParam }) => {
         const res = await getAllMyBusiness({ page: pageParam as number, limit: MY_LIMIT });
+
         const raw = (res?.data?.data as any[]) ?? (res?.data as any[]) ?? res ?? [];
         const items: ApiBusiness[] = raw.map((b) => ({
           ...b,
@@ -94,18 +97,17 @@ const MyBusinessesRow = () => {
   if (isPending) {
     return (
       <View style={{ paddingBottom: 8 }}>
-         <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          marginBottom: 8,
-          gap: 10,
-        }}
-      >
-        <SuitcaseIcon  color={theme.colors.primary} size={16} />
-        <Text variant="body1">My Business</Text>
-      </View>
-
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            marginBottom: 8,
+            gap: 10,
+          }}
+        >
+          <SuitcaseIcon color={theme.colors.primary} size={16} />
+          <Text variant="body1">My Business</Text>
+        </View>
         <ActivityIndicator color={theme.colors.primary} />
       </View>
     );
@@ -115,7 +117,7 @@ const MyBusinessesRow = () => {
 
   return (
     <View style={{ paddingBottom: 8 }}>
-         <View
+      <View
         style={{
           flexDirection: "row",
           alignItems: "center",
@@ -123,14 +125,14 @@ const MyBusinessesRow = () => {
           gap: 10,
         }}
       >
-        <SuitcaseIcon  color={theme.colors.primary} size={16} />
+        <SuitcaseIcon color={theme.colors.primary} size={16} />
         <Text variant="body1">My Businesses</Text>
       </View>
 
       <FlatList
         data={myBusinesses}
         keyExtractor={(item) => String(item.id)}
-        contentContainerStyle={{  paddingBottom: 6 }}
+        contentContainerStyle={{ paddingBottom: 6 }}
         horizontal
         showsHorizontalScrollIndicator={false}
         renderItem={({ item }) => <MyBusinessCard item={item} />}
@@ -145,7 +147,13 @@ const MyBusinessesRow = () => {
         }}
         ListFooterComponent={
           isFetchingNextPage ? (
-            <View style={{ justifyContent: "center", alignItems: "center", paddingHorizontal: 6 }}>
+            <View
+              style={{
+                justifyContent: "center",
+                alignItems: "center",
+                paddingHorizontal: 6,
+              }}
+            >
               <ActivityIndicator />
             </View>
           ) : null
@@ -176,7 +184,12 @@ const FeaturedBusinessesRow = () => {
           is_featured: b?.is_featured ?? true,
         }));
         const meta = (res?.data?.meta ?? {}) as MetaShape;
-        const nextPage = computeNextPage(meta, pageParam as number, FEATURE_LIMIT, items.length);
+        const nextPage = computeNextPage(
+          meta,
+          pageParam as number,
+          FEATURE_LIMIT,
+          items.length
+        );
         return { data: items, nextPage };
       },
       getNextPageParam: (lastPage) => lastPage?.nextPage ?? undefined,
@@ -190,8 +203,10 @@ const FeaturedBusinessesRow = () => {
   if (isPending) {
     return (
       <View style={{ paddingBottom: 8 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
-          <Text variant="body1">Featured</Text>
+        <View
+          style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}
+        >
+          <Text variant="body1">Featured Business</Text>
         </View>
         <ActivityIndicator />
       </View>
@@ -211,13 +226,13 @@ const FeaturedBusinessesRow = () => {
         }}
       >
         <Star weight="fill" color={theme.colors.primary} size={16} />
-          <Text variant="body1">Featured</Text>
+        <Text variant="body1">Featured Business</Text>
       </View>
 
       <FlatList
         data={featured}
         keyExtractor={(item) => String(item.id)}
-        contentContainerStyle={{  paddingBottom: 6 }}
+        contentContainerStyle={{ paddingBottom: 6 }}
         renderItem={({ item }) => <FeaturedBusinessCard item={item} />}
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -232,7 +247,13 @@ const FeaturedBusinessesRow = () => {
         }}
         ListFooterComponent={
           isFetchingNextPage ? (
-            <View style={{ justifyContent: "center", alignItems: "center", paddingHorizontal: 6 }}>
+            <View
+              style={{
+                justifyContent: "center",
+                alignItems: "center",
+                paddingHorizontal: 6,
+              }}
+            >
               <ActivityIndicator />
             </View>
           ) : null
@@ -242,7 +263,7 @@ const FeaturedBusinessesRow = () => {
   );
 };
 
-/* ---------------- Main Screen (one vertical FlatList controls page scroll) ---------------- */
+/* ---------------- Main Screen ---------------- */
 const BusinessScreen: React.FC = ({ navigation }: any) => {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
@@ -273,10 +294,17 @@ const BusinessScreen: React.FC = ({ navigation }: any) => {
       });
 
       const items: ApiBusiness[] =
-        (res?.data?.data as ApiBusiness[]) ?? (res?.data as ApiBusiness[]) ?? [];
+        (res?.data?.data as ApiBusiness[]) ??
+        (res?.data as ApiBusiness[]) ??
+        [];
 
       const meta = (res?.data?.meta ?? {}) as MetaShape;
-      const nextPage = computeNextPage(meta, pageParam as number, LIMIT, items.length);
+      const nextPage = computeNextPage(
+        meta,
+        pageParam as number,
+        LIMIT,
+        items.length
+      );
 
       return { data: items, nextPage };
     },
@@ -296,55 +324,86 @@ const BusinessScreen: React.FC = ({ navigation }: any) => {
   }, [refetch]);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
       <TopBar onMenuPress={() => navigation.openDrawer()} />
 
-      {/* ONE vertical FlatList controls the entire page scroll, with a big header */}
       <FlatList
         data={businesses}
         keyExtractor={(item) => String(item.id)}
         renderItem={({ item }) => <BusinessCard item={item} />}
-        contentContainerStyle={[styles.content, { paddingBottom: 16 + insets.bottom + 72 }]}
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingBottom:
+              16 + insets.bottom + 90, // extra space for bottom gradient button
+          },
+        ]}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <View style={{ display: "flex", gap: 24 }}>
-            <SearchBar ref={inputRef} value={search} onChange={setSearch} onClear={clearSearch} />
+            <SearchBar
+              ref={inputRef}
+              value={search}
+              onChange={setSearch}
+              onClear={clearSearch}
+            />
             <FeaturedBusinessesRow />
             <MyBusinessesRow />
-               <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          marginBottom: 8,
-          gap: 10,
-        }}
-      >
-        <Text variant="body1">All Businesses</Text>
-      </View>
-
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                marginBottom: 8,
+                gap: 10,
+              }}
+            >
+              <Text
+                variant="body1"
+                color={theme.colors.text}
+              >
+                All Businesses
+              </Text>
+            </View>
           </View>
         }
         ListEmptyComponent={
           isPending ? (
-            <View style={{ paddingVertical: 40, alignItems: "center" }}>
-              <ActivityIndicator size="large" color={theme.colors.primary} />
-              <Text style={{ marginTop: 8 }}>Loading businesses...</Text>
+            <View
+              style={{ paddingVertical: 40, alignItems: "center" }}
+            >
+              <ActivityIndicator
+                size="large"
+                color={theme.colors.primary}
+              />
+              <Text style={{ marginTop: 8 }}>
+                Loading businesses...
+              </Text>
             </View>
           ) : (
             <View style={{ padding: 24, alignItems: "center" }}>
-              <Text>No businesses found{search ? ` for “${search}”` : ""}.</Text>
+              <Text>
+                No businesses found
+                {search ? ` for “${search}”` : ""}.
+              </Text>
             </View>
           )
         }
         ListFooterComponent={
           isFetchingNextPage ? (
-            <View >
+            <View>
               <ActivityIndicator color={theme.colors.primary} />
             </View>
           ) : null
         }
         onEndReached={() => {
-          if (!hasNextPage || isFetchingNextPage || fetchingMoreRef.current) return;
+          if (
+            !hasNextPage ||
+            isFetchingNextPage ||
+            fetchingMoreRef.current
+          )
+            return;
           fetchingMoreRef.current = true;
           fetchNextPage().finally(() => {
             fetchingMoreRef.current = false;
@@ -360,12 +419,30 @@ const BusinessScreen: React.FC = ({ navigation }: any) => {
         removeClippedSubviews
       />
 
-      {/* FAB */}
-      <AddFab
-        color={theme.colors.primary}
-        bottom={(insets.bottom || 16) + 16}
-        onPress={() => nav.navigate("CreateBusiness" as never)}
-      />
+      {/* Gradient Bottom Button */}
+      <TouchableOpacity
+        activeOpacity={0.9}
+        style={[
+          styles.promoteButtonContainer,
+        ]}
+        onPress={() => nav.navigate("CreateBusiness" as never)} // change route if needed
+      >
+        <LinearGradient
+          colors={[theme.colors.primary, "#0f8f5f"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.promoteButtonGradient}
+        >
+          <Text
+            variant="body1"
+            style={styles.promoteButtonText}
+          >
+            Promote Business
+          </Text>
+        </LinearGradient>
+      </TouchableOpacity>
+
+    
     </SafeAreaView>
   );
 };
@@ -375,4 +452,22 @@ export default BusinessScreen;
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { paddingHorizontal: 20 },
+  promoteButtonContainer: {
+    position: "absolute",
+    left: 0,
+    bottom:0,
+    right: 0,
+  },
+  promoteButtonGradient: {
+    height: 54,
+    borderRadius: 26,
+    borderBottomEndRadius:0,
+    borderBottomStartRadius:0,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  promoteButtonText: {
+    color: "#fff",
+    fontWeight: "600",
+  },
 });
