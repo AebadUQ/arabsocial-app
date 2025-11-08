@@ -1,5 +1,3 @@
-// src/screens/HomeScreen.tsx
-
 import React, {
   useCallback,
   useEffect,
@@ -14,6 +12,7 @@ import {
   TouchableOpacity,
   FlatList,
   Keyboard,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components";
@@ -32,23 +31,21 @@ import {
   respondToConnectionRequest,
   sendConnectionRequest,
 } from "@/api/members";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import MemberCard, { Person } from "@/components/members/MemberCard";
+
+const PAGE_SIZE = 10;
 
 const HomeScreen: React.FC = ({ navigation }: any) => {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
-  const dimText = theme?.colors?.text ?? "#111827";
+  const dimText = theme.colors?.text ?? "#111827";
   const queryClient = useQueryClient();
 
   const [selectedTab, setSelectedTab] = useState<
     "all" | "connections" | "requests"
   >("all");
 
-  const [connectedById, setConnectedById] = useState<Record<string, boolean>>(
-    {}
-  );
-  const [pendingById, setPendingById] = useState<Record<string, boolean>>({});
   const [acceptedRequests, setAcceptedRequests] = useState<
     Record<string, boolean>
   >({});
@@ -57,12 +54,15 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const inputRef = useRef<TextInput>(null);
 
+  // Debounce search
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const t = setTimeout(() => {
       setDebouncedQuery(query.trim().toLowerCase());
     }, 300);
-    return () => clearTimeout(timer);
+    return () => clearTimeout(t);
   }, [query]);
+
+  /* ====== Actions ====== */
 
   const handleToggle = async (receiverId: string) => {
     try {
@@ -90,20 +90,6 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
 
       await respondToConnectionRequest(Number(requestId), status);
 
-      if (status === "rejected") {
-        setPendingById((prev) => {
-          const copy = { ...prev };
-          delete copy[requestId];
-          return copy;
-        });
-
-        setAcceptedRequests((prev) => {
-          const copy = { ...prev };
-          delete copy[requestId];
-          return copy;
-        });
-      }
-
       queryClient.invalidateQueries({ queryKey: ["pendingRequests"] });
       queryClient.invalidateQueries({ queryKey: ["connectedUsers"] });
       queryClient.invalidateQueries({ queryKey: ["allUsers"] });
@@ -112,44 +98,69 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
     }
   };
 
-  const allUsersQuery = useQuery({
-    queryKey: ["allUsers", debouncedQuery],
-    queryFn: () =>
-      getAllUsersWithConnectionStatus({
-        page: 1,
-        limit: 10,
-        search: debouncedQuery,
-      }),
-    enabled: selectedTab === "all",
-  });
+  /* ====== Infinite Queries (same style as events example) ====== */
 
-  const connectedUsersQuery = useQuery({
-    queryKey: ["connectedUsers", debouncedQuery],
-    queryFn: () => getConnectedUsers({ page: 1, limit: 10 }),
+  // All Users
+ const allUsersQuery = useInfiniteQuery({ queryKey: ["allUsers", debouncedQuery], initialPageParam: 1, enabled: selectedTab === "all", queryFn: async ({ pageParam }) => { const res = await getAllUsersWithConnectionStatus({ page: pageParam, limit: PAGE_SIZE, ...(debouncedQuery ? { search: debouncedQuery } : {}), }); const users: Person[] = res?.data?.data || []; const nextPage = users.length === PAGE_SIZE ? pageParam + 1 : undefined; return { data: users, nextPage }; }, getNextPageParam: (lastPage) => lastPage?.nextPage, });
+  // Connected Users
+  const connectedUsersQuery = useInfiniteQuery({
+    queryKey: ["connectedUsers"],
+    initialPageParam: 1,
     enabled: selectedTab === "connections",
+    queryFn: async ({ pageParam }) => {
+      const res = await getConnectedUsers({
+        page: pageParam,
+        limit: PAGE_SIZE,
+      });
+
+      const users: Person[] = res?.data?.data || [];
+      const nextPage = users.length === PAGE_SIZE ? pageParam + 1 : undefined;
+
+      return { data: users, nextPage };
+    },
+    getNextPageParam: (lastPage) => lastPage?.nextPage,
   });
 
-  const pendingRequestsQuery = useQuery({
-    queryKey: ["pendingRequests", debouncedQuery],
-    queryFn: () => getPendingConnectionRequests({ page: 1, limit: 10 }),
+  // Pending Requests
+  const pendingRequestsQuery = useInfiniteQuery({
+    queryKey: ["pendingRequests"],
+    initialPageParam: 1,
     enabled: selectedTab === "requests",
+    queryFn: async ({ pageParam }) => {
+      const res = await getPendingConnectionRequests({
+        page: pageParam,
+        limit: PAGE_SIZE,
+      });
+
+      const users: Person[] = res?.data?.data || [];
+      const nextPage = users.length === PAGE_SIZE ? pageParam + 1 : undefined;
+
+      return { data: users, nextPage };
+    },
+    getNextPageParam: (lastPage) => lastPage?.nextPage,
   });
 
-  const filteredData: Person[] = useMemo(() => {
+  /* ====== Build list based on active tab ====== */
+
+  const data: Person[] = useMemo(() => {
     let base: Person[] = [];
 
     if (selectedTab === "all") {
-      base = allUsersQuery.data?.data?.data || [];
+      base =
+        allUsersQuery.data?.pages.flatMap((p) => p.data) || [];
     } else if (selectedTab === "connections") {
-      base = connectedUsersQuery.data?.data?.data || [];
+      base =
+        connectedUsersQuery.data?.pages.flatMap((p) => p.data) || [];
     } else if (selectedTab === "requests") {
-      base = pendingRequestsQuery.data?.data?.data || [];
+      base =
+        pendingRequestsQuery.data?.pages.flatMap((p) => p.data) || [];
     }
 
-    base = base?.map((user) => ({
+    // mark accepted requests as connected
+    base = base.map((user) => ({
       ...user,
-      isConnected: user.isConnected || connectedById[user.id] || false,
-      status: user.status,
+      isConnected:
+        user.isConnected || !!acceptedRequests[user.requestId],
     }));
 
     if (!debouncedQuery) return base;
@@ -166,10 +177,50 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
     allUsersQuery.data,
     connectedUsersQuery.data,
     pendingRequestsQuery.data,
-    connectedById,
-    pendingById,
+    acceptedRequests,
     debouncedQuery,
   ]);
+
+  /* ====== Load More ====== */
+
+  const handleLoadMore = () => {
+    if (selectedTab === "all") {
+      if (
+        allUsersQuery.hasNextPage &&
+        !allUsersQuery.isFetchingNextPage
+      ) {
+        allUsersQuery.fetchNextPage();
+      }
+    } else if (selectedTab === "connections") {
+      if (
+        connectedUsersQuery.hasNextPage &&
+        !connectedUsersQuery.isFetchingNextPage
+      ) {
+        connectedUsersQuery.fetchNextPage();
+      }
+    } else if (selectedTab === "requests") {
+      if (
+        pendingRequestsQuery.hasNextPage &&
+        !pendingRequestsQuery.isFetchingNextPage
+      ) {
+        pendingRequestsQuery.fetchNextPage();
+      }
+    }
+  };
+
+  const isInitialLoading =
+    (selectedTab === "all" && allUsersQuery.isLoading) ||
+    (selectedTab === "connections" &&
+      connectedUsersQuery.isLoading) ||
+    (selectedTab === "requests" &&
+      pendingRequestsQuery.isLoading);
+
+  const isFetchingNextPage =
+    allUsersQuery.isFetchingNextPage ||
+    connectedUsersQuery.isFetchingNextPage ||
+    pendingRequestsQuery.isFetchingNextPage;
+
+  /* ====== Helpers ====== */
 
   const clearSearch = useCallback(() => {
     setQuery("");
@@ -177,6 +228,15 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
     inputRef.current?.clear();
     Keyboard.dismiss();
   }, []);
+
+  const renderFooter = () =>
+    isFetchingNextPage ? (
+      <View style={{ paddingVertical: 16 }}>
+        <ActivityIndicator size="small" color={dimText} />
+      </View>
+    ) : null;
+
+  /* ====== UI ====== */
 
   return (
     <SafeAreaView
@@ -240,30 +300,39 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
         />
       </View>
 
-      {/* Grid List - 2 columns */}
-      <FlatList
-        data={filteredData}
-        keyExtractor={(item) => item.id}
-        numColumns={2}
-        columnWrapperStyle={styles.row}
-        contentContainerStyle={styles.listContent}
-        renderItem={({ item }) => (
-          <MemberCard
-            item={item}
-            accepted={!!acceptedRequests[item.requestId]}
-            onToggle={handleToggle}
-            isPendingTab={selectedTab === "requests"}
-            onPendingAction={handlePendingAction}
-          />
-        )}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={{ padding: 24, alignItems: "center" }}>
-            <Text>No matches found.</Text>
-          </View>
-        }
-      />
+      {/* Grid List */}
+      {isInitialLoading ? (
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <ActivityIndicator size="small" color={dimText} />
+        </View>
+      ) : (
+        <FlatList
+          data={data}
+          keyExtractor={(item) => String(item.id)}
+          numColumns={2}
+          columnWrapperStyle={styles.row}
+          contentContainerStyle={styles.listContent}
+          renderItem={({ item }) => (
+            <MemberCard
+              item={item}
+              accepted={!!acceptedRequests[item.requestId]}
+              onToggle={handleToggle}
+              isPendingTab={selectedTab === "requests"}
+              onPendingAction={handlePendingAction}
+            />
+          )}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.4}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={{ padding: 24, alignItems: "center" }}>
+              <Text>No matches found.</Text>
+            </View>
+          }
+          ListFooterComponent={renderFooter}
+        />
+      )}
     </SafeAreaView>
   );
 };
