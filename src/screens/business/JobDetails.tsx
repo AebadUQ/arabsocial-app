@@ -25,7 +25,7 @@ import { useAuth } from "@/context/Authcontext";
 
 /* ----------------------------- Types ----------------------------- */
 type JobBusiness = {
-  id: number | string;
+  id?: number | string;
   name: string;
   business_logo?: string | null;
   country?: string | null;
@@ -201,7 +201,7 @@ const JobDetailScreen: React.FC = () => {
           {/* {user.id == job.postedById ? 's':'a'} */}
         </Text>
 
-        {user.id == job.postedById  ? (
+        {user?.id == job?.postedById  ? (
           <TouchableOpacity
             style={[styles.topBtn, { backgroundColor: theme.colors.primary }]}
             onPress={() => navigation.navigate("EditJob", { jobId: job.id })}
@@ -253,7 +253,7 @@ const JobDetailScreen: React.FC = () => {
           {!!employer && (
             <View style={styles.infoRow}>
               <View style={[styles.iconCircle, { backgroundColor: theme.colors.primaryLight }]}>
-                <Buildings size={18} color={theme.colors.primaryDark} />
+                <Buildings size={18} color={theme.colors.primary} />
               </View>
               <View style={styles.infoTextWrap}>
                 <Text variant="overline" style={{ opacity: 0.7 }}>Employer</Text>
@@ -270,7 +270,7 @@ const JobDetailScreen: React.FC = () => {
               style={styles.infoRow}
             >
               <View style={[styles.iconCircle, { backgroundColor: theme.colors.primaryLight }]}>
-                <MapPin size={18} color={theme.colors.primaryDark} />
+                <MapPin size={18} color={theme.colors.primary} />
               </View>
               <View style={styles.infoTextWrap}>
                 <Text variant="overline" style={{ opacity: 0.7 }}>Location</Text>
