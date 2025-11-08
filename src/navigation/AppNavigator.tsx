@@ -1,9 +1,7 @@
 // src/navigation/AppNavigator.tsx
 import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
-import {
-  createBottomTabNavigator,
-} from "@react-navigation/bottom-tabs";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import {
   createStackNavigator,
   StackNavigationOptions,
@@ -34,7 +32,15 @@ import GroupDetailScreen from "@/screens/GroupDetailScreen";
 import ProfileScreen from "@/screens/profile/ProfileScreen";
 import ProfileEditScreen from "@/screens/profile/ProfileEditScreen";
 import PublicProfileScreen from "@/screens/profile/PublicProfileScreen";
-import CreateBusiness from '@/screens/business/CreateBusiness'
+import CreateBusiness from "@/screens/business/CreateBusiness";
+import EditBusinessScreen from "@/screens/business/EditBusiness";
+import CreateJobScreen from "@/screens/business/CreateJob";
+import JobDetailScreen from "@/screens/business/JobDetails";
+import EditJobScreen from "@/screens/business/EditJob";
+
+// 👉 Add your Resources screen import
+// Adjust the path/name if your file is named differently (e.g., "@/screens/Resources")
+import ResourcesScreen from "@/screens/ResourcesScreen";
 
 import CustomBottomsheet from "@/components/CustomBottomsheet";
 
@@ -42,10 +48,6 @@ import { Gear, InfoIcon, SignOutIcon } from "phosphor-react-native";
 import { theme as appTheme } from "@/theme/theme";
 import { Image, Text, TouchableOpacity, View } from "react-native";
 import LinearGradient from "react-native-linear-gradient";
-import EditBusinessScreen from "@/screens/business/EditBusiness";
-import CreateJobScreen from "@/screens/business/CreateJob";
-import JobDetailScreen from "@/screens/business/JobDetails";
-import EditJobScreen from "@/screens/business/EditJob";
 
 /* ---------------------------------
  * Assets
@@ -69,7 +71,6 @@ export type ProfileStackParamList = {
 };
 
 // Root stack (app when logged in)
-// these are global routes you can jump to from anywhere in the app shell
 export type RootStackParamList = {
   Main: undefined; // Drawer containing tabs etc.
   Notifications: undefined;
@@ -105,8 +106,6 @@ export type BusinessStackParamList = {
   PostJob: { id?: string } | undefined;
   JobDetail: { id?: string } | undefined;
   EditJob: { id?: string } | undefined;
-
-  
 };
 
 // Groups tab stack
@@ -118,6 +117,11 @@ export type GroupsStackParamList = {
 // Settings tab stack
 export type SettingsStackParamList = {
   Settings: undefined;
+};
+
+// ✅ Resources stack
+export type ResourceStackParamList = {
+  Resource: undefined;
 };
 
 /* ---------------------------------
@@ -134,6 +138,10 @@ const MembersStack = createStackNavigator<MembersStackParamList>();
 const BusinessStack = createStackNavigator<BusinessStackParamList>();
 const GroupsStack = createStackNavigator<GroupsStackParamList>();
 const SettingsStack = createStackNavigator<SettingsStackParamList>();
+
+// ✅ Resources stack instance
+const ResourceStack = createStackNavigator<ResourceStackParamList>();
+
 const ProfileStack = createStackNavigator<ProfileStackParamList>();
 
 const defaultNoHeader: StackNavigationOptions = { headerShown: false };
@@ -145,7 +153,6 @@ const ProfileStackNav = () => (
   <ProfileStack.Navigator screenOptions={defaultNoHeader}>
     <ProfileStack.Screen name="Profile" component={ProfileScreen} />
     <ProfileStack.Screen name="ProfileEdit" component={ProfileEditScreen} />
-    {/* NOTE: PublicProfile is NOT here */}
   </ProfileStack.Navigator>
 );
 
@@ -155,9 +162,6 @@ const ProfileStackNav = () => (
 const HomeStackNav = () => (
   <HomeStack.Navigator screenOptions={defaultNoHeader}>
     <HomeStack.Screen name="Home" component={HomeScreen} />
-    {/* if you ALSO want event detail from Home tab:
-        <HomeStack.Screen name="EventDetail" component={EventDetailScreen} />
-    */}
   </HomeStack.Navigator>
 );
 
@@ -168,11 +172,7 @@ const EventsStackNav = () => (
   <EventsStack.Navigator screenOptions={defaultNoHeader}>
     <EventsStack.Screen name="Events" component={EventScreen} />
     <EventsStack.Screen name="AddEvent" component={AddEventScreen} />
-    
-    <EventsStack.Screen name="EventDetail" 
-    
-
-    component={EventDetailScreen} />
+    <EventsStack.Screen name="EventDetail" component={EventDetailScreen} />
   </EventsStack.Navigator>
 );
 
@@ -192,26 +192,11 @@ const BusinessStackNav = () => (
   <BusinessStack.Navigator screenOptions={defaultNoHeader}>
     <BusinessStack.Screen name="Business" component={BusinessScreen} />
     <BusinessStack.Screen name="CreateBusiness" component={CreateBusiness} />
-<BusinessStack.Screen
-      name="EditBusiness"
-      component={EditBusinessScreen}
-    />
-    <BusinessStack.Screen
-      name="PostJob"
-      component={CreateJobScreen}
-    />
-    <BusinessStack.Screen
-      name="BusinessDetail"
-      component={BusinessDetailScreen}
-    />
-    <BusinessStack.Screen
-      name="JobDetail"
-      component={JobDetailScreen}
-    />
-    <BusinessStack.Screen
-      name="EditJob"
-      component={EditJobScreen}
-    />
+    <BusinessStack.Screen name="EditBusiness" component={EditBusinessScreen} />
+    <BusinessStack.Screen name="PostJob" component={CreateJobScreen} />
+    <BusinessStack.Screen name="BusinessDetail" component={BusinessDetailScreen} />
+    <BusinessStack.Screen name="JobDetail" component={JobDetailScreen} />
+    <BusinessStack.Screen name="EditJob" component={EditJobScreen} />
   </BusinessStack.Navigator>
 );
 
@@ -235,51 +220,32 @@ const SettingsStackNav = () => (
 );
 
 /* ---------------------------------
+ * ✅ Resources stack nav
+ * --------------------------------- */
+const ResourceStackNav = () => (
+  <ResourceStack.Navigator screenOptions={defaultNoHeader}>
+    <ResourceStack.Screen name="Resource" component={ResourcesScreen} />
+  </ResourceStack.Navigator>
+);
+
+/* ---------------------------------
  * Bottom Tabs (inside Drawer)
  * --------------------------------- */
 const MainTabNavigator = () => {
-  useTheme(); // keeps theme reactive in tab bar, even if we're not using value directly
+  useTheme(); // keeps theme reactive in tab bar
 
   return (
     <Tab.Navigator
       screenOptions={{ headerShown: false }}
       tabBar={(props) => <CustomBottomsheet {...props} />}
     >
-      <Tab.Screen
-        name="HomeTab"
-        component={HomeStackNav}
-        options={{ title: "Home" }}
-      />
-      <Tab.Screen
-        name="EventsTab"
-        component={EventsStackNav}
-        options={{ title: "Events" }}
-      />
-      <Tab.Screen
-        name="MembersTab"
-        component={MembersStackNav}
-        options={{ title: "Members" }}
-      />
-      <Tab.Screen
-        name="BusinessTab"
-        component={BusinessStackNav}
-        options={{ title: "Business" }}
-      />
-      <Tab.Screen
-        name="GroupsTab"
-        component={GroupsStackNav}
-        options={{ title: "Groups" }}
-      />
-      <Tab.Screen
-        name="SettingsTab"
-        component={SettingsStackNav}
-        options={{ title: "Settings" }}
-      />
-      <Tab.Screen
-        name="ProfileTab"
-        component={ProfileStackNav}
-        options={{ title: "Profile" }}
-      />
+      <Tab.Screen name="HomeTab" component={HomeStackNav} options={{ title: "Home" }} />
+      <Tab.Screen name="EventsTab" component={EventsStackNav} options={{ title: "Events" }} />
+      <Tab.Screen name="MembersTab" component={MembersStackNav} options={{ title: "Members" }} />
+      <Tab.Screen name="BusinessTab" component={BusinessStackNav} options={{ title: "Business" }} />
+      <Tab.Screen name="GroupsTab" component={GroupsStackNav} options={{ title: "Groups" }} />
+      <Tab.Screen name="SettingsTab" component={SettingsStackNav} options={{ title: "Settings" }} />
+      <Tab.Screen name="ProfileTab" component={ProfileStackNav} options={{ title: "Profile" }} />
     </Tab.Navigator>
   );
 };
@@ -344,10 +310,9 @@ function CustomDrawerContent(props: any) {
             <Gear size={22} color="#fff" />
           </TouchableOpacity>
 
+          {/* ✅ Navigate directly to the Resources drawer route */}
           <TouchableOpacity
-            onPress={() =>
-              props.navigation.navigate("MainTabs", { screen: "GroupsTab" })
-            }
+            onPress={() => props.navigation.navigate("Resources")}
             style={{
               borderRadius: 10,
               backgroundColor: appTheme.colors.primaryDark,
@@ -405,6 +370,8 @@ const RootDrawer = () => (
     }}
   >
     <Drawer.Screen name="MainTabs" component={MainTabNavigator} />
+    {/* ✅ Register Resources as a drawer route */}
+    <Drawer.Screen name="Resources" component={ResourceStackNav} />
   </Drawer.Navigator>
 );
 
@@ -425,7 +392,6 @@ const AuthStackNav = () => (
 const AppNavigator: React.FC = () => {
   const { token, loading } = useAuth();
 
-  // you can render a splash/loader here if you have one
   if (loading) {
     return null;
   }
@@ -452,9 +418,7 @@ const AppNavigator: React.FC = () => {
           <RootStack.Screen
             name="PublicProfile"
             component={PublicProfileScreen}
-            options={{
-              headerShown: false,
-            }}
+            options={{ headerShown: false }}
           />
         </RootStack.Navigator>
       ) : (
