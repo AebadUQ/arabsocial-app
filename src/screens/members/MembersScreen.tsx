@@ -1,5 +1,12 @@
-// screens/HomeScreen.tsx
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+// src/screens/HomeScreen.tsx
+
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   StyleSheet,
   View,
@@ -7,22 +14,17 @@ import {
   TouchableOpacity,
   FlatList,
   Keyboard,
-  Alert,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components";
 import { useTheme } from "@/theme/ThemeContext";
 import {
-  CheckIcon,
-  XIcon,
   MagnifyingGlass as MagnifyingGlassIcon,
   SlidersHorizontal as SlidersHorizontalIcon,
   XCircle as XCircleIcon,
 } from "phosphor-react-native";
-import Avatar from "@/components/common/Avatar";
 import Chip from "@/components/common/Chip";
 import TopBar from "@/components/common/TopBar";
-
 import {
   getAllUsersWithConnectionStatus,
   getConnectedUsers,
@@ -31,191 +33,18 @@ import {
   sendConnectionRequest,
 } from "@/api/members";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigation } from "@react-navigation/native";
+import MemberCard, { Person } from "@/components/members/MemberCard";
 
-/* ================= Types ================= */
-export type Person = {
-  id: string;
-  name: string;
-  profession?: string;
-  country?: string;
-  isConnected: boolean;
-  requestId: string;
-  status: "pending" | "accepted" | "rejected" | string;
-  reqOwner?: boolean; // false means THEY sent me the request
-};
-
-/* ============== MemberCard ============== */
-const MemberCard = ({
-  item,
-  accepted,
-  onToggle,
-  isPendingTab,
-  onPendingAction,
-}: {
-  item: Person;
-  accepted: boolean; // forced to boolean by parent
-  onToggle: (id: string) => void;
-  isPendingTab?: boolean;
-  onPendingAction?: (
-    id: string,
-    status: "accepted" | "rejected"
-  ) => void;
-}) => {
-  const { theme } = useTheme();
-  const navigation = useNavigation<any>(); // you can strongly type later
-
-  // safe colors from theme
-  const textLight = theme?.colors?.textLight || "rgba(0,0,0,0.6)";
-  const whiteText = theme?.colors?.textWhite || "#fff";
-  const primary = theme?.colors?.primary || "#2563EB";
-
-  const isPending = item?.status === "pending";
-
-  // if user already tapped ✅ (optimistic)
-  const forceConnected = accepted === true;
-
-  // show ✅/❌ row?
-  const shouldShowRowIfPendingTab =
-    !!isPendingTab && !!onPendingAction;
-
-  const shouldShowRowIfIncomingPending =
-    isPending && item.reqOwner === false && !!onPendingAction;
-
-  const showAcceptRejectRow =
-    !forceConnected && (shouldShowRowIfPendingTab || shouldShowRowIfIncomingPending);
-
-  // button label for single button mode
-  let btnLabel: string;
-  if (forceConnected || item.isConnected) {
-    btnLabel = "Connected";
-  } else if (isPending) {
-    btnLabel = item.reqOwner === false ? "Accept" : "Pending";
-  } else {
-    btnLabel = "Connect";
-  }
-
-  // pick button color
-  let btnBg: string = primary;
-  if (btnLabel === "Connected") {
-    btnBg = "#1E644C";
-  } else if (btnLabel === "Pending") {
-    btnBg = "#9CA3AF";
-  } else if (btnLabel === "Accept") {
-    btnBg = primary;
-  }
-
-  // tap logic for the single button
-  const handleMainPress = () => {
-    // If we can Accept
-    if (btnLabel === "Accept" && onPendingAction) {
-      onPendingAction(item.requestId, "accepted");
-      return;
-    }
-
-    // If it's Connected and user taps -> treat as reject/remove
-    if (btnLabel === "Connected" && onPendingAction) {
-      console.log(item)
-// Alert.alert("Title", item.requestId);
-      onPendingAction(item.requestId , "rejected");
-      return;
-    }
-
-    // Otherwise do normal connect/send request
-    onToggle(item.id);
-  };
- const handleCardPress = () => {
-    // only navigate to PublicProfile if connected
-    // if (forceConnected || item.isConnected) {
-      navigation.navigate("PublicProfile", { userId: item.id });
-    // }
-    // if not connected, do nothing special (you can add else { Alert... } if you want)
-  };
-  return (
-    <TouchableOpacity style={styles.card}  activeOpacity={0.8}
-      onPress={handleCardPress}>
-      <View style={styles.row}>
-        <View style={styles.leftWrap}>
-          <Avatar />
-          <View style={styles.texts}>
-            <Text variant="body1" style={{ fontWeight: "500" }}>
-              {item.name}
-            </Text>
-            <Text variant="overline" color={textLight}>
-              Profession: {item.profession || "N/A"}
-            </Text>
-            <Text variant="overline" color={textLight}>
-              Location: {item.country || "N/A"}
-            </Text>
-          </View>
-        </View>
-
-        {showAcceptRejectRow ? (
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            {/* ACCEPT ✅ */}
-            <TouchableOpacity
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 18,
-                backgroundColor: "#1E644C",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-              onPress={() =>
-                onPendingAction?.(item.requestId, "accepted")
-              }
-            >
-              <CheckIcon size={12} color={whiteText} />
-            </TouchableOpacity>
-
-            {/* REJECT ❌ */}
-            <TouchableOpacity
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 18,
-                backgroundColor: "#C53030",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-              onPress={() =>
-                onPendingAction?.(item.requestId, "rejected")
-              }
-            >
-              <XIcon size={12} color={whiteText} />
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <TouchableOpacity
-            activeOpacity={0.9}
-            onPress={handleMainPress}
-            style={[styles.btn, { backgroundColor: btnBg }]}
-          >
-            <Text variant="caption" color="#fff">
-              {btnLabel}
-            </Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    </TouchableOpacity>
-  );
-};
-
-/* ============== HomeScreen ============== */
 const HomeScreen: React.FC = ({ navigation }: any) => {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const dimText = theme?.colors?.text ?? "#111827";
-
   const queryClient = useQueryClient();
 
-  // tabs
   const [selectedTab, setSelectedTab] = useState<
     "all" | "connections" | "requests"
   >("all");
 
-  // optimistic UI state maps
   const [connectedById, setConnectedById] = useState<Record<string, boolean>>(
     {}
   );
@@ -224,12 +53,10 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
     Record<string, boolean>
   >({});
 
-  // search
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const inputRef = useRef<TextInput>(null);
 
-  // debounce search
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(query.trim().toLowerCase());
@@ -237,13 +64,9 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
     return () => clearTimeout(timer);
   }, [query]);
 
-  // send connection request ("Connect")
   const handleToggle = async (receiverId: string) => {
     try {
       await sendConnectionRequest(Number(receiverId));
-
-      // you could also do:
-      // setPendingById(prev => ({ ...prev, [receiverId]: true }))
 
       queryClient.invalidateQueries({ queryKey: ["allUsers"] });
       queryClient.invalidateQueries({ queryKey: ["connectedUsers"] });
@@ -253,14 +76,12 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
     }
   };
 
-  // accept / reject connection request
   const handlePendingAction = async (
     requestId: string,
     status: "accepted" | "rejected"
   ) => {
     try {
       if (status === "accepted") {
-        // optimistic: mark request as accepted so card instantly becomes Connected
         setAcceptedRequests((prev) => ({
           ...prev,
           [requestId]: true,
@@ -270,15 +91,12 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
       await respondToConnectionRequest(Number(requestId), status);
 
       if (status === "rejected") {
-        // optimistic cleanup from pending if rejected/removed
         setPendingById((prev) => {
           const copy = { ...prev };
           delete copy[requestId];
           return copy;
         });
 
-        // also if they tapped Connected and we treated that as reject,
-        // we should un-mark it so UI doesn't still show Connected.
         setAcceptedRequests((prev) => {
           const copy = { ...prev };
           delete copy[requestId];
@@ -294,7 +112,6 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
     }
   };
 
-  /* -------- React Query calls -------- */
   const allUsersQuery = useQuery({
     queryKey: ["allUsers", debouncedQuery],
     queryFn: () =>
@@ -318,7 +135,6 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
     enabled: selectedTab === "requests",
   });
 
-  /* -------- which list to render -------- */
   const filteredData: Person[] = useMemo(() => {
     let base: Person[] = [];
 
@@ -330,7 +146,6 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
       base = pendingRequestsQuery.data?.data?.data || [];
     }
 
-    // apply local overrides if you eventually want:
     base = base?.map((user) => ({
       ...user,
       isConnected: user.isConnected || connectedById[user.id] || false,
@@ -341,7 +156,9 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
 
     const q = debouncedQuery;
     return base.filter((item) => {
-      const hay = `${item.name} ${item.profession || ""} ${item.country || ""}`.toLowerCase();
+      const hay = `${item.name} ${item.profession || ""} ${
+        item.country || ""
+      }`.toLowerCase();
       return hay.includes(q);
     });
   }, [
@@ -354,7 +171,6 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
     debouncedQuery,
   ]);
 
-  /* -------- clear search -------- */
   const clearSearch = useCallback(() => {
     setQuery("");
     setDebouncedQuery("");
@@ -424,16 +240,18 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
         />
       </View>
 
-      {/* List */}
+      {/* Grid List - 2 columns */}
       <FlatList
         data={filteredData}
         keyExtractor={(item) => item.id}
+        numColumns={2}
+        columnWrapperStyle={styles.row}
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => (
           <MemberCard
             item={item}
-            accepted={!!acceptedRequests[item.requestId]} // force boolean
-            onToggle={() => handleToggle(item.id)}
+            accepted={!!acceptedRequests[item.requestId]}
+            onToggle={handleToggle}
             isPendingTab={selectedTab === "requests"}
             onPendingAction={handlePendingAction}
           />
@@ -450,7 +268,6 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
   );
 };
 
-/* ============== Styles ============== */
 const styles = StyleSheet.create({
   container: { flex: 1 },
   searchRow: {
@@ -496,32 +313,13 @@ const styles = StyleSheet.create({
     marginBottom: 32,
     alignItems: "center",
   },
-  listContent: { paddingHorizontal: 20, paddingBottom: 24 },
-  card: {
-    paddingBottom: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "rgba(0,0,0,0.1)",
-    marginBottom: 16,
+  listContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 24,
   },
   row: {
-    flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
-    gap: 12,
-  },
-  leftWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    flexShrink: 1,
-  },
-  texts: { gap: 4, flexShrink: 1 },
-  btn: {
-    width: 120,
-    height: 36,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
+    marginBottom: 12,
   },
 });
 

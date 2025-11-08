@@ -20,7 +20,7 @@ import RegisterScreen from "@/screens/RegisterScreen";
 
 import HomeScreen from "@/screens/HomeScreen";
 import EventScreen from "@/screens/EventScreen";
-import MembersScreen from "@/screens/MembersScreen";
+import MembersScreen from "@/screens/members/MembersScreen";
 import BusinessScreen from "@/screens/business/BusinessScreen";
 import BusinessDetailScreen from "@/screens/business/BusinessDetail";
 import GroupsScreen from "@/screens/GroupScreen";

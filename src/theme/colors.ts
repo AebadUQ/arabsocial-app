@@ -14,6 +14,7 @@ export const colors = {
   placeholder:'#191D21B2',
   background:'#F6F6F6',
   error:'#E84545',
+  errorLight:'#E639461A',
   success:'#1BAD7A',
   warning:'#FFEBCC',
   info:'#1BAD7A',
