@@ -91,6 +91,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-around',
     paddingHorizontal: 10,
+    paddingBottom:10,
+    
   },
   tabWrapper: {
     marginHorizontal: 6,
