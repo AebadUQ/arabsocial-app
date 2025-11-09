@@ -1,5 +1,10 @@
 // context/AuthContext.tsx
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   loginUser,
@@ -8,6 +13,9 @@ import {
   editUserProfile,
 } from "../api/auth";
 import { RegisterPayload, LoginPayload } from "../api/types";
+
+const TOKEN_KEY = "authToken";
+const USER_KEY = "authUser";
 
 // ✅ Type definition
 type AuthContextType = {
@@ -39,25 +47,58 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [loading, setLoading] = useState(true);
 
   // ------------------------------------------------------
-  // 🔹 Load token & profile when app starts
+  // 🔹 Load token & user when app starts
   // ------------------------------------------------------
   useEffect(() => {
-    const loadTokenAndUser = async () => {
+    const initAuth = async () => {
       try {
-        const savedToken = await AsyncStorage.getItem("authToken");
+        const savedToken = await AsyncStorage.getItem(TOKEN_KEY);
+        const savedUser = await AsyncStorage.getItem(USER_KEY);
+
         if (savedToken) {
           setToken(savedToken);
-          const profile = await getUserProfile(); // ✅ token auto attached via interceptor
-          setUser(profile);
+
+          // Show cached user instantly if available
+          if (savedUser) {
+            try {
+              const parsed = JSON.parse(savedUser);
+              setUser(parsed);
+            } catch {
+              setUser(null);
+            }
+          }
+
+          // Try to refresh profile from API (silent)
+          try {
+            const profile = await getUserProfile(); // assumes interceptor adds token
+            setUser(profile);
+            await AsyncStorage.setItem(USER_KEY, JSON.stringify(profile));
+          } catch (err: any) {
+            console.warn(
+              "Profile refresh failed, using cached user if any:",
+              err?.response?.data || err?.message
+            );
+            // If no cached user, force logout state
+            if (!savedUser) {
+              setUser(null);
+              setToken(null);
+              await AsyncStorage.removeItem(TOKEN_KEY);
+            }
+          }
+        } else {
+          setUser(null);
+          setToken(null);
         }
       } catch (err: any) {
-        console.warn("Auth load failed:", err?.response?.data || err.message);
+        console.warn("Auth init failed:", err?.message);
         setUser(null);
+        setToken(null);
       } finally {
         setLoading(false);
       }
     };
-    loadTokenAndUser();
+
+    initAuth();
   }, []);
 
   // ------------------------------------------------------
@@ -68,16 +109,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const response = await loginUser(data);
       const accessToken = response?.accessToken;
+
       if (!accessToken) throw new Error("No access token received");
 
-      await AsyncStorage.setItem("authToken", accessToken);
+      await AsyncStorage.setItem(TOKEN_KEY, accessToken);
       setToken(accessToken);
 
       const profile = await getUserProfile();
       setUser(profile);
+      await AsyncStorage.setItem(USER_KEY, JSON.stringify(profile));
     } catch (err) {
       console.error("Login failed:", err);
-      
+      // throw so UI can show error
       throw err;
     } finally {
       setLoading(false);
@@ -91,7 +134,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setLoading(true);
     try {
       await registerUser(data);
-      // Optionally auto-login after register
+      // Optionally: auto login here if API returns token
     } catch (err) {
       console.error("Register failed:", err);
       throw err;
@@ -108,7 +151,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const updatedUser = await editUserProfile(data);
       setUser(updatedUser);
-      console.log("Profile updated successfully:", updatedUser);
+      await AsyncStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
+      console.log("Profile updated successfully");
     } catch (err) {
       console.error("Profile update failed:", err);
       throw err;
@@ -123,11 +167,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const logout = async () => {
     setLoading(true);
     try {
-      await AsyncStorage.removeItem("authToken");
+      await AsyncStorage.removeItem(TOKEN_KEY);
+      await AsyncStorage.removeItem(USER_KEY);
       setToken(null);
       setUser(null);
     } catch (err) {
-      console.warn("Logout failed", err);
+      console.warn("Logout failed:", err);
     } finally {
       setLoading(false);
     }
@@ -137,14 +182,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   // 🔹 Render
   // ------------------------------------------------------
   if (loading) {
-    return (
-      <></> // or a custom splash/loading screen
-    );
+    // You can return a proper Splash / Loader here
+    return <></>;
   }
 
   return (
     <AuthContext.Provider
-      value={{ user, token, loading, login, register, logout, updateProfile }}
+      value={{
+        user,
+        token,
+        loading,
+        login,
+        register,
+        logout,
+        updateProfile,
+      }}
     >
       {children}
     </AuthContext.Provider>

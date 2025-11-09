@@ -62,3 +62,11 @@ export const likePost = async ({postId}:{postId:number | string})=>{
   return res.data?.data; 
 
 }
+export const deletePost = async ({
+  postId,
+}: {
+  postId: number | string;
+}) => {
+  const res = await api.delete(`/posts/${postId}`); // 👈 plural
+  return res.data?.data ?? res.data;
+};

@@ -15,12 +15,22 @@ import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@/theme/ThemeContext";
 import TopBar from "@/components/common/TopBar";
 import PostCard, { ApiPost } from "@/components/home/PostCard";
-import { getAllPost, getPostComments, createPost, likePost } from "@/api/post";
+import {
+  getAllPost,
+  getPostComments,
+  createPost,
+  likePost,
+  deletePost, // ✅ added
+} from "@/api/post";
 import ImagePickerField, {
   ImagePickerFieldHandle,
 } from "@/components/common/ImagePicker";
 import type { Asset } from "react-native-image-picker";
-import { ImageSquareIcon, PaperPlaneRightIcon, XCircle } from "phosphor-react-native";
+import {
+  ImageSquareIcon,
+  PaperPlaneRightIcon,
+  XCircle,
+} from "phosphor-react-native";
 import { useAuth } from "@/context/Authcontext";
 import CommentsSheet, {
   CommentsSheetHandle,
@@ -41,8 +51,9 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
   const [pickedImage, setPickedImage] = useState<Asset | null>(null);
   const [posting, setPosting] = useState(false);
 
-  // like in-flight guards per post
+  // like / delete in-flight guards per post
   const [likingMap, setLikingMap] = useState<Record<string, boolean>>({});
+  const [deletingMap, setDeletingMap] = useState<Record<string, boolean>>({});
 
   // feed loader
   const {
@@ -101,21 +112,33 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
       },
     };
 
+    // push temp post at top of first page
     queryClient.setQueryData(["posts"], (oldData: any) => {
       if (!oldData) {
         return {
           pageParams: [1],
-          pages: [{ data: [fakePost], meta: { page: 1, lastPage: 1, total: 1 } }],
+          pages: [
+            {
+              data: [fakePost],
+              meta: { page: 1, lastPage: 1, total: 1 },
+            },
+          ],
         };
       }
       const newPages = [...oldData.pages];
       if (!newPages[0]) {
-        newPages[0] = { data: [], meta: { page: 1, lastPage: 1, total: 0 } };
+        newPages[0] = {
+          data: [],
+          meta: { page: 1, lastPage: 1, total: 0 },
+        };
       }
       newPages[0] = {
         ...newPages[0],
         data: [fakePost, ...newPages[0].data],
-        meta: { ...newPages[0].meta, total: (newPages[0].meta?.total || 0) + 1 },
+        meta: {
+          ...newPages[0].meta,
+          total: (newPages[0].meta?.total || 0) + 1,
+        },
       };
       return { ...oldData, pages: newPages };
     });
@@ -126,6 +149,7 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
     try {
       setPosting(true);
       const created = await createPost({ content: text });
+
       if (created?.id) {
         queryClient.setQueryData(["posts"], (oldData: any) => {
           if (!oldData?.pages) return oldData;
@@ -143,19 +167,30 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
           if (!oldData?.pages) return oldData;
           const newPages = oldData.pages.map((pg: any) => ({
             ...pg,
-            data: pg.data.filter((p: ApiPost) => String(p.id) !== String(tempId)),
-            meta: { ...pg.meta, total: Math.max(0, (pg.meta?.total || 1) - 1) },
+            data: pg.data.filter(
+              (p: ApiPost) => String(p.id) !== String(tempId)
+            ),
+            meta: {
+              ...pg.meta,
+              total: Math.max(0, (pg.meta?.total || 1) - 1),
+            },
           }));
           return { ...oldData, pages: newPages };
         });
       }
     } catch {
+      // rollback
       queryClient.setQueryData(["posts"], (oldData: any) => {
         if (!oldData?.pages) return oldData;
         const newPages = oldData.pages.map((pg: any) => ({
           ...pg,
-          data: pg.data.filter((p: ApiPost) => String(p.id) !== String(tempId)),
-          meta: { ...pg.meta, total: Math.max(0, (pg.meta?.total || 1) - 1) },
+          data: pg.data.filter(
+            (p: ApiPost) => String(p.id) !== String(tempId)
+          ),
+          meta: {
+            ...pg.meta,
+            total: Math.max(0, (pg.meta?.total || 1) - 1),
+          },
         }));
         return { ...oldData, pages: newPages };
       });
@@ -172,6 +207,7 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
       setLikingMap((m) => ({ ...m, [key]: true }));
 
       let prevIsLiked = false;
+
       queryClient.setQueryData(["posts"], (oldData: any) => {
         if (!oldData?.pages) return oldData;
         const newPages = oldData.pages.map((pg: any) => ({
@@ -183,7 +219,10 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
             return {
               ...p,
               isLikedByMe: next,
-              likes_count: Math.max(0, p.likes_count + (next ? 1 : -1)),
+              likes_count: Math.max(
+                0,
+                p.likes_count + (next ? 1 : -1)
+              ),
             };
           }),
         }));
@@ -201,11 +240,19 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
             data: pg.data.map((p: ApiPost) => {
               if (String(p.id) !== key) return p;
               const desired = prevIsLiked;
-              const delta = desired === p.isLikedByMe ? 0 : (desired ? 1 : -1);
+              const delta =
+                desired === p.isLikedByMe
+                  ? 0
+                  : desired
+                  ? 1
+                  : -1;
               return {
                 ...p,
                 isLikedByMe: desired,
-                likes_count: Math.max(0, p.likes_count + delta),
+                likes_count: Math.max(
+                  0,
+                  p.likes_count + delta
+                ),
               };
             }),
           }));
@@ -218,14 +265,60 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
     [queryClient, likingMap]
   );
 
+  // delete post (from 3-dot menu)
+  const handleDeletePost = useCallback(
+    async (postId: number | string) => {
+      const key = String(postId);
+      if (deletingMap[key]) return;
+
+      setDeletingMap((m) => ({ ...m, [key]: true }));
+
+      let snapshot: any = null;
+
+      // optimistic remove
+      queryClient.setQueryData(["posts"], (oldData: any) => {
+        snapshot = oldData;
+        if (!oldData?.pages) return oldData;
+
+        const newPages = oldData.pages.map((pg: any) => ({
+          ...pg,
+          data: pg.data.filter(
+            (p: ApiPost) => String(p.id) !== key
+          ),
+        }));
+
+        return { ...oldData, pages: newPages };
+      });
+
+      try {
+        await deletePost({ postId });
+      } catch (e) {
+        // rollback if fail
+        console.log("e",e)
+        if (snapshot) {
+          queryClient.setQueryData(["posts"], snapshot);
+        }
+      } finally {
+        setDeletingMap((m) => ({ ...m, [key]: false }));
+      }
+    },
+    [queryClient, deletingMap]
+  );
+
   const onPickImage = () => pickerRef.current?.open();
   const removePicked = () => setPickedImage(null);
 
-  const canSend = (newPost.trim().length > 0 || !!pickedImage?.uri) && !posting;
+  const canSend =
+    (newPost.trim().length > 0 || !!pickedImage?.uri) && !posting;
 
-  const keyExtractor = useCallback((item: ApiPost) => String(item.id), []);
+  const keyExtractor = useCallback(
+    (item: ApiPost) => String(item.id),
+    []
+  );
+
   const openComments = useCallback(
-    (post: ApiPost) => commentsRef.current?.present({ id: post.id }),
+    (post: ApiPost) =>
+      commentsRef.current?.present({ id: post.id }),
     []
   );
 
@@ -234,11 +327,12 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
       <PostCard
         post={item}
         currentUserId={user?.id}
-        onOpenComments={() => openComments(item)}
+        onOpenComments={openComments}
         onToggleLike={() => handleToggleLike(item.id)}
+        onDeletePost={() => handleDeletePost(item.id)} // ✅ pass down
       />
     ),
-    [user?.id, openComments, handleToggleLike]
+    [user?.id, openComments, handleToggleLike, handleDeletePost]
   );
 
   const onEndReached = () => {
@@ -251,14 +345,25 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
     limit: number
   ) => {
     const res = await getPostComments({ postId, page, limit });
-    return { data: res?.data ?? [], total: res?.meta?.total ?? res?.data?.length ?? 0 };
+    return {
+      data: res?.data ?? [],
+      total:
+        res?.meta?.total ??
+        res?.data?.length ??
+        0,
+    };
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: theme.colors.background,
+      }}
+    >
       <TopBar onMenuPress={() => navigation.openDrawer()} />
 
-      {/* composer (column layout so preview stays inside box) */}
+      {/* composer */}
       <View style={styles.inputWrap}>
         <TextInput
           placeholder="Ask for help or give suggestions"
@@ -272,29 +377,38 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
           editable={!posting}
         />
 
-        {/* preview stays INSIDE the box (no absolute) */}
         {pickedImage?.uri && (
           <View style={styles.previewContainer}>
-            <Image source={{ uri: pickedImage.uri }} style={styles.previewImage} />
+            <Image
+              source={{ uri: pickedImage.uri }}
+              style={styles.previewImage}
+            />
             <TouchableOpacity
               onPress={removePicked}
               hitSlop={10}
               style={styles.removeBadge}
               disabled={posting}
             >
-              <XCircle size={18} weight="fill" color="#fff" />
+              <XCircle
+                size={18}
+                weight="fill"
+                color="#fff"
+              />
             </TouchableOpacity>
           </View>
         )}
 
-        {/* actions anchored inside the box (absolute to inputWrap but still clipped) */}
         <TouchableOpacity
           onPress={onPickImage}
           style={styles.imageIcon}
           hitSlop={10}
           disabled={posting}
         >
-          <ImageSquareIcon size={22} weight="regular" color="#9AA0A6" />
+          <ImageSquareIcon
+            size={22}
+            weight="regular"
+            color="#9AA0A6"
+          />
         </TouchableOpacity>
 
         {canSend && (
@@ -304,7 +418,11 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
             hitSlop={10}
             disabled={posting}
           >
-            <PaperPlaneRightIcon size={22} weight="fill" color={theme.colors.primary} />
+            <PaperPlaneRightIcon
+              size={22}
+              weight="fill"
+              color={theme.colors.primary}
+            />
           </TouchableOpacity>
         )}
       </View>
@@ -321,19 +439,30 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
       {/* feed */}
       {isLoading ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={{ marginTop: 10 }}>Loading posts...</Text>
+          <ActivityIndicator
+            size="large"
+            color={theme.colors.primary}
+          />
+          <Text style={{ marginTop: 10 }}>
+            Loading posts...
+          </Text>
         </View>
       ) : isError ? (
         <View style={styles.center}>
           <Text style={{ color: "red" }}>
-            {(error as any)?.message || "Failed to load posts."}
+            {(error as any)?.message ||
+              "Failed to load posts."}
           </Text>
           <TouchableOpacity
             // onPress={refetch}
-            style={[styles.retryBtn, { backgroundColor: theme.colors.primary }]}
+            style={[
+              styles.retryBtn,
+              { backgroundColor: theme.colors.primary },
+            ]}
           >
-            <Text style={{ color: "#fff" }}>Retry</Text>
+            <Text style={{ color: "#fff" }}>
+              Retry
+            </Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -347,12 +476,20 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
           removeClippedSubviews={false}
           onEndReached={onEndReached}
           onEndReachedThreshold={0.4}
-          refreshing={isFetching && !isFetchingNextPage}
+          refreshing={
+            isFetching && !isFetchingNextPage
+          }
           onRefresh={refetch}
           ListFooterComponent={
             isFetchingNextPage ? (
-              <View style={{ paddingVertical: 20 }}>
-                <ActivityIndicator color={theme.colors.primary} />
+              <View
+                style={{
+                  paddingVertical: 20,
+                }}
+              >
+                <ActivityIndicator
+                  color={theme.colors.primary}
+                />
               </View>
             ) : null
           }
@@ -377,7 +514,7 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   inputWrap: {
     position: "relative",
-    flexDirection: "column", // 🔁 column so children (input + preview) stay inside
+    flexDirection: "column",
     alignItems: "stretch",
     paddingHorizontal: 12,
     paddingVertical: 12,
@@ -387,17 +524,15 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: "#EEE",
-    overflow: "hidden", // ensures absolutely placed icons don't visually spill
+    overflow: "hidden",
   },
   input: {
     minHeight: 48,
     fontSize: 14,
-    paddingRight: 56, // space for send icon
+    paddingRight: 56,
     paddingTop: 6,
     paddingBottom: 6,
   },
-
-  // preview INSIDE box
   previewContainer: {
     marginTop: 10,
     borderRadius: 10,
@@ -408,7 +543,7 @@ const styles = StyleSheet.create({
   },
   previewImage: {
     width: "100%",
-    height: 180, // fixed height (can adjust)
+    height: 180,
     resizeMode: "cover",
   },
   removeBadge: {
@@ -419,13 +554,27 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 2,
   },
-
-  // icons sit inside the same box (top-right / bottom-right)
-  imageIcon: { position: "absolute", top: 10, right: 12 },
-  sendIcon: { position: "absolute", bottom: 10, right: 12 },
-
-  center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  retryBtn: { marginTop: 10, paddingHorizontal: 20, paddingVertical: 8, borderRadius: 6 },
+  imageIcon: {
+    position: "absolute",
+    top: 10,
+    right: 12,
+  },
+  sendIcon: {
+    position: "absolute",
+    bottom: 10,
+    right: 12,
+  },
+  center: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  retryBtn: {
+    marginTop: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
 });
 
 export default HomeScreen;
