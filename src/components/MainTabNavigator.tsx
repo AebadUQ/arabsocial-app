@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import CustomBottomSheet from '../components/CustomBottomSheet';
 
 import HomeScreen from '../screens/HomeScreen';
-import EventScreen from '../screens/EventScreen';
+import EventScreen from '../screens/events/EventScreen';
 import MembersScreen from '../screens/members/MembersScreen'
 import BusinessScreen from '../screens/business/BusinessScreen';
 import GroupScreen from '../screens/GroupScreen'

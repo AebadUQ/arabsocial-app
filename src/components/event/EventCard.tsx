@@ -1,9 +1,9 @@
 import React, { memo } from "react";
 import { Text } from "@/components";
 import {
-  CalendarBlank as CalendarBlankIcon,
   MapPin as MapPinIcon,
   ShareFat as ShareFatIcon,
+  ShareNetworkIcon,
 } from "phosphor-react-native";
 import { useTheme } from "@/theme/ThemeContext";
 import { formatEventDate } from "@/utils";
@@ -13,10 +13,11 @@ import {
   StyleSheet,
   TouchableOpacity,
   ImageSourcePropType,
+  Share,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { theme } from "@/theme/theme";
 
-// keep same types
 export type EventType = "in_person" | "online";
 
 export type Event = {
@@ -28,7 +29,7 @@ export type Event = {
   city?: string;
   state?: string;
   country?: string;
-  flyer?: ImageSourcePropType;
+  flyer?: string | ImageSourcePropType;
   eventType: EventType;
   event_date?: any;
   totalSpots?: number;
@@ -36,7 +37,7 @@ export type Event = {
   ticketPrice?: number | string;
   description?: string;
   isFeatured?: boolean;
-  promoCode?: string;
+  promo_code?: string;
 };
 
 type Props = {
@@ -45,13 +46,28 @@ type Props = {
 
 const EventCard: React.FC<Props> = ({ event }) => {
   const { theme } = useTheme();
-  const navigation = useNavigation<any>(); // if you have typed RootStackParamList, replace `any`
+  const navigation = useNavigation<any>();
 
   const handlePress = () => {
-    console.log(event.id)
-    // go to detail screen and pass id
     navigation.navigate("EventDetail", { eventId: event.id });
   };
+
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        message: event.title || "Check out this event",
+      });
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  const imageSource =
+    event?.flyer && typeof event.flyer === "string"
+      ? { uri: event.flyer }
+      : event?.flyer
+      ? event.flyer
+      : require("@/assets/images/event1.png");
 
   return (
     <TouchableOpacity
@@ -61,12 +77,7 @@ const EventCard: React.FC<Props> = ({ event }) => {
     >
       {/* Top image/banner */}
       <View style={styles.imageWrap}>
-        {/* TODO: if API gives you URL, change to { uri: event.flyer } */}
-        <Image
-          source={require("@/assets/images/event1.png")}
-          style={styles.image}
-          resizeMode="cover"
-        />
+        <Image source={imageSource} style={styles.image} resizeMode="cover" />
 
         {event.isFeatured ? (
           <View
@@ -77,53 +88,62 @@ const EventCard: React.FC<Props> = ({ event }) => {
             </Text>
           </View>
         ) : null}
+
+        {/* Share icon bottom-right on image */}
+        <TouchableOpacity
+          style={styles.shareButton}
+          activeOpacity={0.9}
+          onPress={(e) => {
+            e.stopPropagation(); // card navigation na trigger ho
+            handleShare();
+          }}
+        >
+          <View style={styles.shareCircle}>
+            <ShareNetworkIcon size={18} color="#111827" weight="bold" />
+          </View>
+        </TouchableOpacity>
       </View>
 
       {/* Bottom text section */}
       <View style={styles.section}>
-        <View style={styles.headerRow}>
-          <Text
-            variant="body2"
-            style={styles.title}
-            numberOfLines={2}
-            color={theme.colors.text}
-          >
-            {event.title}
-          </Text>
-
-          <View style={styles.iconCircle}>
-            <ShareFatIcon size={14} color={theme.colors.primary} />
-          </View>
-        </View>
+        <Text variant="body2" numberOfLines={2} color={theme.colors.text}>
+          {event.title}
+        </Text>
 
         <View style={styles.metaRow}>
           <View style={styles.metaItem}>
-            <CalendarBlankIcon size={16} color={theme.colors.primary} />
-            <Text variant="overline" style={styles.metaText}>
+            <Text
+              variant="overline"
+              style={styles.metaText}
+              color={theme.colors.textLight}
+            >
               {formatEventDate(event.event_date)}
             </Text>
           </View>
 
           {event.city ? (
             <View style={styles.metaItem}>
-              <MapPinIcon size={16} color={theme.colors.primary} />
-              <Text variant="overline" style={styles.metaText}>
+              <MapPinIcon size={16} color={theme.colors.text} />
+              <Text
+                variant="overline"
+                style={styles.metaText}
+                color={theme.colors.textLight}
+              >
                 {event.city}
               </Text>
             </View>
           ) : null}
         </View>
 
-        {/* Promo chip if promoCode exists */}
-        {event.promoCode ? (
+        {event.promo_code ? (
           <View
             style={[
               styles.promoBtn,
-              { backgroundColor: theme.colors.primary },
+              { backgroundColor: theme.colors.primaryShade },
             ]}
           >
             <Text variant="overline" style={styles.promoText}>
-              Promocode: {event.promoCode}
+              Promocode: {event.promo_code}
             </Text>
           </View>
         ) : null}
@@ -136,51 +156,55 @@ export default memo(EventCard);
 
 const styles = StyleSheet.create({
   card: {
-    padding: 16,
     borderRadius: 12,
-    elevation: 3,
-    marginBottom: 24,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.12,
-    shadowRadius: 3,
-    borderWidth: 0.5,
-    borderColor: "#1BAD7A1A",
+    marginBottom: 12,
+    borderWidth: 0.25,
+    borderColor: theme.colors.primary,
   },
   imageWrap: {
     position: "relative",
     marginBottom: 16,
     borderRadius: 12,
-    overflow: "hidden", // makes image corners clipped
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    overflow: "hidden",
   },
   image: {
-    height: 160,
+    height: 180,
     width: "100%",
   },
   badge: {
     position: "absolute",
     top: 8,
     right: 8,
-    paddingHorizontal: 12,
+    paddingHorizontal: 18,
     paddingVertical: 6,
     borderRadius: 90,
   },
   badgeText: { color: "#fff" },
-  section: {
-    flexDirection: "column",
+  shareButton: {
+    position: "absolute",
+    bottom: 12,
+    right: 12,
   },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  title: { fontWeight: "bold", flex: 1, paddingRight: 8 },
-  iconCircle: {
-    width: 24,
-    height: 24,
-    backgroundColor: "#1BAD7A1A",
-    borderRadius: 12,
+  shareCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
+    // light shadow for iOS + elevation for Android
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  section: {
+    flexDirection: "column",
+    paddingHorizontal: 12,
+    paddingBottom: 20,
   },
   metaRow: {
     flexDirection: "row",
@@ -201,5 +225,5 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     marginTop: 16,
   },
-  promoText: { color: "#fff" },
+  promoText: { color: theme.colors.primary },
 });

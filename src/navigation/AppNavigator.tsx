@@ -19,15 +19,15 @@ import LoginScreen from "@/screens/LoginScreen";
 import RegisterScreen from "@/screens/RegisterScreen";
 
 import HomeScreen from "@/screens/HomeScreen";
-import EventScreen from "@/screens/EventScreen";
+import EventScreen from "@/screens/events/EventScreen";
 import MembersScreen from "@/screens/members/MembersScreen";
 import BusinessScreen from "@/screens/business/BusinessScreen";
 import BusinessDetailScreen from "@/screens/business/BusinessDetail";
 import GroupsScreen from "@/screens/GroupScreen";
 import SettingsScreen from "@/screens/SettingsScreen";
 import NotificationsScreen from "@/screens/NotificationScreen";
-import EventDetailScreen from "@/screens/EventDetail";
-import AddEventScreen from "@/screens/AddEvent";
+import EventDetailScreen from "@/screens/events/EventDetail";
+import AddEventScreen from "@/screens/events/AddEvent";
 import GroupDetailScreen from "@/screens/GroupDetailScreen";
 import ProfileScreen from "@/screens/profile/ProfileScreen";
 import ProfileEditScreen from "@/screens/profile/ProfileEditScreen";

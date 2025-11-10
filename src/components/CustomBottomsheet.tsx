@@ -9,7 +9,7 @@ const tabs = [
   { name: 'Events', label: 'Events', icon: CalendarBlankIcon },
   { name: 'Members', label: 'Members', icon: UsersIcon },
   { name: 'Business', label: 'Business', icon: BuildingIcon },
-  { name: 'Chat', label: 'Chat', icon: ChatIcon },
+  // { name: 'Chat', label: 'Chat', icon: ChatIcon },
 ];
 
 const CustomBottomSheet = ({ state, descriptors, navigation }: any) => {

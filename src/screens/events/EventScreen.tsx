@@ -219,7 +219,7 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
       )}
 
       {/* Bottom CTA */}
-      <View pointerEvents="box-none" style={[styles.ctaWrap]}>
+      {/* <View pointerEvents="box-none" style={[styles.ctaWrap]}>
         <TouchableOpacity
           activeOpacity={0.9}
           onPress={() => navigation.navigate("AddEvent")}
@@ -234,8 +234,28 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
             <Text style={{ color: "#fff", fontWeight: "700" }}>Promote Event</Text>
           </LinearGradient>
         </TouchableOpacity>
-      </View>
-
+      </View> */}
+ <TouchableOpacity
+        activeOpacity={0.9}
+        style={[
+          styles.promoteButtonContainer,
+        ]}
+        onPress={() => navigation.navigate("AddEvent" as never)} // change route if needed
+      >
+        <LinearGradient
+          colors={[theme.colors.primary, "#0f8f5f"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.promoteButtonGradient}
+        >
+          <Text
+            variant="body1"
+            style={styles.promoteButtonText}
+          >
+            Promote Event
+          </Text>
+        </LinearGradient>
+      </TouchableOpacity>
       {/* State / Country Filter Sheet */}
       <StateFilterSheet
         visible={filterOpen}
@@ -306,6 +326,24 @@ const styles = StyleSheet.create({
   ctaWrap: { position: "absolute", width: "100%", bottom: 0, alignItems: "center" },
   ctaShadow: { width: "100%", elevation: 6 },
   ctaBtn: { height: 56, alignItems: "center", justifyContent: "center" },
+  promoteButtonContainer: {
+    position: "absolute",
+    left: 0,
+    bottom:0,
+    right: 0,
+  },
+  promoteButtonGradient: {
+    height: 54,
+    borderRadius: 26,
+    borderBottomEndRadius:0,
+    borderBottomStartRadius:0,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  promoteButtonText: {
+    color: "#fff",
+    fontWeight: "600",
+  },
 });
 
 export default HomeScreen;
