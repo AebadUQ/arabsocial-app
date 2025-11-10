@@ -110,7 +110,9 @@ export default function CreateJobScreen() {
       businessId: typeof businessId === "string" ? Number(businessId) : businessId,
       title: form.title.trim(),
       job_type: form.job_type,
-      location: `${form.city}, ${form.country}`,
+      country:form.country,
+      city:form.city,
+    //   location: `${form.city}, ${form.country}`,
       description: form.description.trim(),
       application_link: form.application_link.trim(),
     };

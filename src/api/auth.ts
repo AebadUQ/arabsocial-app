@@ -8,13 +8,13 @@ export const registerUser = async (data: RegisterPayload) => {
 };
 export const loginUser = async (data: LoginPayload) => {
   const response = await api.post('/users/login', data);
-
-  const token = response.data?.accessToken;
+console.log("asss",response.data.data)
+  const token = response.data?.data?.accessToken;
   if (token) {
     await AsyncStorage.setItem('authToken', token); // ✅ Save token
   }
 
-  return response.data;
+  return response.data.data;
 };
 export const getUserProfile = async () => {
   const response = await api.get('/users/profile');

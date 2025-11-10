@@ -8,11 +8,15 @@ import { AuthProvider } from '@/context/Authcontext';  // adjust path
 import AppNavigator from './src/navigation/AppNavigator';  // adjust path  
 import { StyleSheet } from 'react-native';
 import AppWrapper from '@/components/AuthWrapper';
+import { PaperProvider } from 'react-native-paper';
+import CustomSnackbar from '@/components/common/CustomSnackbar';
 
 const queryClient = new QueryClient();
 
 const App: React.FC = () => {  
   return (  
+    <PaperProvider>
+
     <GestureHandlerRootView style={styles.container}>  
       <QueryClientProvider client={queryClient}>  
         <BottomSheetModalProvider>  
@@ -26,6 +30,9 @@ const App: React.FC = () => {
         </BottomSheetModalProvider>  
       </QueryClientProvider>  
     </GestureHandlerRootView>  
+    <CustomSnackbar/>
+    </PaperProvider>
+
   );  
 };
 
