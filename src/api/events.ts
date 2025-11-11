@@ -21,7 +21,25 @@ console.log("queryParams",queryParams)
   const response = await api.get(`/events/approved-events?${queryParams}`);
   return response.data;
 };
+export const getAllMyEvents= async (params: {
+  page?: number;
+  limit?: number;
+  search?: string;
+} = {}) => {
+  const { page = 1, limit = 10, search } = params;
 
+  const queryParams = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+    ...(search ? { search } : {}),
+  }).toString();
+
+  console.log("queryParams", queryParams);
+  const response = await api.get(`/events/my-events?${queryParams}`);
+  console.log("responseresponseresponse",response.data)
+
+  return response.data;
+};
 // ✅ Create a new event
 export const createEvent = async (data: any) => {
   const response = await api.post('/events/create-event', data);
