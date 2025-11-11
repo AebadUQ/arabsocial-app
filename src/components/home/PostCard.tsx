@@ -13,6 +13,7 @@ import {
   Share,
   NativeSyntheticEvent,
   TextLayoutEventData,
+  Modal,
 } from "react-native";
 import { useTheme } from "@/theme/ThemeContext";
 import { Text } from "@/components";
@@ -49,7 +50,7 @@ type Props = {
   currentUserId?: number | string | null;
   onOpenComments?: (post: ApiPost) => void;
   onToggleLike?: () => void;
-  onDeletePost?: (postId: number | string) => void; // ✅ new
+  onDeletePost?: (postId: number | string) => void;
 };
 
 const AVATAR = 40;
@@ -85,7 +86,6 @@ const UserAvatar = ({
   );
 };
 
-// helper: convert email -> @handle
 const getEmailHandle = (email?: string | null): string | null => {
   if (!email) return null;
   const [local] = email.split("@");
@@ -104,10 +104,7 @@ const PostCard: React.FC<Props> = ({
 }) => {
   const { theme } = useTheme();
 
-  const [liked, setLiked] = useState(post.isLikedByMe);
-  const [likeCount, setLikeCount] = useState(post.likes_count);
-
-  // text toggle: See more / See less
+  // see-more/less state
   const [measured, setMeasured] = useState(false);
   const [showSeeMore, setShowSeeMore] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -115,30 +112,32 @@ const PostCard: React.FC<Props> = ({
   // 3-dot menu
   const [menuVisible, setMenuVisible] = useState(false);
 
+  // image preview
+  const [imagePreviewVisible, setImagePreviewVisible] = useState(false);
+
   const emailHandle = useMemo(
     () => getEmailHandle(post.author?.email),
     [post.author?.email]
   );
 
+  // reset UI toggles when post changes
   useEffect(() => {
-    setLiked(post.isLikedByMe);
-    setLikeCount(post.likes_count);
     setMeasured(false);
     setShowSeeMore(false);
     setIsExpanded(false);
     setMenuVisible(false);
-  }, [post.isLikedByMe, post.likes_count, post.content, post.id]);
+    setImagePreviewVisible(false);
+  }, [post.id, post.content, post.image_url]);
+
+  const liked = post.isLikedByMe;
+  const likeCount = post.likes_count;
 
   const handleLikePress = () => {
-    setLiked((prev) => !prev);
-    setLikeCount((c) => Math.max(0, c + (liked ? -1 : 1)));
     onToggleLike?.();
   };
 
   const handleShare = () => {
-    const msg = `${post.author?.name || "User"}: ${
-      post.content || ""
-    }`;
+    const msg = `${post.author?.name || "User"}: ${post.content || ""}`;
     Share.share({ message: msg }).catch(() => {});
   };
 
@@ -150,7 +149,7 @@ const PostCard: React.FC<Props> = ({
     (e: NativeSyntheticEvent<TextLayoutEventData>) => {
       if (measured) return;
       const { lines } = e.nativeEvent;
-      if (lines.length > 2) setShowSeeMore(true);
+      if (lines.length > 4) setShowSeeMore(true);
       setMeasured(true);
     },
     [measured]
@@ -163,8 +162,16 @@ const PostCard: React.FC<Props> = ({
 
   const handleDeletePress = () => {
     setMenuVisible(false);
-    console.log("ssss",post.id)
     onDeletePost?.(post.id);
+  };
+
+  const openImagePreview = () => {
+    if (!post.image_url) return;
+    setImagePreviewVisible(true);
+  };
+
+  const closeImagePreview = () => {
+    setImagePreviewVisible(false);
   };
 
   return (
@@ -267,12 +274,10 @@ const PostCard: React.FC<Props> = ({
             variant="body2"
             style={styles.contentText}
             numberOfLines={
-              showSeeMore && !isExpanded ? 2 : undefined
+              showSeeMore && !isExpanded ? 4 : undefined
             }
             ellipsizeMode={
-              showSeeMore && !isExpanded
-                ? "tail"
-                : "clip"
+              showSeeMore && !isExpanded ? "tail" : "clip"
             }
           >
             {post.content}
@@ -316,12 +321,48 @@ const PostCard: React.FC<Props> = ({
         </View>
       )}
 
+      {/* Image + Preview */}
       {!!post.image_url && (
-        <Image
-          source={{ uri: post.image_url }}
-          style={styles.image}
-          resizeMode="cover"
-        />
+        <>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={openImagePreview}
+          >
+            <Image
+              source={{ uri: post.image_url }}
+              style={styles.image}
+              resizeMode="cover"
+            />
+          </TouchableOpacity>
+
+          <Modal
+            visible={imagePreviewVisible}
+            transparent
+            animationType="fade"
+            onRequestClose={closeImagePreview}
+          >
+            <View style={styles.previewOverlay}>
+              {/* tap anywhere to close */}
+              <TouchableOpacity
+                style={styles.previewBackdrop}
+                activeOpacity={1}
+                onPress={closeImagePreview}
+              />
+              <Image
+                source={{ uri: post.image_url }}
+                style={styles.previewImage}
+                resizeMode="contain"
+              />
+              <TouchableOpacity
+                onPress={closeImagePreview}
+                style={styles.previewCloseButton}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.previewCloseText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </Modal>
+        </>
       )}
 
       {/* Actions */}
@@ -335,9 +376,7 @@ const PostCard: React.FC<Props> = ({
             size={18}
             weight={liked ? "fill" : "regular"}
             color={
-              liked
-                ? theme.colors.primary
-                : "#5F6367"
+              liked ? theme.colors.primary : "#5F6367"
             }
           />
           <Text
@@ -350,9 +389,7 @@ const PostCard: React.FC<Props> = ({
             ]}
           >
             Like
-            {likeCount > 0
-              ? `· ${likeCount}`
-              : ""}
+            {likeCount > 0 ? `· ${likeCount}` : ""}
           </Text>
         </TouchableOpacity>
 
@@ -378,10 +415,7 @@ const PostCard: React.FC<Props> = ({
           onPress={handleShare}
           activeOpacity={0.7}
         >
-          <ShareNetwork
-            size={18}
-            color="#5F6367"
-          />
+          <ShareNetwork size={18} color="#5F6367" />
           <Text
             variant="caption"
             style={styles.actionLabel}
@@ -394,7 +428,6 @@ const PostCard: React.FC<Props> = ({
   );
 };
 
-/* ------------------------- Styles ------------------------- */
 const styles = StyleSheet.create({
   card: {
     marginHorizontal: 16,
@@ -475,7 +508,6 @@ const styles = StyleSheet.create({
   actionLabel: {
     color: "#5F6367",
   },
-  // menu
   menuContainer: {
     position: "absolute",
     top: 22,
@@ -502,6 +534,33 @@ const styles = StyleSheet.create({
   },
   menuItemText: {
     color: "#DC2626",
+  },
+  // preview styles
+  previewOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.9)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  previewBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  previewImage: {
+    width: "100%",
+    height: "80%",
+  },
+  previewCloseButton: {
+    position: "absolute",
+    top: 40,
+    right: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: "rgba(0,0,0,0.7)",
+  },
+  previewCloseText: {
+    color: "#FFFFFF",
+    fontSize: 12,
   },
 });
 

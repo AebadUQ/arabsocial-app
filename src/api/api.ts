@@ -4,15 +4,15 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 
 const api = axios.create({
-  // baseURL: "http://192.168.18.29:3000",
-  baseURL: "https://arabsocials.duckdns.org",
+  baseURL: "http://192.168.18.29:3000",
+  // baseURL: "https://arabsocials.duckdns.org",
   timeout: 10000,
 });
 
 export const setupInterceptors = (logout: () => void) => {
   /* 🔹 REQUEST INTERCEPTOR */
   api.interceptors.request.use(
-    async (config) => {
+    async (config: any) => {
       const token = await AsyncStorage.getItem("authToken");
       if (token) {
         config.headers = config.headers || {};
@@ -20,20 +20,31 @@ export const setupInterceptors = (logout: () => void) => {
       }
       return config;
     },
-    (error) => {
-      return Promise.reject(error);
-    }
+    (error) => Promise.reject(error)
   );
 
   /* 🔹 RESPONSE INTERCEPTOR */
   api.interceptors.response.use(
     (response) => {
-      // ✅ Generic success toast for write operations
       const method = response.config?.method?.toLowerCase();
+      const status = response.status;
 
-      if (["post", "put", "patch", "delete"].includes(method || "")) {
-        console.log("reee",response.data.message)
-        // You can customize per-endpoint if needed using response.config.url
+      // ✅ write methods only
+      const isWrite =
+        method && ["post", "put", "patch", "delete"].includes(method);
+
+      // ❌ 200 pe success snackbar mat dikhana
+      // sirf tab dikhaye jab:
+      // - write request ho
+      // - status 2xx ho
+      // - status !== 200 ho (e.g. 201, 204)
+      if (
+        isWrite &&
+        status >= 200 &&
+        status < 300 &&
+        status !== 200 &&
+        response.data?.message
+      ) {
         showSnack(response.data.message, "success");
       }
 

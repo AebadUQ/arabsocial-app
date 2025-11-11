@@ -20,7 +20,7 @@ import {
   getPostComments,
   createPost,
   likePost,
-  deletePost, // ✅ added
+  deletePost,
 } from "@/api/post";
 import ImagePickerField, {
   ImagePickerFieldHandle,
@@ -42,11 +42,10 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
   const { theme } = useTheme();
   const queryClient = useQueryClient();
   const pickerRef = useRef<ImagePickerFieldHandle>(null);
+  const commentsRef = useRef<CommentsSheetHandle>(null);
   const { user } = useAuth();
 
-  const commentsRef = useRef<CommentsSheetHandle>(null);
-
-  // composer
+  // composer state
   const [newPost, setNewPost] = useState("");
   const [pickedImage, setPickedImage] = useState<Asset | null>(null);
   const [posting, setPosting] = useState(false);
@@ -84,7 +83,13 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
     return data.pages.flatMap((page) => page.data) as ApiPost[];
   }, [data]);
 
-  // optimistic add post
+  // -------- Composer helpers --------
+  const onPickImage = () => pickerRef.current?.open();
+  const removePicked = () => setPickedImage(null);
+
+  const canSend =
+    (newPost.trim().length > 0 || !!pickedImage?.uri) && !posting;
+
   const handleAddPost = async () => {
     if (posting) return;
     const text = newPost.trim();
@@ -112,7 +117,7 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
       },
     };
 
-    // push temp post at top of first page
+    // optimistic prepend
     queryClient.setQueryData(["posts"], (oldData: any) => {
       if (!oldData) {
         return {
@@ -199,17 +204,26 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
     }
   };
 
-  // optimistic like
+  // -------- Like / Delete / Comments --------
   const handleToggleLike = useCallback(
     async (postId: number | string) => {
       const key = String(postId);
-      if (likingMap[key]) return;
-      setLikingMap((m) => ({ ...m, [key]: true }));
+
+      let alreadyInFlight = false;
+      setLikingMap((prev) => {
+        if (prev[key]) {
+          alreadyInFlight = true;
+          return prev;
+        }
+        return { ...prev, [key]: true };
+      });
+      if (alreadyInFlight) return;
 
       let prevIsLiked = false;
 
       queryClient.setQueryData(["posts"], (oldData: any) => {
         if (!oldData?.pages) return oldData;
+
         const newPages = oldData.pages.map((pg: any) => ({
           ...pg,
           data: pg.data.map((p: ApiPost) => {
@@ -226,6 +240,7 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
             };
           }),
         }));
+
         return { ...oldData, pages: newPages };
       });
 
@@ -235,37 +250,35 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
         // rollback
         queryClient.setQueryData(["posts"], (oldData: any) => {
           if (!oldData?.pages) return oldData;
+
           const newPages = oldData.pages.map((pg: any) => ({
             ...pg,
             data: pg.data.map((p: ApiPost) => {
               if (String(p.id) !== key) return p;
-              const desired = prevIsLiked;
-              const delta =
-                desired === p.isLikedByMe
-                  ? 0
-                  : desired
-                  ? 1
-                  : -1;
               return {
                 ...p,
-                isLikedByMe: desired,
+                isLikedByMe: prevIsLiked,
                 likes_count: Math.max(
                   0,
-                  p.likes_count + delta
+                  p.likes_count + (prevIsLiked ? 1 : -1)
                 ),
               };
             }),
           }));
+
           return { ...oldData, pages: newPages };
         });
       } finally {
-        setLikingMap((m) => ({ ...m, [key]: false }));
+        setLikingMap((prev) => {
+          const clone = { ...prev };
+          delete clone[key];
+          return clone;
+        });
       }
     },
-    [queryClient, likingMap]
+    [queryClient]
   );
 
-  // delete post (from 3-dot menu)
   const handleDeletePost = useCallback(
     async (postId: number | string) => {
       const key = String(postId);
@@ -275,7 +288,6 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
 
       let snapshot: any = null;
 
-      // optimistic remove
       queryClient.setQueryData(["posts"], (oldData: any) => {
         snapshot = oldData;
         if (!oldData?.pages) return oldData;
@@ -293,32 +305,29 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
       try {
         await deletePost({ postId });
       } catch (e) {
-        // rollback if fail
-        console.log("e",e)
+        console.log("delete error", e);
         if (snapshot) {
           queryClient.setQueryData(["posts"], snapshot);
         }
       } finally {
-        setDeletingMap((m) => ({ ...m, [key]: false }));
+        setDeletingMap((m) => {
+          const clone = { ...m };
+          delete clone[key];
+          return clone;
+        });
       }
     },
     [queryClient, deletingMap]
   );
 
-  const onPickImage = () => pickerRef.current?.open();
-  const removePicked = () => setPickedImage(null);
-
-  const canSend =
-    (newPost.trim().length > 0 || !!pickedImage?.uri) && !posting;
-
-  const keyExtractor = useCallback(
-    (item: ApiPost) => String(item.id),
-    []
-  );
-
   const openComments = useCallback(
     (post: ApiPost) =>
       commentsRef.current?.present({ id: post.id }),
+    []
+  );
+
+  const keyExtractor = useCallback(
+    (item: ApiPost) => String(item.id),
     []
   );
 
@@ -329,7 +338,7 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
         currentUserId={user?.id}
         onOpenComments={openComments}
         onToggleLike={() => handleToggleLike(item.id)}
-        onDeletePost={() => handleDeletePost(item.id)} // ✅ pass down
+        onDeletePost={() => handleDeletePost(item.id)}
       />
     ),
     [user?.id, openComments, handleToggleLike, handleDeletePost]
@@ -347,23 +356,13 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
     const res = await getPostComments({ postId, page, limit });
     return {
       data: res?.data ?? [],
-      total:
-        res?.meta?.total ??
-        res?.data?.length ??
-        0,
+      total: res?.meta?.total ?? res?.data?.length ?? 0,
     };
   };
 
-  return (
-    <SafeAreaView
-      style={{
-        flex: 1,
-        backgroundColor: theme.colors.background,
-      }}
-    >
-      <TopBar onMenuPress={() => navigation.openDrawer()} />
-
-      {/* composer */}
+  // -------- Composer UI (now OUTSIDE FlatList header) --------
+  const renderComposer = () => (
+    <>
       <View style={styles.inputWrap}>
         <TextInput
           placeholder="Ask for help or give suggestions"
@@ -389,11 +388,7 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
               style={styles.removeBadge}
               disabled={posting}
             >
-              <XCircle
-                size={18}
-                weight="fill"
-                color="#fff"
-              />
+              <XCircle size={18} weight="fill" color="#fff" />
             </TouchableOpacity>
           </View>
         )}
@@ -435,71 +430,80 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
         style={{ height: 0, opacity: 0 }}
         showRemove={false}
       />
+    </>
+  );
 
-      {/* feed */}
-      {isLoading ? (
-        <View style={styles.center}>
-          <ActivityIndicator
-            size="large"
-            color={theme.colors.primary}
-          />
-          <Text style={{ marginTop: 10 }}>
-            Loading posts...
-          </Text>
-        </View>
-      ) : isError ? (
-        <View style={styles.center}>
-          <Text style={{ color: "red" }}>
-            {(error as any)?.message ||
-              "Failed to load posts."}
-          </Text>
-          <TouchableOpacity
-            // onPress={refetch}
-            style={[
-              styles.retryBtn,
-              { backgroundColor: theme.colors.primary },
-            ]}
-          >
-            <Text style={{ color: "#fff" }}>
-              Retry
+  return (
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: theme.colors.background,
+      }}
+    >
+      <TopBar onMenuPress={() => navigation.openDrawer()} showCenterLogo/>
+
+      <View style={{ flex: 1 }}>
+        {renderComposer()}
+
+        {isLoading ? (
+          <View style={styles.center}>
+            <ActivityIndicator
+              size="large"
+              color={theme.colors.primary}
+            />
+            <Text style={{ marginTop: 10 }}>
+              Loading posts...
             </Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <FlatList
-          data={posts}
-          keyExtractor={keyExtractor}
-          renderItem={renderItem}
-          windowSize={7}
-          initialNumToRender={10}
-          maxToRenderPerBatch={8}
-          removeClippedSubviews={false}
-          onEndReached={onEndReached}
-          onEndReachedThreshold={0.4}
-          refreshing={
-            isFetching && !isFetchingNextPage
-          }
-          onRefresh={refetch}
-          ListFooterComponent={
-            isFetchingNextPage ? (
-              <View
-                style={{
-                  paddingVertical: 20,
-                }}
-              >
-                <ActivityIndicator
-                  color={theme.colors.primary}
-                />
+          </View>
+        ) : isError ? (
+          <View style={styles.center}>
+            <Text style={{ color: "red" }}>
+              {(error as any)?.message ||
+                "Failed to load posts."}
+            </Text>
+            <TouchableOpacity
+              style={[
+                styles.retryBtn,
+                { backgroundColor: theme.colors.primary },
+              ]}
+              // onPress={refetch}
+            >
+              <Text style={{ color: "#fff" }}>
+                Retry
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <FlatList
+            data={posts}
+            keyExtractor={keyExtractor}
+            renderItem={renderItem}
+            windowSize={7}
+            initialNumToRender={10}
+            maxToRenderPerBatch={8}
+            removeClippedSubviews={false}
+            onEndReached={onEndReached}
+            onEndReachedThreshold={0.4}
+            refreshing={isFetching && !isFetchingNextPage}
+            onRefresh={refetch}
+            keyboardShouldPersistTaps="handled"
+            ListFooterComponent={
+              isFetchingNextPage ? (
+                <View style={{ paddingVertical: 20 }}>
+                  <ActivityIndicator
+                    color={theme.colors.primary}
+                  />
+                </View>
+              ) : null
+            }
+            ListEmptyComponent={
+              <View style={styles.center}>
+                <Text>No posts yet.</Text>
               </View>
-            ) : null
-          }
-          ListEmptyComponent={
-            <View style={styles.center}>
-              <Text>No posts yet.</Text>
-            </View>
-          }
-        />
-      )}
+            }
+          />
+        )}
+      </View>
 
       <CommentsSheet
         ref={commentsRef}
@@ -520,7 +524,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     backgroundColor: "white",
     marginHorizontal: 16,
-    marginVertical: 8,
+    marginTop: 8,
+    marginBottom: 12,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: "#EEE",
@@ -557,7 +562,7 @@ const styles = StyleSheet.create({
   imageIcon: {
     position: "absolute",
     top: 10,
-    right: 12,
+    right: 10,
   },
   sendIcon: {
     position: "absolute",
