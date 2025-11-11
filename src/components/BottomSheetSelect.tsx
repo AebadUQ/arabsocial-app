@@ -1,5 +1,17 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, TextInput } from "react-native";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  TextInput,
+} from "react-native";
 import {
   BottomSheetModal,
   BottomSheetBackdrop,
@@ -23,7 +35,7 @@ type Props = {
   containerStyle?: any;
   fieldStyle?: any;
   textStyle?: any;
-  searchable?: boolean; // NEW: show search input if true
+  searchable?: boolean; // show search input if true
 };
 
 const BottomSheetSelect: React.FC<Props> = ({
@@ -38,21 +50,27 @@ const BottomSheetSelect: React.FC<Props> = ({
   containerStyle,
   fieldStyle,
   textStyle,
-  searchable = false, // default false
+  searchable = false,
 }) => {
   const { theme } = useTheme();
   const sheetRef = useRef<BottomSheetModal>(null);
   const [selected, setSelected] = useState<string | null>(value ?? null);
   const [search, setSearch] = useState("");
 
-  useEffect(() => setSelected(value ?? null), [value]);
+  useEffect(() => {
+    setSelected(value ?? null);
+  }, [value]);
 
+  // normalize options to { label, value }
   const normalized = useMemo(
-    () => options.map((opt) => (typeof opt === "string" ? { label: opt, value: opt } : opt)),
+    () =>
+      options.map((opt) =>
+        typeof opt === "string" ? { label: opt, value: opt } : opt
+      ),
     [options]
   );
 
-  // Filter options if searchable is true
+  // filter when searchable
   const filteredOptions = useMemo(
     () =>
       searchable
@@ -63,14 +81,17 @@ const BottomSheetSelect: React.FC<Props> = ({
     [normalized, search, searchable]
   );
 
-  const activeLabel = normalized.find((o) => o.value === selected)?.label ?? "";
+  const activeLabel =
+    normalized.find((o) => o.value === selected)?.label ?? "";
 
   const openSheet = useCallback(() => {
     sheetRef.current?.present();
-    if (searchable) setSearch(""); // reset search only if searchable
+    if (searchable) setSearch("");
   }, [searchable]);
 
-  const closeSheet = useCallback(() => sheetRef.current?.dismiss(), []);
+  const closeSheet = useCallback(() => {
+    sheetRef.current?.dismiss();
+  }, []);
 
   const handleSelect = (val: string) => {
     setSelected(val);
@@ -78,7 +99,8 @@ const BottomSheetSelect: React.FC<Props> = ({
     closeSheet();
   };
 
-  const snapPoints = useMemo(() => ["50%"], []);
+  // fixed snap height (no content-based shrinking)
+  const snapPoints = useMemo(() => ["60%"], []);
 
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => (
@@ -93,11 +115,16 @@ const BottomSheetSelect: React.FC<Props> = ({
     []
   );
 
-  const placeholderColor = placeholderTextColor ?? theme.colors.placeholder;
+  const placeholderColor =
+    placeholderTextColor ?? theme.colors.placeholder;
 
   return (
     <View style={[styles.wrapper, containerStyle]}>
-      {!!label && <Text style={[styles.label, { color: labelColor }]}>{label}</Text>}
+      {!!label && (
+        <Text style={[styles.label, { color: labelColor }]}>
+          {label}
+        </Text>
+      )}
 
       <TouchableOpacity
         activeOpacity={0.8}
@@ -119,7 +146,11 @@ const BottomSheetSelect: React.FC<Props> = ({
           numberOfLines={1}
           style={[
             styles.valueText,
-            { color: activeLabel ? theme.colors.text : placeholderColor },
+            {
+              color: activeLabel
+                ? theme.colors.text
+                : placeholderColor,
+            },
             textStyle,
           ]}
         >
@@ -139,12 +170,24 @@ const BottomSheetSelect: React.FC<Props> = ({
           borderTopLeftRadius: 16,
           borderTopRightRadius: 16,
         }}
-        handleIndicatorStyle={{ backgroundColor: theme.colors.primary }}
+        handleIndicatorStyle={{
+          backgroundColor: theme.colors.primary,
+        }}
+        // 👇 keyboard behavior: stay fixed, move interactively with keyboard
+        keyboardBehavior="interactive"
+        keyboardBlurBehavior="none"
+        android_keyboardInputMode="adjustResize"
       >
         <View style={{ paddingHorizontal: 16, flex: 1 }}>
-          <Text style={[styles.sheetTitle, { color: theme.colors.text }]}>{sheetTitle}</Text>
+          <Text
+            style={[
+              styles.sheetTitle,
+              { color: theme.colors.text },
+            ]}
+          >
+            {sheetTitle}
+          </Text>
 
-          {/* Conditionally render search input */}
           {searchable && (
             <TextInput
               value={search}
@@ -180,11 +223,29 @@ const BottomSheetSelect: React.FC<Props> = ({
               const isActive = item.value === selected;
               return (
                 <TouchableOpacity
-                  style={[styles.optionRow, isActive && { backgroundColor: "#1BAD7A22" }]}
+                  style={[
+                    styles.optionRow,
+                    isActive && {
+                      backgroundColor: "#1BAD7A22",
+                    },
+                  ]}
                   onPress={() => handleSelect(item.value)}
                 >
-                  <Text style={{ flex: 1, color: theme.colors.text }}>{item.label}</Text>
-                  {isActive && <Check size={18} color={theme.colors.primary} weight="bold" />}
+                  <Text
+                    style={{
+                      flex: 1,
+                      color: theme.colors.text,
+                    }}
+                  >
+                    {item.label}
+                  </Text>
+                  {isActive && (
+                    <Check
+                      size={18}
+                      color={theme.colors.primary}
+                      weight="bold"
+                    />
+                  )}
                 </TouchableOpacity>
               );
             }}
@@ -198,7 +259,11 @@ const BottomSheetSelect: React.FC<Props> = ({
 
 const styles = StyleSheet.create({
   wrapper: { width: "100%" },
-  label: { marginBottom: 6, fontSize: 14, fontWeight: "500" },
+  label: {
+    marginBottom: 6,
+    fontSize: 14,
+    fontWeight: "500",
+  },
   field: {
     minHeight: 50,
     borderRadius: 8,
@@ -207,8 +272,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  valueText: { flex: 1, fontSize: 16, paddingVertical: 12 },
-  sheetTitle: { fontSize: 16, fontWeight: "600", marginBottom: 10, marginTop: 6 },
+  valueText: {
+    flex: 1,
+    fontSize: 16,
+    paddingVertical: 12,
+  },
+  sheetTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 10,
+    marginTop: 6,
+  },
   searchInput: {
     height: 40,
     borderWidth: 1,
