@@ -318,7 +318,6 @@ const EventScreen: React.FC = ({ navigation }: any) => {
         onMenuPress={() =>
           navigation.openDrawer()
         }
-        showCenterLogo
       />
 
       {/* Search + Filter Row */}
