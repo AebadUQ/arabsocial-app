@@ -8,9 +8,13 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { launchImageLibrary } from "react-native-image-picker";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
+import LinearGradient from "react-native-linear-gradient";
 import { Text } from "@/components";
 import InputField from "@/components/Input";
 import { useTheme } from "@/theme/ThemeContext";
@@ -27,7 +31,10 @@ import {
   Clock as ClockIcon,
   ImageSquare as ImageSquareIcon,
   ArrowLeft as ArrowLeftIcon,
+  UploadSimpleIcon,
 } from "phosphor-react-native";
+import Card from "@/components/Card";
+import { theme } from "@/theme/theme";
 
 type FormState = {
   title: string;
@@ -48,8 +55,8 @@ type FormState = {
 type PickerTarget = "date" | "start" | "end";
 
 export default function PromoteEventScreen() {
-  const navigation = useNavigation();
-  const { theme } = useTheme();
+  const navigation = useNavigation<any>();
+  const { theme: appTheme } = useTheme();
   const insets = useSafeAreaInsets();
 
   const [eventDate, setEventDate] = useState<Date | null>(null);
@@ -189,7 +196,8 @@ export default function PromoteEventScreen() {
       const base = new Date(eventDate ?? new Date());
       base.setHours(d.getHours(), d.getMinutes(), 0, 0);
       setEndAt(base);
-      set("end_datetime", fmtTime(base));
+      //@ts-ignore
+      set("end_datetime", fmtTime(e));
       if (startAt && base < startAt) {
         Alert.alert("End time is before start", "Please choose a later time.");
       }
@@ -219,10 +227,14 @@ export default function PromoteEventScreen() {
 
   // ---- Submit ----
   const onSubmit = () => {
-    if (!form.title?.trim()) return Alert.alert("Missing", "Please enter event name.");
-    if (!eventDate) return Alert.alert("Missing", "Please pick an event date.");
-    if (!startAt || !endAt) return Alert.alert("Missing", "Please pick start & end times.");
-    if (startAt >= endAt) return Alert.alert("Invalid time", "End time must be after start.");
+    if (!form.title?.trim())
+      return Alert.alert("Missing", "Please enter event name.");
+    if (!eventDate)
+      return Alert.alert("Missing", "Please pick an event date.");
+    if (!startAt || !endAt)
+      return Alert.alert("Missing", "Please pick start & end times.");
+    if (startAt >= endAt)
+      return Alert.alert("Invalid time", "End time must be after start.");
 
     const payload = {
       title: form.title,
@@ -246,13 +258,19 @@ export default function PromoteEventScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: theme.colors.background }]}>
+    <SafeAreaView
+      style={[styles.safe, { backgroundColor: appTheme.colors.background }]}
+    >
       {/* Top Bar */}
       <View style={styles.topBar}>
-        <TouchableOpacity style={styles.navBtn} onPress={() => navigation.goBack()}>
-          <ArrowLeftIcon size={24} color={"white"} />
+        <TouchableOpacity
+          style={styles.navBtn}
+          onPress={() => navigation.goBack()}
+        >
+          <ArrowLeftIcon size={24} color={appTheme.colors.text} />
         </TouchableOpacity>
-        <Text variant="body1" color={theme.colors.text} style={{ fontWeight: "600" }}>
+
+        <Text variant="body1" color={appTheme.colors.text}>
           Promote Event
         </Text>
         <View style={[styles.navBtn, { opacity: 0 }]} />
@@ -261,55 +279,64 @@ export default function PromoteEventScreen() {
       <ScrollView
         contentContainerStyle={[
           styles.content,
-          { paddingBottom: (insets.bottom || 16) + 84 },
+          { paddingBottom: (insets.bottom || 16) + 50 },
         ]}
         showsVerticalScrollIndicator={false}
       >
         {/* Banner Upload */}
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={[
-            styles.uploadBox,
-            { borderColor: theme.colors.borderColor, backgroundColor: "transparent" },
-          ]}
-          onPress={onPickBanner}
-        >
-          {form.bannerUri ? (
-            <>
-              <Image source={{ uri: form.bannerUri }} style={styles.bannerImg} />
-              <View style={styles.changeHintWrap}>
-                <Text style={styles.changeHintText}>Tap to change</Text>
+        <Card>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            style={[styles.uploadBox]}
+            onPress={onPickBanner}
+          >
+            {form.bannerUri ? (
+              <>
+                <Image
+                  source={{ uri: form.bannerUri }}
+                  style={styles.bannerImg}
+                />
+                <View style={styles.changeHintWrap}>
+                  <Text style={styles.changeHintText}>Tap to change</Text>
+                </View>
+              </>
+            ) : (
+              <View style={styles.uploadInner}>
+                <View
+                  style={{
+                    backgroundColor: appTheme.colors.primaryShade,
+                    padding: 10,
+                    borderRadius: 20,
+                  }}
+                >
+                  <UploadSimpleIcon size={24} color={appTheme.colors.primary} />
+                </View>
+                <Text variant="body1" color={appTheme.colors.textLight}>
+                  Upload your event banner here
+                </Text>
               </View>
-            </>
-          ) : (
-            <View style={styles.uploadInner}>
-              <ImageSquareIcon size={80} color={theme.colors.textLight} />
-              <Text variant="body1" color={theme.colors.textLight}>
-                Upload your event banner here
-              </Text>
-            </View>
-          )}
-        </TouchableOpacity>
+            )}
+          </TouchableOpacity>
+        </Card>
 
         {/* Form Inputs */}
         <InputField
-        
-          placeholder="Event name"
+          label="Event Name"
+          labelColor={appTheme.colors.text}
+          placeholder="Enter event name"
           value={form.title}
           onChangeText={(t) => set("title", t)}
           containerStyle={styles.fieldGap}
         />
 
         <BottomSheetSelect
-          // label="Event Type"
-          // labelColor={theme.colors.textLight}
+          label="Event Type"
+          labelColor={appTheme.colors.text}
           value={form.event_type}
           onChange={(v) => set("event_type", v)}
           options={[
             { label: "Online", value: "online" },
             { label: "In Person", value: "in_person" },
-
-            
           ]}
           placeholder="Select Event Type"
           sheetTitle="Select Event Type"
@@ -317,8 +344,8 @@ export default function PromoteEventScreen() {
         />
 
         <BottomSheetSelect
-          // label="Country"
-          // labelColor={theme.colors.textLight}
+          label="Country"
+          labelColor={appTheme.colors.text}
           searchable
           value={form.country}
           onChange={(v) => set("country", v)}
@@ -330,8 +357,8 @@ export default function PromoteEventScreen() {
 
         {form.country ? (
           <BottomSheetSelect
-            // label="City / State"
-            // labelColor={theme.colors.textLight}
+            label="City / State"
+            labelColor={appTheme.colors.text}
             value={form.city}
             onChange={(v) => set("city", v)}
             options={cities.map((s) => ({ label: s, value: s }))}
@@ -341,12 +368,25 @@ export default function PromoteEventScreen() {
           />
         ) : null}
 
+        <InputField
+          label="Address"
+          labelColor={appTheme.colors.text}
+          placeholder="Event address"
+          value={form.address}
+          onChangeText={(t) => set("address", t)}
+          containerStyle={styles.fieldGap}
+        />
+
         {/* Date & Time Pickers */}
         <View style={styles.fieldGap}>
           <PickerField
+            label="Event Date"
+            labelColor={appTheme.colors.text}
             placeholder="Event date"
             value={form.event_date}
-            icon={<CalendarIcon size={18} color={theme.colors.placeholder} />}
+            icon={
+              <CalendarIcon size={18} color={appTheme.colors.placeholder} />
+            }
             onPress={onSelectDate}
           />
         </View>
@@ -354,32 +394,34 @@ export default function PromoteEventScreen() {
         <View style={[styles.row, styles.fieldGap]}>
           <View style={styles.col}>
             <PickerField
+              label="Start Time"
+              labelColor={appTheme.colors.text}
               placeholder="Start Time"
               value={form.start_datetime}
-              icon={<ClockIcon size={18} color={theme.colors.placeholder} />}
+              icon={
+                <ClockIcon size={18} color={appTheme.colors.placeholder} />
+              }
               onPress={onSelectStart}
             />
           </View>
           <View style={styles.col}>
             <PickerField
+              label="End Time"
+              labelColor={appTheme.colors.text}
               placeholder="End Time"
               value={form.end_datetime}
-              icon={<ClockIcon size={18} color={theme.colors.placeholder} />}
+              icon={
+                <ClockIcon size={18} color={appTheme.colors.placeholder} />
+              }
               onPress={onSelectEnd}
             />
           </View>
         </View>
 
-        {/* Other Fields */}
         <InputField
-          placeholder="Event address"
-          value={form.address}
-          onChangeText={(t) => set("address", t)}
-          containerStyle={styles.fieldGap}
-        />
-
-        <InputField
-          placeholder="Price (optional)"
+          label="Price (optional)"
+          labelColor={appTheme.colors.text}
+          placeholder="$0.00"
           value={form.price}
           keyboardType="numeric"
           onChangeText={(t) => set("price", t)}
@@ -387,7 +429,9 @@ export default function PromoteEventScreen() {
         />
 
         <InputField
-          placeholder="Total spots"
+          label="Total spots"
+          labelColor={appTheme.colors.text}
+          placeholder="e.g 100"
           value={form.total_spots}
           onChangeText={(t) => set("total_spots", t)}
           containerStyle={styles.fieldGap}
@@ -395,33 +439,59 @@ export default function PromoteEventScreen() {
         />
 
         <InputField
-          placeholder="Event Link (optional)"
+          label="Event Link (optional)"
+          labelColor={appTheme.colors.text}
+          placeholder="http://..."
           value={form.ticket_link}
           onChangeText={(t) => set("ticket_link", t)}
           containerStyle={styles.fieldGap}
         />
 
         <InputField
-          placeholder="Description"
+          label="Description"
+          labelColor={appTheme.colors.text}
+          placeholder="Describe your event.."
           value={form.description}
           onChangeText={(t) => set("description", t)}
-          multiline
           numberOfLines={4}
           style={{ textAlignVertical: "top" }}
           containerStyle={styles.fieldGap}
         />
       </ScrollView>
 
-      {/* Submit Button */}
-      <TouchableOpacity style={styles.submitBtn} onPress={onSubmit}>
-        {
-        //@ts-ignore
-        mutation.isLoading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={{ color: "#fff", fontWeight: "600" }}>Submit</Text>
-        )}
-      </TouchableOpacity>
+      {/* Submit Button (sticky gradient like screenshot) */}
+      <View
+        style={[
+          styles.submitWrap,
+          { paddingBottom: insets.bottom || 16 },
+        ]}
+      >
+        <View style={styles.submitShadow}>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={onSubmit}
+            // disabled={mutation.isLoading}
+          >
+            <LinearGradient
+              colors={["#1BAD7A", "#008F5C"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.submitBtn}
+            >
+              {
+                // @ts-ignore
+                mutation.isLoading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={{ color: "#fff", fontWeight: "700" }}>
+                    Submit Event
+                  </Text>
+                )
+              }
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      </View>
 
       {/* Date Picker */}
       <DateTimePickerModal
@@ -442,26 +512,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingVertical: 12,
   },
   navBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
+    backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#1BAD7A",
   },
   content: { padding: 16 },
   fieldGap: { marginTop: 16 },
   uploadBox: {
     height: 180,
-    borderWidth: 1.5,
-    borderStyle: "dashed",
+    borderWidth: 0.5,
     borderRadius: 12,
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primaryShade,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 20,
   },
   uploadInner: { alignItems: "center", justifyContent: "center", gap: 8 },
   bannerImg: {
@@ -482,13 +551,28 @@ const styles = StyleSheet.create({
   changeHintText: { color: "#fff", fontSize: 12 },
   row: { flexDirection: "row", justifyContent: "space-between", gap: 10 },
   col: { flex: 1 },
+  submitWrap: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: -20,
+    paddingHorizontal: 24,
+    backgroundColor: "#FFFFFF",
+    paddingTop: 10,
+  },
+  submitShadow: {
+    width: "100%",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 14,
+    elevation: 8,
+  },
   submitBtn: {
-    backgroundColor: "#1BAD7A",
+    height: 56,
+    borderRadius: 999,
     alignItems: "center",
     justifyContent: "center",
-    height: 54,
-    borderRadius: 12,
-    marginHorizontal: 16,
-    marginBottom: 20,
+    width: "100%",
   },
 });

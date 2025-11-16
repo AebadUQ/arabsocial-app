@@ -20,6 +20,7 @@ import {
 } from "@gorhom/bottom-sheet";
 import { useTheme } from "@/theme/ThemeContext";
 import { CaretDown, Check } from "phosphor-react-native";
+import { theme } from "@/theme/theme";
 
 type Option = string | { label: string; value: string };
 
@@ -133,11 +134,11 @@ const BottomSheetSelect: React.FC<Props> = ({
           styles.field,
           {
             backgroundColor: theme.colors.background,
-            shadowColor: "#000",
-            shadowOpacity: 0.08,
-            shadowRadius: 8,
-            shadowOffset: { width: 0, height: 3 },
-            elevation: 2,
+            // shadowColor: "#000",
+            // shadowOpacity: 0.08,
+            // shadowRadius: 8,
+            // shadowOffset: { width: 0, height: 3 },
+            // elevation: 2,
           },
           fieldStyle,
         ]}
@@ -266,16 +267,21 @@ const styles = StyleSheet.create({
   },
   field: {
     minHeight: 50,
-    borderRadius: 8,
     paddingHorizontal: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+borderWidth:0.5,
+    borderColor:theme.colors.primary,
+    borderRadius:50,
+
+    
   },
   valueText: {
-    flex: 1,
-    fontSize: 16,
-    paddingVertical: 12,
+     flex: 1,
+    color: theme.colors.placeholder,
+    fontSize: theme.typography.fontSize.v5,
+    paddingVertical: 12,  
   },
   sheetTitle: {
     fontSize: 16,

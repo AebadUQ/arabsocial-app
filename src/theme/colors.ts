@@ -11,7 +11,7 @@ export const colors = {
   darkGray:'#5F6367',
   borderColor:'#D9D9D9',
   textLight:'#191D2180',
-  placeholder:'#191D21B2',
+  placeholder:'#9291A5',
   background:'#F6F6F6',
   error:'#E84545',
   errorLight:'#E639461A',

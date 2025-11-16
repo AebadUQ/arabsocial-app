@@ -2,6 +2,7 @@ import React from "react";
 import { TouchableOpacity, View, StyleSheet, ViewStyle, TextStyle } from "react-native";
 import { Text } from "@/components";
 import { useTheme } from "@/theme/ThemeContext";
+import { theme } from "@/theme/theme";
 
 type PickerFieldProps = {
   label?: string;
@@ -47,11 +48,11 @@ const PickerField: React.FC<PickerFieldProps> = ({
           styles.fieldContainer,
           {
             backgroundColor: theme.colors.background,
-            shadowColor: "#000",
-            shadowOpacity: 0.08,
-            shadowRadius: 8,
-            shadowOffset: { width: 0, height: 3 },
-            elevation: 2,
+            // shadowColor: "#000",
+            // shadowOpacity: 0.08,
+            // shadowRadius: 8,
+            // shadowOffset: { width: 0, height: 3 },
+            // elevation: 2,
           },
           error && { borderWidth: 1, borderColor: theme.colors.error },
           fieldStyle,
@@ -90,16 +91,19 @@ const styles = StyleSheet.create({
   },
   fieldContainer: {
     minHeight: 50,
-    borderRadius: 8,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 12,
+    borderWidth:0.5,
+        borderColor:theme.colors.primary,
+        borderRadius:50,
   },
   text: {
-    flex: 1,
-    fontSize: 16,
-    paddingVertical: 12,
+     flex: 1,
+    color: theme.colors.placeholder,
+    fontSize: theme.typography.fontSize.v5,
+    paddingVertical: 12,  
   },
   iconWrap: {
     marginLeft: 12,
