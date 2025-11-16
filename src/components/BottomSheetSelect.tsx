@@ -275,7 +275,6 @@ const styles = StyleSheet.create({
   label: {
     marginBottom: 6,
     fontSize: 14,
-    fontWeight: "500",
   },
   field: {
     minHeight: 50,

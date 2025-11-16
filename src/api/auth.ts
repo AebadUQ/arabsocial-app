@@ -1,3 +1,4 @@
+import { Asset } from 'react-native-image-picker';
 import api from './api';
 import { LoginPayload, RegisterPayload } from './types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -34,4 +35,25 @@ export const updateUserDetailVisibility = async (data:any) => {
 export const getPublicUserProfile = async (id:number) => {
   const response = await api.get(`/users/user-public-profile/${id}`);
   return response.data.data;
+};
+
+export const uploadProfileImage = async (image: Asset) => {
+  const formData = new FormData();
+
+  formData.append("file", {
+    // @ts-ignore
+    uri: image.uri,
+    name: image.fileName || `user-${Date.now()}.jpg`,
+    type: image.type || "image/jpeg",
+  });
+
+  const response = await api.post("/upload/image/user", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
+  // backend se aa raha:
+  // { "url": "https://storage.googleapis.com/..." }
+  return response.data as { url: string };
 };

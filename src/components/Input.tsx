@@ -123,18 +123,18 @@ export default function InputField({
 const styles = StyleSheet.create({
   wrapper: {
     width: "100%",
+    overflow:'hidden'
   },
   label: {
     marginBottom: 6,
-    fontWeight: "500",
   },
   container: {
     minHeight: 50,
     borderRadius: 50,
     borderWidth: 0.5,
-    paddingHorizontal: 14,
     flexDirection: "row",
     alignItems: "center",
+    overflow:'hidden'
   },
   containerError: {
     borderWidth: 1,
@@ -143,11 +143,11 @@ const styles = StyleSheet.create({
     height: 40,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 4,
   },
   input: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 14,
+    paddingHorizontal:14
   },
   error: {
     marginTop: 6,

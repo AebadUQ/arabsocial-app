@@ -1,34 +1,28 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
   Image,
-  TextInput,
-  Modal,
-  Text as RNText,
+  ActivityIndicator,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { useTheme } from "@/theme/ThemeContext";
 import { Text } from "@/components";
 import InputField from "@/components/Input";
 import LinearGradient from "react-native-linear-gradient";
-import {
-  ArrowLeftIcon,
-  FacebookLogo,
-  InstagramLogo,
-  XLogo,
-  Plus,
-  X as XIcon,
-} from "phosphor-react-native";
+import { ArrowLeftIcon } from "phosphor-react-native";
 import BottomSheetSelect from "@/components/BottomSheetSelect";
 import { useAuth } from "@/context/Authcontext";
 import { Country, State } from "country-state-city";
-import { theme } from "@/theme/theme";
+import { Asset, launchImageLibrary } from "react-native-image-picker";
 
-// 👇 NEW: import dropdown data from constants file
+// dropdown options
 import {
   MARITAL_OPTIONS,
   GENDER_OPTIONS,
@@ -37,17 +31,51 @@ import {
   LANGUAGE_OPTIONS,
   PROFESSION_OPTIONS,
 } from "@/utils/dropdown";
+import Card from "@/components/Card";
+import { uploadProfileImage } from "@/api/auth";
 
-const CHIP_BG = "#1E644CCC";
+type FormState = {
+  name: string;
+  state: string;
+  nationality: string;
+  profession: string;
+  gender: string;
+  height: string;
+  marital_status: string;
+  age: string;
+  religion: string;
+  education: string;
+  language_spoken: string;
+  about_me: string;
+};
+
+type FormErrors = Partial<
+  FormState & {
+    country: string;
+  }
+>;
+
+type FieldName =
+  | "name"
+  | "profession"
+  | "about_me"
+  | "country"
+  | "state"
+  | "gender"
+  | "nationality"
+  | "marital_status"
+  | "education"
+  | "age";
 
 const ProfileEditScreen: React.FC = () => {
   const navigation = useNavigation<any>();
-  const { theme } = useTheme();
+  const { theme: appTheme } = useTheme();
   const { user, updateProfile } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const [saving, setSaving] = useState(false);
-  const [ageError, setAgeError] = useState("");
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<FormState>({
+    name: "",
     state: "",
     nationality: "",
     profession: "",
@@ -60,6 +88,7 @@ const ProfileEditScreen: React.FC = () => {
     language_spoken: "",
     about_me: "",
   });
+  const [errors, setErrors] = useState<FormErrors>({});
 
   const [interests, setInterests] = useState<string[]>(
     user?.interests && Array.isArray(user.interests) && user.interests.length > 0
@@ -72,26 +101,109 @@ const ProfileEditScreen: React.FC = () => {
   const [selectedCountry, setSelectedCountry] = useState<string>("");
   const [selectedState, setSelectedState] = useState<string>("");
 
-  const [interestModalVisible, setInterestModalVisible] = useState(false);
-  const [newInterest, setNewInterest] = useState("");
-
-  // Social Links state
   const [socialLinks, setSocialLinks] = useState({
     facebook: user?.social_links?.facebook || "",
     instagram: user?.social_links?.instagram || "",
     twitter: user?.social_links?.twitter || "",
   });
 
-  // fill country dropdown
+  // ----- Avatar upload state -----
+  const defaultAvatar =
+    user?.image || user?.img || "https://i.pravatar.cc/200?img=12";
+
+  const [avatarUri, setAvatarUri] = useState<string>(defaultAvatar);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+
+  const onPickAvatar = async () => {
+    try {
+      const result = await launchImageLibrary({
+        mediaType: "photo",
+        maxWidth: 1400,
+        maxHeight: 1400,
+        selectionLimit: 1,
+      });
+
+      if (result.didCancel) return;
+
+      const asset = result.assets?.[0] as Asset | undefined;
+      if (!asset?.uri) return;
+
+      // pehle local preview
+      setAvatarUri(asset.uri);
+      setAvatarUploading(true);
+
+      // server pe upload
+      const { url } = await uploadProfileImage(asset);
+      // server se aaya final URL
+      setAvatarUri(url);
+    } catch (e) {
+      console.error("Image picker / upload error:", e);
+      // optional: revert to old image if needed
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
+  // avatar ko user change hone pe sync rakho
+  useEffect(() => {
+    if (user) {
+      setAvatarUri(
+        user.image || user.img || "https://i.pravatar.cc/200?img=12"
+      );
+    }
+  }, [user]);
+
+  // --- Scroll setup using measureLayout ---
+  const scrollRef = useRef<ScrollView | null>(null);
+  const containerRef = useRef<View | null>(null);
+
+  const fieldRefs = useRef<Record<FieldName, View | null>>({
+    name: null,
+    profession: null,
+    about_me: null,
+    country: null,
+    state: null,
+    gender: null,
+    nationality: null,
+    marital_status: null,
+    education: null,
+    age: null,
+  });
+
+  const setFieldRef = (name: FieldName) => (el: View | null) => {
+    fieldRefs.current[name] = el;
+  };
+
+  const scrollToField = (name: FieldName) => {
+    const field = fieldRefs.current[name];
+    const container = containerRef.current;
+    const scroll = scrollRef.current;
+
+    if (field && container && scroll) {
+      // @ts-ignore
+      field.measureLayout(
+        container,
+        (_x: number, y: number) => {
+          scroll.scrollTo({
+            y: Math.max(y - 20, 0),
+            animated: true,
+          });
+        },
+        () => {}
+      );
+    }
+  };
+
+  // ---- Country / State ----
   useEffect(() => {
     const countryList = Country.getAllCountries().map((c) => c.name);
     setCountries(countryList);
   }, []);
 
-  // init form from user
   useEffect(() => {
     if (user) {
       setForm({
+        name: user.name || "",
         state: user.state || "",
         nationality: user.nationality || "",
         profession: user.profession || "",
@@ -111,7 +223,6 @@ const ProfileEditScreen: React.FC = () => {
     }
   }, [user]);
 
-  // when country changes
   useEffect(() => {
     if (selectedCountry) {
       const countryObj = Country.getAllCountries().find(
@@ -125,16 +236,19 @@ const ProfileEditScreen: React.FC = () => {
 
       setForm((prev) => ({ ...prev, state: "" }));
 
-      handleChange(
-        "nationality",
-        // @ts-ignore
-        countryObj?.demonym || `${selectedCountry} citizen`
-      );
+      setForm((prev) => ({
+        ...prev,
+        nationality:
+          // @ts-ignore
+          countryObj?.demonym || `${selectedCountry} citizen`,
+      }));
+      setErrors((prev) => ({ ...prev, nationality: "" }));
     }
   }, [selectedCountry]);
 
-  const handleChange = (key: keyof typeof form, value: string) => {
+  const handleChange = (key: keyof FormState, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
+    setErrors((prev) => ({ ...prev, [key]: "" }));
   };
 
   const handleSocialChange = (
@@ -144,31 +258,56 @@ const ProfileEditScreen: React.FC = () => {
     setSocialLinks((prev) => ({ ...prev, [key]: value }));
   };
 
-  // add interest modal open
-  const handleAddInterest = () => {
-    setInterestModalVisible(true);
-  };
-
-  // add new interest
-  const saveNewInterest = () => {
-    if (newInterest.trim() !== "") {
-      setInterests((prev) => [...prev, newInterest.trim()]);
-      setNewInterest("");
-      setInterestModalVisible(false);
-    }
-  };
-
-  // remove interest
-  const removeInterest = (idx: number) => {
-    setInterests((prev) => prev.filter((_, i) => i !== idx));
-  };
-
   const onSave = async () => {
-    if (isNaN(Number(form.age)) || form.age.trim() === "") {
-      setAgeError("Age must be a number");
+    const newErrors: FormErrors = {};
+
+    if (!form.name.trim()) newErrors.name = "Full name is required.";
+    if (!form.profession.trim())
+      newErrors.profession = "Profession is required.";
+    if (!form.about_me.trim()) newErrors.about_me = "About me is required.";
+
+    if (!selectedCountry.trim()) newErrors.country = "Country is required.";
+    if (!selectedState.trim()) newErrors.state = "City is required.";
+
+    if (!form.gender.trim()) newErrors.gender = "Gender is required.";
+    if (!form.nationality.trim())
+      newErrors.nationality = "Nationality is required.";
+    if (!form.marital_status.trim())
+      newErrors.marital_status = "Marital status is required.";
+    if (!form.education.trim())
+      newErrors.education = "Education level is required.";
+
+    if (!form.age.trim()) {
+      newErrors.age = "Age is required.";
+    } else if (isNaN(Number(form.age))) {
+      newErrors.age = "Age must be a number.";
+    }
+
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
+      const order: FieldName[] = [
+        "name",
+        "profession",
+        "about_me",
+        "country",
+        "state",
+        "gender",
+        "nationality",
+        "marital_status",
+        "education",
+        "age",
+      ];
+
+      const firstErrorKey = order.find(
+        (k) => newErrors[k] !== undefined && newErrors[k] !== ""
+      );
+      if (firstErrorKey) {
+        requestAnimationFrame(() => {
+          scrollToField(firstErrorKey);
+        });
+      }
       return;
-    } else {
-      setAgeError("");
     }
 
     try {
@@ -176,14 +315,18 @@ const ProfileEditScreen: React.FC = () => {
 
       const updatedData = {
         ...form,
+        name: form.name,
         country: selectedCountry,
-        age: parseInt(form.age),
+        age: parseInt(form.age, 10),
         state: selectedState,
         interests: interests,
         language_spoken: form.language_spoken
           ? form.language_spoken.split(",").map((l) => l.trim())
           : [],
         social_links: socialLinks,
+        // 👇 avatar ko bhi backend ko bhej rahe
+        image: avatarUri,
+        img: avatarUri,
       };
 
       await updateProfile(updatedData);
@@ -197,323 +340,358 @@ const ProfileEditScreen: React.FC = () => {
 
   return (
     <SafeAreaView
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
+      style={[styles.container, { backgroundColor: appTheme.colors.background }]}
     >
       {/* Top back button */}
       <View style={styles.overlayRow}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.circleBtn}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.circleBtn}
+        >
           <ArrowLeftIcon size={22} color="#fff" weight="bold" />
         </TouchableOpacity>
       </View>
 
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: 80 }]}
+        ref={scrollRef}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: (insets.bottom || 16) + 50 },
+        ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Avatar / Name / Profession */}
-        <View style={styles.avatarWrap}>
-          <Image
-            source={{
-              uri: user?.image || user?.img || "https://i.pravatar.cc/200?img=12",
-            }}
-            style={styles.avatar}
-          />
-          <Text variant="h5">{user?.name || ""}</Text>
-          <Text variant="caption" color={theme.colors.textLight}>
-            {user?.profession || ""}
-          </Text>
-        </View>
+        <View ref={containerRef} style={{ display: "flex", gap: 20 }}>
+          {/* CARD 1: Avatar + Name + Profession */}
+          <Card>
+            <View style={styles.avatarCardRow}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={onPickAvatar}
+              >
+                <View
+                  style={[
+                    styles.avatarBorder,
+                    { borderColor: appTheme.colors.primaryLight },
+                  ]}
+                >
+                  <Image
+                    source={{ uri: avatarUri }}
+                    style={styles.avatar}
+                  />
 
-        {/* About Me */}
-        <View style={{ marginBottom: 16 }}>
-          <InputField
-            label="About Me"
-            labelColor={theme.colors.textLight}
-            value={form.about_me}
-            onChangeText={(v) => handleChange("about_me", v)}
-            placeholder="Write something about yourself..."
-            multiline
-            numberOfLines={4}
-            style={{ textAlignVertical: "top" }}
-          />
-        </View>
-
-        {/* Interests */}
-        {/* <View style={styles.interestsSection}>
-          <View style={styles.interestsHeader}>
-            <Text
-              variant="body1"
-              color={theme.colors.text}
-              style={styles.sectionTitle}
-            >
-              Interests
-            </Text>
-          </View>
-
-          <View style={styles.chipsWrap}>
-            {interests.map((label, i) => (
-              <View key={i} style={styles.chipContainer}>
-                <View style={styles.chipInner}>
-                  <Text variant="overline" color={theme.colors.textWhite}>
-                    {label}
-                  </Text>
+                  {avatarUploading && (
+                    <View style={styles.avatarOverlay}>
+                      <ActivityIndicator color="#fff" />
+                      <Text style={styles.avatarOverlayText}>
+                        Updating...
+                      </Text>
+                    </View>
+                  )}
                 </View>
+              </TouchableOpacity>
+            </View>
 
-                {label !== "N/A" && (
-                  <TouchableOpacity
-                    onPress={() => removeInterest(i)}
-                    style={styles.closeBadge}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    <XIcon size={12} color="#fff" weight="bold" />
-                  </TouchableOpacity>
-                )}
+            <View style={styles.cardFieldsGap}>
+              {/* Name (required) */}
+              <View ref={setFieldRef("name")}>
+                <InputField
+                  label="Full Name"
+                  labelColor={appTheme.colors.textLight}
+                  inputStyle={{ backgroundColor: "white" }}
+                  value={form.name}
+                  onChangeText={(v) => handleChange("name", v)}
+                  placeholder="Enter Full Name"
+                  error={errors.name}
+                />
               </View>
-            ))}
 
-            <TouchableOpacity onPress={handleAddInterest} style={styles.addIcon}>
-              <Plus size={16} color={theme.colors.textWhite} weight="bold" />
-            </TouchableOpacity>
-          </View>
-        </View> */}
+              {/* Profession (required now) */}
+              <View ref={setFieldRef("profession")}>
+                <BottomSheetSelect
+                  label="Profession"
+                  labelColor={appTheme.colors.textLight}
+                  value={form.profession}
+                  fieldStyle={{ backgroundColor: "white" }}
+                  onChange={(v) => handleChange("profession", v)}
+                  options={PROFESSION_OPTIONS}
+                  placeholder="Select profession"
+                  sheetTitle="Select Profession"
+                  error={errors.profession}
+                />
+              </View>
+            </View>
+          </Card>
 
-        {/* Personal Details */}
-        <View style={styles.sectionRowTightNoLine}>
-          <Text
-            variant="body1"
-            color={theme.colors.text}
-            style={styles.sectionTitle}
-          >
-            Personal details
-          </Text>
-        </View>
+          {/* CARD 2: About Me */}
+          <Card>
+            <View style={styles.sectionCardHeader}>
+              <Text
+                variant="body1"
+                color={appTheme.colors.text}
+                style={styles.sectionTitle}
+              >
+                About Me
+              </Text>
+            </View>
 
-        <View style={{ display: "flex", gap: 20 }}>
-          
-          <InputField
-            label="Email"
-            labelColor={theme.colors.textLight}
-            value={user?.email || ""}
-            placeholder="Enter email"
-            readOnly
-          />
+            <View ref={setFieldRef("about_me")}>
+              <InputField
+                label="About Me"
+                labelColor={appTheme.colors.textLight}
+                value={form.about_me}
+                onChangeText={(v) => handleChange("about_me", v)}
+                placeholder="Write something about yourself..."
+                multiline
+                numberOfLines={4}
+                inputStyle={{ backgroundColor: "white" }}
+                error={errors.about_me}
+              />
+            </View>
+          </Card>
 
-          <InputField
-            label="Phone"
-            labelColor={theme.colors.textLight}
-            value={user?.phone || ""}
-            placeholder="Enter phone"
-            readOnly
-          />
+          {/* CARD 3: Personal Details */}
+          <Card>
+            <View style={styles.sectionCardHeader}>
+              <Text
+                variant="body1"
+                color={appTheme.colors.text}
+                style={styles.sectionTitle}
+              >
+                Personal Details
+              </Text>
+            </View>
 
-          <BottomSheetSelect
-            label="Country"
-            labelColor={theme.colors.textLight}
-            value={selectedCountry}
-            onChange={(v) => setSelectedCountry(v)}
-            options={countries}
-            placeholder="Select Country"
-            sheetTitle="Select Country"
-          />
+            <View style={styles.cardFieldsGap}>
+              <InputField
+                label="Email"
+                labelColor={appTheme.colors.textLight}
+                value={user?.email || ""}
+                placeholder="Enter email"
+                readOnly
+              />
 
-          {selectedCountry ? (
-            <BottomSheetSelect
-              label="State / Province"
-              labelColor={theme.colors.textLight}
-              value={selectedState}
-              onChange={(v) => {
-                setSelectedState(v);
-                handleChange("state", v);
-              }}
-              options={states}
-              placeholder="Select State"
-              sheetTitle="Select State"
-            />
-          ) : null}
+              <InputField
+                label="Phone"
+                labelColor={appTheme.colors.textLight}
+                value={user?.phone || ""}
+                placeholder="Enter phone"
+                readOnly
+              />
 
-          <InputField
-            label="Nationality"
-            labelColor={theme.colors.textLight}
-            value={form.nationality}
-            onChangeText={(v) => handleChange("nationality", v)}
-            placeholder="Enter nationality"
-          />
+              {/* Country (required) */}
+              <View ref={setFieldRef("country")}>
+                <BottomSheetSelect
+                  label="Country"
+                  labelColor={appTheme.colors.textLight}
+                  value={selectedCountry}
+                  onChange={(v) => {
+                    setSelectedCountry(v);
+                    setErrors((prev) => ({ ...prev, country: "" }));
+                  }}
+                  options={countries}
+                  placeholder="Select Country"
+                  sheetTitle="Select Country"
+                  fieldStyle={{ backgroundColor: "white" }}
+                  error={errors.country}
+                />
+              </View>
 
-          {/* Profession dropdown */}
-          <BottomSheetSelect
-            label="Profession"
-            labelColor={theme.colors.textLight}
-            value={form.profession}
-            onChange={(v) => handleChange("profession", v)}
-            options={PROFESSION_OPTIONS}
-            placeholder="Select profession"
-            sheetTitle="Select Profession"
-          />
+              {/* City / State (required – treating as city) */}
+              {selectedCountry ? (
+                <View ref={setFieldRef("state")}>
+                  <BottomSheetSelect
+                    label="City / State"
+                    labelColor={appTheme.colors.textLight}
+                    value={selectedState}
+                    onChange={(v) => {
+                      setSelectedState(v);
+                      handleChange("state", v);
+                    }}
+                    options={states}
+                    placeholder="Select City / State"
+                    sheetTitle="Select City / State"
+                    fieldStyle={{ backgroundColor: "white" }}
+                    error={errors.state}
+                  />
+                </View>
+              ) : null}
 
-          <BottomSheetSelect
-            label="Gender"
-            labelColor={theme.colors.textLight}
-            value={form.gender}
-            onChange={(v) => handleChange("gender", v)}
-            options={GENDER_OPTIONS}
-            placeholder="Select gender"
-            sheetTitle="Select Gender"
-          />
+              {/* Nationality (required) */}
+              <View ref={setFieldRef("nationality")}>
+                <InputField
+                  label="Nationality"
+                  labelColor={appTheme.colors.textLight}
+                  value={form.nationality}
+                  onChangeText={(v) => handleChange("nationality", v)}
+                  placeholder="Enter nationality"
+                  inputStyle={{ backgroundColor: "white" }}
+                  error={errors.nationality}
+                />
+              </View>
 
-          <BottomSheetSelect
-            label="Religion"
-            labelColor={theme.colors.textLight}
-            value={form.religion}
-            onChange={(v) => handleChange("religion", v)}
-            options={RELIGION_OPTIONS}
-            placeholder="Select religion"
-            sheetTitle="Select Religion"
-          />
+              {/* Gender (required) */}
+              <View ref={setFieldRef("gender")}>
+                <BottomSheetSelect
+                  label="Gender"
+                  labelColor={appTheme.colors.textLight}
+                  value={form.gender}
+                  onChange={(v) => handleChange("gender", v)}
+                  options={GENDER_OPTIONS}
+                  placeholder="Select gender"
+                  sheetTitle="Select Gender"
+                  fieldStyle={{ backgroundColor: "white" }}
+                  error={errors.gender}
+                />
+              </View>
 
-          <BottomSheetSelect
-            label="Education Level"
-            labelColor={theme.colors.textLight}
-            value={form.education}
-            onChange={(v) => handleChange("education", v)}
-            options={EDUCATION_OPTIONS}
-            placeholder="Select education level"
-            sheetTitle="Select Education"
-          />
+              {/* Religion (optional) */}
+              <BottomSheetSelect
+                label="Religion"
+                labelColor={appTheme.colors.textLight}
+                value={form.religion}
+                onChange={(v) => handleChange("religion", v)}
+                options={RELIGION_OPTIONS}
+                placeholder="Select religion"
+                sheetTitle="Select Religion"
+                fieldStyle={{ backgroundColor: "white" }}
+              />
 
-          <BottomSheetSelect
-            label="Languages Spoken"
-            labelColor={theme.colors.textLight}
-            value={form.language_spoken}
-            onChange={(v) => handleChange("language_spoken", v)}
-            options={LANGUAGE_OPTIONS}
-            placeholder="Select languages"
-            sheetTitle="Select Language"
-          />
+              {/* Education (required) */}
+              <View ref={setFieldRef("education")}>
+                <BottomSheetSelect
+                  label="Education Level"
+                  labelColor={appTheme.colors.textLight}
+                  value={form.education}
+                  onChange={(v) => handleChange("education", v)}
+                  options={EDUCATION_OPTIONS}
+                  placeholder="Select education level"
+                  sheetTitle="Select Education"
+                  fieldStyle={{ backgroundColor: "white" }}
+                  error={errors.education}
+                />
+              </View>
 
-          <InputField
-            label="Height"
-            labelColor={theme.colors.textLight}
-            value={form.height}
-            onChangeText={(v) => handleChange("height", v)}
-            placeholder="Enter height"
-          />
+              {/* Languages (optional) */}
+              <BottomSheetSelect
+                label="Languages Spoken"
+                labelColor={appTheme.colors.textLight}
+                value={form.language_spoken}
+                onChange={(v) => handleChange("language_spoken", v)}
+                options={LANGUAGE_OPTIONS}
+                placeholder="Select languages"
+                sheetTitle="Select Language"
+                fieldStyle={{ backgroundColor: "white" }}
+              />
 
-          <BottomSheetSelect
-            label="Marital Status"
-            labelColor={theme.colors.textLight}
-            value={form.marital_status}
-            onChange={(v) => handleChange("marital_status", v)}
-            options={MARITAL_OPTIONS}
-            placeholder="Select marital status"
-            sheetTitle="Select Marital Status"
-          />
+              {/* Height (optional) */}
+              <InputField
+                label="Height"
+                labelColor={appTheme.colors.textLight}
+                value={form.height}
+                onChangeText={(v) => handleChange("height", v)}
+                placeholder="Enter height"
+                inputStyle={{ backgroundColor: "white" }}
+              />
 
-          <InputField
-            label="Age"
-            labelColor={theme.colors.textLight}
-            value={form.age}
-            onChangeText={(v) => handleChange("age", v)}
-            placeholder="Enter age"
-            keyboardType="numeric"
-          />
-          {ageError ? (
-            <RNText style={{ color: theme.colors.error, marginTop: -6 }}>
-              {ageError}
-            </RNText>
-          ) : null}
-        </View>
+              {/* Marital Status (required) */}
+              <View ref={setFieldRef("marital_status")}>
+                <BottomSheetSelect
+                  label="Marital Status"
+                  labelColor={appTheme.colors.textLight}
+                  value={form.marital_status}
+                  onChange={(v) => handleChange("marital_status", v)}
+                  options={MARITAL_OPTIONS}
+                  placeholder="Select marital status"
+                  sheetTitle="Select Marital Status"
+                  fieldStyle={{ backgroundColor: "white" }}
+                  error={errors.marital_status}
+                />
+              </View>
 
-        {/* Social Links */}
-        <View style={{ marginBottom: 16, marginTop: 20 }}>
-          <Text
-            variant="body1"
-            color={theme.colors.text}
-            style={styles.sectionTitle}
-          >
-            Social Links
-          </Text>
+              {/* Age (required) */}
+              <View ref={setFieldRef("age")}>
+                <InputField
+                  label="Age"
+                  labelColor={appTheme.colors.textLight}
+                  value={form.age}
+                  onChangeText={(v) => handleChange("age", v)}
+                  placeholder="Enter age"
+                  inputStyle={{ backgroundColor: "white" }}
+                  keyboardType="numeric"
+                  error={errors.age}
+                />
+              </View>
+            </View>
+          </Card>
 
-          <View style={{ display: "flex", gap: 20 }}>
-            <InputField
-              label="Facebook"
-              labelColor={theme.colors.textLight}
-              value={socialLinks.facebook}
-              onChangeText={(v) => handleSocialChange("facebook", v)}
-              placeholder="Enter Facebook URL"
-            />
-            <InputField
-              label="Instagram"
-              labelColor={theme.colors.textLight}
-              value={socialLinks.instagram}
-              onChangeText={(v) => handleSocialChange("instagram", v)}
-              placeholder="Enter Instagram URL"
-            />
-            <InputField
-              label="Twitter"
-              labelColor={theme.colors.textLight}
-              value={socialLinks.twitter}
-              onChangeText={(v) => handleSocialChange("twitter", v)}
-              placeholder="Enter Twitter URL"
-            />
-          </View>
+          {/* CARD 4: Social Links */}
+          <Card>
+            <View style={styles.sectionCardHeader}>
+              <Text
+                variant="body1"
+                color={appTheme.colors.text}
+                style={styles.sectionTitle}
+              >
+                Social Links
+              </Text>
+            </View>
+
+            <View style={styles.cardFieldsGap}>
+              <InputField
+                label="Facebook"
+                labelColor={appTheme.colors.textLight}
+                value={socialLinks.facebook}
+                onChangeText={(v) => handleSocialChange("facebook", v)}
+                placeholder="Enter Facebook URL"
+                inputStyle={{ backgroundColor: "white" }}
+              />
+              <InputField
+                label="Instagram"
+                labelColor={appTheme.colors.textLight}
+                value={socialLinks.instagram}
+                onChangeText={(v) => handleSocialChange("instagram", v)}
+                placeholder="Enter Instagram URL"
+                inputStyle={{ backgroundColor: "white" }}
+              />
+              <InputField
+                label="Twitter"
+                labelColor={appTheme.colors.textLight}
+                value={socialLinks.twitter}
+                onChangeText={(v) => handleSocialChange("twitter", v)}
+                placeholder="Enter Twitter URL"
+                inputStyle={{ backgroundColor: "white" }}
+              />
+            </View>
+          </Card>
         </View>
       </ScrollView>
 
-      {/* Add Interest Modal */}
-      <Modal
-        transparent
-        visible={interestModalVisible}
-        animationType="fade"
-        onRequestClose={() => setInterestModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <RNText style={{ marginBottom: 10, fontWeight: "600" }}>
-              Add New Interest
-            </RNText>
-            <TextInput
-              placeholder="Enter interest"
-              value={newInterest}
-              onChangeText={setNewInterest}
-              style={styles.modalInput}
-            />
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                onPress={() => setInterestModalVisible(false)}
-                style={[styles.modalBtn, { backgroundColor: "#ccc" }]}
-              >
-                <RNText>Cancel</RNText>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={saveNewInterest}
-                style={[styles.modalBtn, { backgroundColor: "#1BAD7A" }]}
-              >
-                <RNText style={{ color: "#fff" }}>Add</RNText>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
       {/* CTA Save */}
-      <View pointerEvents="box-none" style={styles.ctaWrap}>
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={onSave}
-          style={styles.ctaShadow}
-          disabled={saving}
-        >
-          <LinearGradient
-            colors={["#1BAD7A", "#1BAD7A"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.ctaBtn}
+      <View
+        pointerEvents="box-none"
+        style={[
+          styles.ctaWrap,
+          { paddingBottom: insets.bottom || 16 },
+        ]}
+      >
+        <View style={styles.ctaShadow}>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={onSave}
+            disabled={saving || avatarUploading}
           >
-            <Text style={{ color: "#fff", fontWeight: "700" }}>
-              {saving ? "Saving..." : "Save Changes"}
-            </Text>
-          </LinearGradient>
-        </TouchableOpacity>
+            <LinearGradient
+              colors={["#1BAD7A", "#1BAD7A"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.ctaBtn}
+            >
+              <Text style={{ color: "#fff", fontWeight: "700" }}>
+                {saving ? "Saving..." : "Save Changes"}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -521,7 +699,8 @@ const ProfileEditScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, position: "relative" },
-  content: { padding: 20 },
+  content: { padding: 20, rowGap: 16 },
+
   overlayRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -535,128 +714,73 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  avatarWrap: {
+
+  avatarCardRow: {
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 16,
+  },
+  avatarBorder: {
+    padding: 4,
+    borderWidth: 4,
+    borderRadius: 9999,
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
   },
   avatar: {
-    width: 120,
-    height: 120,
+    width: 100,
+    height: 100,
     borderRadius: 60,
     resizeMode: "cover",
-    backgroundColor: "#e9e9e9",
-    marginBottom: 8,
   },
+  avatarOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarOverlayText: {
+    color: "#fff",
+    marginTop: 4,
+    fontSize: 12,
+    fontWeight: "500",
+  },
+
+  sectionTitle: { fontWeight: "600", marginBottom: 4 },
+
+  sectionCardHeader: {
+    marginBottom: 12,
+  },
+
+  cardFieldsGap: {
+    display: "flex",
+    gap: 16,
+  },
+
   ctaWrap: {
     position: "absolute",
-    width: "100%",
-    bottom: 0,
-    alignItems: "center",
-    paddingBottom: 10,
+    left: 0,
+    right: 0,
+    bottom: -20,
+    paddingHorizontal: 24,
+    backgroundColor: "#FFFFFF",
+    paddingTop: 10,
   },
   ctaShadow: {
     width: "100%",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 14,
+    elevation: 8,
   },
   ctaBtn: {
     height: 56,
+    borderRadius: 999,
     width: "100%",
     alignItems: "center",
     justifyContent: "center",
-  },
-  sectionRowTightNoLine: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: 8,
-    alignItems: "center",
-    marginTop: 16,
-  },
-  sectionTitle: { fontWeight: "600", marginBottom: 4 },
-
-  interestsSection: {
-    marginTop: 16,
-    marginBottom: 16,
-  },
-  interestsHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-
-  chipsWrap: {
-    marginTop: 10,
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-
-  chipContainer: {
-    position: "relative",
-  },
-
-  chipInner: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: CHIP_BG,
-  },
-
-  closeBadge: {
-    position: "absolute",
-    top: -4,
-    right: -4,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: "#FF4D4F",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#00000055",
-  },
-
-  addIcon: {
-    padding: 6,
-    width: 32,
-    height: 32,
-    backgroundColor: theme.colors.primary,
-    borderRadius: 16,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalContainer: {
-    width: "85%",
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    padding: 20,
-  },
-  modalInput: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 12,
-  },
-  modalButtons: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: 10,
-  },
-  modalBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
   },
 });
 
