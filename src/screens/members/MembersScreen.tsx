@@ -276,9 +276,9 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
           )}
         </View>
 
-        <TouchableOpacity activeOpacity={0.85} style={styles.filterBtn}>
+        {/* <TouchableOpacity activeOpacity={0.85} style={styles.filterBtn}>
           <SlidersHorizontalIcon size={16} weight="bold" color={dimText} />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
 
       {/* Tabs */}

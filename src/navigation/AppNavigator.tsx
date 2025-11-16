@@ -48,6 +48,7 @@ import { Gear, InfoIcon, SignOutIcon } from "phosphor-react-native";
 import { theme as appTheme } from "@/theme/theme";
 import { Image, Text, TouchableOpacity, View } from "react-native";
 import LinearGradient from "react-native-linear-gradient";
+import EditEventScreen from "@/screens/events/EditEvent";
 
 /* ---------------------------------
  * Assets
@@ -89,6 +90,8 @@ export type EventsStackParamList = {
   Events: undefined;
   AddEvent: undefined;
   EventDetail: { eventId: string | number };
+  EditEvent: { id?: string } | undefined;
+
 };
 
 // Members tab stack
@@ -173,6 +176,8 @@ const EventsStackNav = () => (
     <EventsStack.Screen name="Events" component={EventScreen} />
     <EventsStack.Screen name="AddEvent" component={AddEventScreen} />
     <EventsStack.Screen name="EventDetail" component={EventDetailScreen} />
+        <EventsStack.Screen name="EditEvent" component={EditEventScreen} />
+
   </EventsStack.Navigator>
 );
 

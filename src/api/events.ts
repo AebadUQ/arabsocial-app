@@ -1,3 +1,4 @@
+import { Asset } from 'react-native-image-picker';
 import api from './api';
 
 // ✅ Get approved and upcoming events
@@ -74,6 +75,27 @@ export const updateEvent=async (
   id: string | number,
   data: Record<string, any> | FormData
 )=>{
-    const response = await api.put(`/events/${id}`,data);
+    const response = await api.patch(`/events/${id}`,data);
     return response.data.data
 }
+
+export const uploadEventImage = async (image: Asset) => {
+  const formData = new FormData();
+
+  formData.append("file", {
+    // @ts-ignore
+    uri: image.uri,
+    name: image.fileName || `event-${Date.now()}.jpg`,
+    type: image.type || "image/jpeg",
+  });
+
+  const response = await api.post("/upload/image/event", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
+  // backend se aa raha:
+  // { "url": "https://storage.googleapis.com/..." }
+  return response.data as { url: string };
+};

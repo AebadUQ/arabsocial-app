@@ -10,7 +10,6 @@ import {
   TextStyle,
 } from "react-native";
 import { useTheme } from "../theme/ThemeContext";
-import { theme } from "@/theme/theme";
 import { EyeIcon, EyeSlashIcon } from "phosphor-react-native";
 
 type Props = {
@@ -25,7 +24,6 @@ type Props = {
   secureToggle?: boolean | undefined;
 } & TextInputProps;
 
-
 export default function InputField({
   label,
   labelColor = "#FFFFFF",
@@ -37,22 +35,50 @@ export default function InputField({
   inputStyle,
   secureTextEntry,
   secureToggle,
-  placeholderTextColor = theme.colors.placeholder,
+  placeholderTextColor, // override allow
   ...rest
 }: Props) {
   const [hide, setHide] = useState(!!secureTextEntry);
-  const { theme } = useTheme();
+  const { theme: appTheme } = useTheme();
+
+  const finalPlaceholderColor =
+    placeholderTextColor ?? appTheme.colors.textLight;
 
   return (
     <View style={[styles.wrapper, containerStyle]}>
-      {label && <Text style={[styles.label, { color: labelColor }]}>{label}</Text>}
+      {label && (
+        <Text
+          style={[
+            styles.label,
+            { color: labelColor, fontSize: appTheme.typography.fontSize.v5 },
+          ]}
+        >
+          {label}
+        </Text>
+      )}
 
-      <View style={[styles.container, error && styles.containerError]}>
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: appTheme.colors.background,
+            borderColor: appTheme.colors.primary,
+          },
+          error && { borderColor: appTheme.colors.error, borderWidth: 1 },
+        ]}
+      >
         {left && <View style={styles.side}>{left}</View>}
 
         <TextInput
-          style={[styles.input, inputStyle]}
-          placeholderTextColor={placeholderTextColor}
+          style={[
+            styles.input,
+            {
+              color: appTheme.colors.text, // ✅ typed text color
+              fontSize: appTheme.typography.fontSize.v5,
+            },
+            inputStyle,
+          ]}
+          placeholderTextColor={finalPlaceholderColor} // ✅ placeholder textLight
           secureTextEntry={secureToggle ? hide : secureTextEntry}
           {...rest}
         />
@@ -64,9 +90,9 @@ export default function InputField({
             hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
           >
             {hide ? (
-              <EyeSlashIcon size={22} color={theme.colors.primary} />
+              <EyeSlashIcon size={22} color={appTheme.colors.primary} />
             ) : (
-              <EyeIcon size={22} color={theme.colors.primary} />
+              <EyeIcon size={22} color={appTheme.colors.primary} />
             )}
           </TouchableOpacity>
         ) : right ? (
@@ -80,7 +106,16 @@ export default function InputField({
         ) : null}
       </View>
 
-      {error && <Text style={styles.error}>{error}</Text>}
+      {error && (
+        <Text
+          style={[
+            styles.error,
+            { color: appTheme.colors.error },
+          ]}
+        >
+          {error}
+        </Text>
+      )}
     </View>
   );
 }
@@ -91,26 +126,18 @@ const styles = StyleSheet.create({
   },
   label: {
     marginBottom: 6,
-    fontSize: theme.typography.fontSize.v5,
+    fontWeight: "500",
   },
   container: {
     minHeight: 50,
     borderRadius: 50,
-    backgroundColor: theme.colors.background,
-    borderWidth:0.5,
-    borderColor:theme.colors.primary,
+    borderWidth: 0.5,
     paddingHorizontal: 14,
     flexDirection: "row",
     alignItems: "center",
-    // shadowColor: "#000",
-    // shadowOpacity: 0.08,
-    // shadowRadius: 8,
-    // shadowOffset: { width: 0, height: 3 },
-    // elevation: 2,
   },
   containerError: {
     borderWidth: 1,
-    borderColor: theme.colors.error,
   },
   side: {
     height: 40,
@@ -120,12 +147,9 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    color: theme.colors.placeholder,
-    fontSize: theme.typography.fontSize.v5,
     paddingVertical: 12,
   },
   error: {
-    color: theme.colors.error,
     marginTop: 6,
     fontSize: 12,
   },

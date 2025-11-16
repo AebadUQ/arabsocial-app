@@ -21,6 +21,7 @@ import {
 import { useTheme } from "@/theme/ThemeContext";
 import { CaretDown, Check } from "phosphor-react-native";
 import { theme } from "@/theme/theme";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type Option = string | { label: string; value: string };
 
@@ -36,7 +37,8 @@ type Props = {
   containerStyle?: any;
   fieldStyle?: any;
   textStyle?: any;
-  searchable?: boolean; // show search input if true
+  searchable?: boolean;
+  error?: any;
 };
 
 const BottomSheetSelect: React.FC<Props> = ({
@@ -52,11 +54,13 @@ const BottomSheetSelect: React.FC<Props> = ({
   fieldStyle,
   textStyle,
   searchable = false,
+  error,
 }) => {
-  const { theme } = useTheme();
+  const { theme: appTheme } = useTheme();
   const sheetRef = useRef<BottomSheetModal>(null);
   const [selected, setSelected] = useState<string | null>(value ?? null);
   const [search, setSearch] = useState("");
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     setSelected(value ?? null);
@@ -71,7 +75,6 @@ const BottomSheetSelect: React.FC<Props> = ({
     [options]
   );
 
-  // filter when searchable
   const filteredOptions = useMemo(
     () =>
       searchable
@@ -100,8 +103,8 @@ const BottomSheetSelect: React.FC<Props> = ({
     closeSheet();
   };
 
-  // fixed snap height (no content-based shrinking)
-  const snapPoints = useMemo(() => ["60%"], []);
+  // ✅ 2 snapPoints like CommentsSheet → can expand from 40% to 80%
+  const snapPoints = useMemo(() => ["40%", "80%"], []);
 
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => (
@@ -117,14 +120,16 @@ const BottomSheetSelect: React.FC<Props> = ({
   );
 
   const placeholderColor =
-    placeholderTextColor ?? theme.colors.placeholder;
+    placeholderTextColor ?? appTheme.colors.placeholder;
+
+  const borderColor = error
+    ? appTheme.colors.error
+    : appTheme.colors.primary;
 
   return (
     <View style={[styles.wrapper, containerStyle]}>
       {!!label && (
-        <Text style={[styles.label, { color: labelColor }]}>
-          {label}
-        </Text>
+        <Text style={[styles.label, { color: labelColor }]}>{label}</Text>
       )}
 
       <TouchableOpacity
@@ -133,12 +138,9 @@ const BottomSheetSelect: React.FC<Props> = ({
         style={[
           styles.field,
           {
-            backgroundColor: theme.colors.background,
-            // shadowColor: "#000",
-            // shadowOpacity: 0.08,
-            // shadowRadius: 8,
-            // shadowOffset: { width: 0, height: 3 },
-            // elevation: 2,
+            backgroundColor: appTheme.colors.background,
+            borderColor,
+            borderWidth: error ? 1 : 0.5,
           },
           fieldStyle,
         ]}
@@ -148,42 +150,52 @@ const BottomSheetSelect: React.FC<Props> = ({
           style={[
             styles.valueText,
             {
-              color: activeLabel
-                ? theme.colors.text
-                : placeholderColor,
+              color: activeLabel ? appTheme.colors.text : placeholderColor,
             },
             textStyle,
           ]}
         >
           {activeLabel || placeholder}
         </Text>
-        <CaretDown size={18} color={theme.colors.primary} />
+        <CaretDown size={18} color={appTheme.colors.primary} />
       </TouchableOpacity>
+
+      {error ? (
+        <Text
+          style={[
+            styles.errorText,
+            { color: appTheme.colors.error },
+          ]}
+        >
+          {error}
+        </Text>
+      ) : null}
 
       <BottomSheetModal
         ref={sheetRef}
-        index={0}
+        index={0}                      // start at 40%
         snapPoints={snapPoints}
+        enableDynamicSizing={false}    // ✅ fixed heights, no shrink on search/content
         enablePanDownToClose
         backdropComponent={renderBackdrop}
         backgroundStyle={{
-          backgroundColor: theme.colors.background,
+          backgroundColor: appTheme.colors.background,
           borderTopLeftRadius: 16,
           borderTopRightRadius: 16,
         }}
         handleIndicatorStyle={{
-          backgroundColor: theme.colors.primary,
+          backgroundColor: appTheme.colors.primary,
         }}
-        // 👇 keyboard behavior: stay fixed, move interactively with keyboard
-        keyboardBehavior="interactive"
-        keyboardBlurBehavior="none"
-        android_keyboardInputMode="adjustResize"
+        topInset={insets.top + 20}
+        keyboardBehavior="extend"
+        keyboardBlurBehavior="restore"
+        android_keyboardInputMode="adjustPan"
       >
         <View style={{ paddingHorizontal: 16, flex: 1 }}>
           <Text
             style={[
               styles.sheetTitle,
-              { color: theme.colors.text },
+              { color: appTheme.colors.text },
             ]}
           >
             {sheetTitle}
@@ -194,13 +206,13 @@ const BottomSheetSelect: React.FC<Props> = ({
               value={search}
               onChangeText={setSearch}
               placeholder="Search..."
-              placeholderTextColor={theme.colors.placeholder}
+              placeholderTextColor={appTheme.colors.placeholder}
               style={[
                 styles.searchInput,
                 {
-                  backgroundColor: theme.colors.background,
-                  color: theme.colors.text,
-                  borderColor: theme.colors.borderColor,
+                  backgroundColor: appTheme.colors.background,
+                  color: appTheme.colors.text,
+                  borderColor: appTheme.colors.borderColor,
                 },
               ]}
             />
@@ -215,7 +227,7 @@ const BottomSheetSelect: React.FC<Props> = ({
               <View
                 style={{
                   height: StyleSheet.hairlineWidth,
-                  backgroundColor: theme.colors.borderColor,
+                  backgroundColor: appTheme.colors.borderColor,
                   opacity: 0.5,
                 }}
               />
@@ -235,7 +247,7 @@ const BottomSheetSelect: React.FC<Props> = ({
                   <Text
                     style={{
                       flex: 1,
-                      color: theme.colors.text,
+                      color: appTheme.colors.text,
                     }}
                   >
                     {item.label}
@@ -243,7 +255,7 @@ const BottomSheetSelect: React.FC<Props> = ({
                   {isActive && (
                     <Check
                       size={18}
-                      color={theme.colors.primary}
+                      color={appTheme.colors.primary}
                       weight="bold"
                     />
                   )}
@@ -271,17 +283,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-borderWidth:0.5,
-    borderColor:theme.colors.primary,
-    borderRadius:50,
-
-    
+    borderRadius: 50,
   },
   valueText: {
-     flex: 1,
+    flex: 1,
     color: theme.colors.placeholder,
     fontSize: theme.typography.fontSize.v5,
-    paddingVertical: 12,  
+    paddingVertical: 12,
+  },
+  errorText: {
+    marginTop: 6,
+    fontSize: 12,
   },
   sheetTitle: {
     fontSize: 16,

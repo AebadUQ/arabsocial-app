@@ -1,11 +1,6 @@
 // components/events/MyEventCard.tsx
 import React from "react";
-import {
-  View,
-  StyleSheet,
-  TouchableOpacity,
-  Image,
-} from "react-native";
+import { View, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Text } from "@/components";
 import { useTheme } from "@/theme/ThemeContext";
@@ -20,15 +15,17 @@ export type MyEvent = {
   title: string;
   city?: string | null;
   country?: string | null;
-  banner?: string | null;
-  event_date?: string | null; // raw date from API
-  event_time?: string | null; // raw time string from API
+  img?: string | null;
+  flyer?: string | null;
+  event_date?: string | null;
+  event_time?: string | null;
+  approval_status?: "pending" | "approved" | "rejected" | string;
 };
 
 type Props = {
-  item: MyEvent;
-  onPressCard?: () => void;
-  onPressManage?: () => void;
+  item: any;
+  // onPressCard?: () => void;
+  // onPressManage?: () => void;
 };
 
 const CARD_WIDTH = 310;
@@ -36,61 +33,43 @@ const CARD_WIDTH = 310;
 const formatEventDate = (raw?: string | null): string => {
   if (!raw) return "";
   const date = new Date(raw);
-
-  // If invalid date, just return original
   if (isNaN(date.getTime())) return String(raw);
 
   const day = date.getDate();
-  const month = date.toLocaleString("en-US", {
-    month: "short",
-  });
+  const month = date.toLocaleString("en-US", { month: "short" });
   const year = date.getFullYear();
 
-  return `${day} ${month} ${year}`; // e.g. "12 Oct 2025"
+  return `${day} ${month} ${year}`;
 };
 
 const MyEventCard: React.FC<Props> = ({
   item,
-  onPressCard,
-  onPressManage,
+  // onPressCard,
+  // onPressManage,
 }) => {
   const { theme } = useTheme();
   const nav = useNavigation<any>();
 
-  const location = [item.city, item.country]
-    .filter(Boolean)
-    .join(", ");
+  const location = [item.city, item.country].filter(Boolean).join(", ");
 
   const handleManage = () =>
-    onPressManage
-      ? onPressManage()
-      : nav.navigate(
-          "EditEvent" as never,
-          { eventId: item.id } as never
-        );
+    
+       nav.navigate("EditEvent" as never, { eventId: item.id } as never);
 
   const handleCard = () =>
-    onPressCard
-      ? onPressCard()
-      : nav.navigate(
-          "EventDetail" as never,
-          { eventId: item.id } as never
-        );
+    nav.navigate("EventDetail" as never, { eventId: item.id } as never);
 
-  const showBanner = !!item.banner;
+  const bannerUri = item.img || item.flyer || null;
+  const hasBanner = !!bannerUri;
 
-  const formattedDate = formatEventDate(
-    item.event_date
-  );
-  const hasDateTime =
-    !!formattedDate || !!item.event_time;
+  const formattedDate = formatEventDate(item.event_date);
+  const hasDateTime = !!formattedDate || !!item.event_time;
 
-  const dateTimeLabel = [
-    formattedDate,
-    item.event_time || "",
-  ]
+  const dateTimeLabel = [formattedDate, item.event_time || ""]
     .filter(Boolean)
-    .join(" · "); // "12 Oct 2025 · 7:30 PM"
+    .join(" · ");
+
+  const isPending = item.approval_status === "pending";
 
   return (
     <TouchableOpacity
@@ -104,52 +83,44 @@ const MyEventCard: React.FC<Props> = ({
       ]}
       onPress={handleCard}
     >
-      {/* Top row */}
       <View style={styles.row}>
-        {/* Event image / banner */}
         <View
           style={[
             styles.logoWrap,
             {
-              backgroundColor:
-                theme.colors
-                  .primaryLight,
+              backgroundColor: hasBanner
+                ? "transparent"
+                : theme.colors.primaryLight,
             },
           ]}
         >
-          {showBanner ? (
+          {hasBanner && (
             <Image
-              source={{
-                uri: item.banner!,
-              }}
-              style={styles.logo}
-              resizeMode="cover"
-            />
-          ) : (
-            <Image
-              source={require("@/assets/images/event1.jpg")}
+              source={{ uri: bannerUri! }}
               style={styles.logo}
               resizeMode="cover"
             />
           )}
         </View>
 
-        {/* Text block */}
-        <View
-          style={{
-            flex: 1,
-            marginLeft: 12,
-          }}
-        >
-          {/* Event name */}
-          <Text
-            style={{ fontWeight: "700" }}
-            numberOfLines={1}
-          >
-            {item.title}
-          </Text>
+        <View style={{ flex: 1, marginLeft: 12 }}>
+          <View style={styles.titleRow}>
+            <Text
+              style={styles.titleText}
+              numberOfLines={1}
+            >
+              {item.title}
+            </Text>
 
-          {/* Location */}
+            {isPending && (
+              <View style={styles.statusTag}>
+                <Text style={styles.statusText}>
+                  pending approval
+                </Text>
+              </View>
+            )}
+          </View>
+
           <View style={styles.metaRow}>
             <MapPinIcon
               size={14}
@@ -161,41 +132,26 @@ const MyEventCard: React.FC<Props> = ({
               numberOfLines={1}
               style={[
                 styles.metaText,
-                {
-                  color:
-                    theme.colors
-                      .textLight,
-                },
+                { color: theme.colors.textLight },
               ]}
             >
-              {location ||
-                "Location TBA"}
+              {location || "Location TBA"}
             </Text>
           </View>
 
-          {/* Start date + time (same size as location) */}
           {hasDateTime && (
             <View style={styles.metaRow}>
               <CalendarIcon
                 size={14}
                 weight="fill"
-                color={
-                  theme.colors
-                    .primary
-                }
-                style={{
-                  marginRight: 6,
-                }}
+                color={theme.colors.primary}
+                style={{ marginRight: 6 }}
               />
               <Text
                 numberOfLines={1}
                 style={[
-                  styles.metaText, // 👈 same font size as location
-                  {
-                    color:
-                      theme.colors
-                        .textLight,
-                  },
+                  styles.metaText,
+                  { color: theme.colors.textLight },
                 ]}
               >
                 {dateTimeLabel}
@@ -205,16 +161,13 @@ const MyEventCard: React.FC<Props> = ({
         </View>
       </View>
 
-      {/* Manage button */}
       <TouchableOpacity
         activeOpacity={0.9}
         style={[
           styles.manageBtn,
           {
-            borderColor:
-              "rgba(27,173,122,0.35)",
-            backgroundColor:
-              "rgba(27,173,122,0.12)",
+            borderColor: "rgba(27,173,122,0.35)",
+            backgroundColor: "rgba(27,173,122,0.12)",
           },
         ]}
         onPress={handleManage}
@@ -225,10 +178,7 @@ const MyEventCard: React.FC<Props> = ({
           color={theme.colors.primary}
           style={{ marginRight: 8 }}
         />
-        <Text
-          variant="body1"
-          color={theme.colors.primary}
-        >
+        <Text variant="body1" color={theme.colors.primary}>
           Manage Event
         </Text>
       </TouchableOpacity>
@@ -266,6 +216,26 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  titleText: {
+    fontWeight: "700",
+    flex: 1,
+    marginRight: 8,
+  },
+  statusTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,193,7,0.12)",
+  },
+  statusText: {
+    fontSize: 10.5,
+    fontWeight: "600",
+    color: "#B8860B",
+  },
   metaRow: {
     marginTop: 3,
     flexDirection: "row",
@@ -273,7 +243,7 @@ const styles = StyleSheet.create({
     maxWidth: 220,
   },
   metaText: {
-    fontSize: 12, // same as location
+    fontSize: 12,
   },
   manageBtn: {
     marginTop: 12,

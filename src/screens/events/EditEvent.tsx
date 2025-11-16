@@ -1,3 +1,5 @@
+// screens/Event/EditEventScreen.tsx
+
 import React, { useState, useEffect, useRef } from "react";
 import {
   View,
@@ -5,7 +7,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  Alert,
   ActivityIndicator,
   NativeSyntheticEvent,
   LayoutChangeEvent,
@@ -20,12 +21,14 @@ import LinearGradient from "react-native-linear-gradient";
 import { Text } from "@/components";
 import InputField from "@/components/Input";
 import { useTheme } from "@/theme/ThemeContext";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import BottomSheetSelect from "@/components/BottomSheetSelect";
 import PickerField from "@/components/Pickerfield";
 import { Country, State } from "country-state-city";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createEvent, uploadEventImage } from "@/api/events";
+import { getEventsDetail, uploadEventImage, updateEvent } from "@/api/events";
+import Card from "@/components/Card";
+import { theme } from "@/theme/theme";
 
 // Icons
 import {
@@ -34,8 +37,6 @@ import {
   UploadSimple as UploadSimpleIcon,
   ArrowLeft as ArrowLeftIcon,
 } from "phosphor-react-native";
-import Card from "@/components/Card";
-import { theme } from "@/theme/theme";
 
 type FormState = {
   title: string;
@@ -65,11 +66,32 @@ type FormErrors = {
 
 type PickerTarget = "date" | "start" | "end";
 
-export default function PromoteEventScreen() {
+type ApiEvent = {
+  id: number | string;
+  title?: string | null;
+  description?: string | null;
+  flyer?: string | null;
+  img?: string | null;
+  city?: string | null;
+  address?: string | null;
+  country?: string | null;
+  start_datetime?: string | null;
+  end_datetime?: string | null;
+  event_date?: string | null;
+  ticket_link?: string | null;
+  price?: string | number | null;
+  total_spots?: string | number | null;
+  event_type?: string | null;
+};
+
+const EditEventScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
+  const eventId: string | number | undefined = route?.params?.eventId;
+
   const { theme: appTheme } = useTheme();
   const insets = useSafeAreaInsets();
-  const queryClient = useQueryClient(); // ✅ solution-1
+  const queryClient = useQueryClient();
 
   const [eventDate, setEventDate] = useState<Date | null>(null);
   const [startAt, setStartAt] = useState<Date | null>(null);
@@ -93,6 +115,7 @@ export default function PromoteEventScreen() {
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [bannerUploading, setBannerUploading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const set = (key: keyof FormState, value: string) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -129,6 +152,7 @@ export default function PromoteEventScreen() {
     setCountries(allCountries);
   }, []);
 
+  // ✅ ab city ko effect me reset nahi kar rahe
   useEffect(() => {
     if (form.country) {
       const selected = Country.getAllCountries().find(
@@ -138,14 +162,12 @@ export default function PromoteEventScreen() {
         (s) => s.name
       );
       setCities(stateList);
-      set("city", "");
       setErrors((prev) => ({
         ...prev,
         city: "",
       }));
     } else {
       setCities([]);
-      set("city", "");
     }
   }, [form.country]);
 
@@ -165,6 +187,81 @@ export default function PromoteEventScreen() {
       hour12: true,
     });
 
+  // ---- Fetch existing event ----
+  const normalizeEvent = (res: any): ApiEvent | null => {
+    if (!res) return null;
+    const candidate = res?.data?.data ?? res?.data ?? res;
+    return candidate && !Array.isArray(candidate)
+      ? (candidate as ApiEvent)
+      : null;
+  };
+
+  useEffect(() => {
+    const load = async () => {
+      if (!eventId) {
+        setLoading(false);
+        return;
+      }
+      try {
+        setLoading(true);
+        const res = await getEventsDetail(eventId);
+        const ev = normalizeEvent(res);
+        if (!ev) {
+          setLoading(false);
+          return;
+        }
+
+        // Dates
+        let eventDateObj: Date | null = null;
+        if (ev.event_date) {
+          eventDateObj = new Date(ev.event_date);
+        } else if (ev.start_datetime) {
+          eventDateObj = new Date(ev.start_datetime);
+        }
+
+        const startObj = ev.start_datetime ? new Date(ev.start_datetime) : null;
+        const endObj = ev.end_datetime ? new Date(ev.end_datetime) : null;
+
+        setEventDate(eventDateObj);
+        setStartAt(startObj);
+        setEndAt(endObj);
+
+        setForm({
+          title: ev.title ?? "",
+          event_type: ev.event_type ?? "",
+          event_date: eventDateObj ? fmtDate(eventDateObj) : "",
+          start_datetime: startObj ? fmtTime(startObj) : "",
+          end_datetime: endObj ? fmtTime(endObj) : "",
+          address: ev.address ?? "",
+          country: ev.country ?? "",
+          city: ev.city ?? "",
+          total_spots: ev.total_spots != null ? String(ev.total_spots) : "",
+          ticket_link: ev.ticket_link ?? "",
+          price: ev.price != null ? String(ev.price) : "",
+          description: ev.description ?? "",
+          bannerUri: ev.flyer || ev.img || "",
+        });
+
+        // initial cities list (city value ko touch nahi kar rahe)
+        if (ev.country) {
+          const selected = Country.getAllCountries().find(
+            (c) => c.name === ev.country
+          );
+          const stateList = State.getStatesOfCountry(selected?.isoCode || "").map(
+            (s) => s.name
+          );
+          setCities(stateList);
+        }
+      } catch (e) {
+        console.error("Failed to load event for edit:", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+  }, [eventId]);
+
   // ---- Image Picker ----
   const onPickBanner = async () => {
     try {
@@ -180,7 +277,6 @@ export default function PromoteEventScreen() {
       const asset = result.assets?.[0] as Asset | undefined;
 
       if (!asset?.uri) {
-        Alert.alert("No image", "Please select a valid image.");
         return;
       }
 
@@ -191,7 +287,6 @@ export default function PromoteEventScreen() {
       set("bannerUri", url);
     } catch (e) {
       console.error("Image picker / upload error:", e);
-      Alert.alert("Error", "Unable to upload image. Please try again.");
     } finally {
       setBannerUploading(false);
     }
@@ -283,19 +378,17 @@ export default function PromoteEventScreen() {
   const onSelectStart = () => openPicker("start", "time");
   const onSelectEnd = () => openPicker("end", "time");
 
-  // ---- React Query Mutation ----
+  // ---- React Query Mutation (update) ----
   const mutation = useMutation({
-    mutationFn: createEvent,
+    mutationFn: (data: any) => updateEvent(eventId!, data),
     onSuccess: () => {
-      // ✅ Event list ko fresh karne ke liye
+      // lists refresh for latest data
       queryClient.invalidateQueries({ queryKey: ["approvedEvents"] });
       queryClient.invalidateQueries({ queryKey: ["myEvents"] });
-
       navigation.goBack();
     },
     onError: (err: any) => {
       console.error(err);
-      // yahan agar chaho to toast waghera use kar sakte ho
     },
   });
 
@@ -359,7 +452,6 @@ export default function PromoteEventScreen() {
       title: form.title,
       description: form.description,
       event_type: form.event_type,
-      location: form.address,
       address: form.address,
       country: form.country,
       city: form.city,
@@ -373,8 +465,26 @@ export default function PromoteEventScreen() {
       event_date: eventDate!.toISOString(),
     };
 
+    if (!eventId) return;
     mutation.mutate(payload);
   };
+
+  if (loading) {
+    return (
+      <SafeAreaView
+        style={[
+          styles.safe,
+          {
+            backgroundColor: appTheme.colors.background,
+            justifyContent: "center",
+            alignItems: "center",
+          },
+        ]}
+      >
+        <ActivityIndicator size="large" color={appTheme.colors.primary} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView
@@ -390,7 +500,7 @@ export default function PromoteEventScreen() {
         </TouchableOpacity>
 
         <Text variant="body1" color={appTheme.colors.text}>
-          Promote Event
+          Edit Event
         </Text>
         <View style={[styles.navBtn, { opacity: 0 }]} />
       </View>
@@ -510,7 +620,9 @@ export default function PromoteEventScreen() {
             searchable
             value={form.country}
             onChange={(v) => {
+              // ✅ yahan city reset karein (user ne country change ki)
               set("country", v);
+              set("city", "");
               if (errors.country) {
                 setErrors((prev) => ({ ...prev, country: "" }));
               }
@@ -666,7 +778,7 @@ export default function PromoteEventScreen() {
         </View>
       </ScrollView>
 
-      {/* Submit Button (sticky gradient) */}
+      {/* Save Button (sticky gradient) */}
       <View
         style={[
           styles.submitWrap,
@@ -685,16 +797,13 @@ export default function PromoteEventScreen() {
               end={{ x: 1, y: 1 }}
               style={styles.submitBtn}
             >
-              {
-                // @ts-ignore
-                mutation.isLoading || bannerUploading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={{ color: "#fff", fontWeight: "700" }}>
-                    Submit Event
-                  </Text>
-                )
-              }
+              {bannerUploading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={{ color: "#fff", fontWeight: "700" }}>
+                  Save Changes
+                </Text>
+              )}
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -711,7 +820,7 @@ export default function PromoteEventScreen() {
       />
     </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
@@ -798,3 +907,5 @@ const styles = StyleSheet.create({
     width: "100%",
   },
 });
+
+export default EditEventScreen;

@@ -1,5 +1,11 @@
 import React from "react";
-import { TouchableOpacity, View, StyleSheet, ViewStyle, TextStyle } from "react-native";
+import {
+  TouchableOpacity,
+  View,
+  StyleSheet,
+  ViewStyle,
+  TextStyle,
+} from "react-native";
 import { Text } from "@/components";
 import { useTheme } from "@/theme/ThemeContext";
 import { theme } from "@/theme/theme";
@@ -12,7 +18,7 @@ type PickerFieldProps = {
   icon?: React.ReactNode;
   onPress: () => void;
   disabled?: boolean;
-  error?: string;
+  error?: any;
   containerStyle?: ViewStyle;
   fieldStyle?: ViewStyle;
   textStyle?: TextStyle;
@@ -37,7 +43,9 @@ const PickerField: React.FC<PickerFieldProps> = ({
   return (
     <View style={[styles.wrapper, containerStyle]}>
       {/* Label */}
-      {label && <Text style={[styles.label, { color: labelColor }]}>{label}</Text>}
+      {label && (
+        <Text style={[styles.label, { color: labelColor }]}>{label}</Text>
+      )}
 
       {/* Touchable Field */}
       <TouchableOpacity
@@ -48,11 +56,6 @@ const PickerField: React.FC<PickerFieldProps> = ({
           styles.fieldContainer,
           {
             backgroundColor: theme.colors.background,
-            // shadowColor: "#000",
-            // shadowOpacity: 0.08,
-            // shadowRadius: 8,
-            // shadowOffset: { width: 0, height: 3 },
-            // elevation: 2,
           },
           error && { borderWidth: 1, borderColor: theme.colors.error },
           fieldStyle,
@@ -75,7 +78,11 @@ const PickerField: React.FC<PickerFieldProps> = ({
       </TouchableOpacity>
 
       {/* Error Text */}
-      {error && <Text style={[styles.error, { color: theme.colors.error }]}>{error}</Text>}
+      {error && (
+        <Text style={[styles.error, { color: theme.colors.error }]}>
+          {error}
+        </Text>
+      )}
     </View>
   );
 };
@@ -95,15 +102,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 12,
-    borderWidth:0.5,
-        borderColor:theme.colors.primary,
-        borderRadius:50,
+    borderWidth: 0.5,
+    borderColor: theme.colors.primary,
+    borderRadius: 50,
   },
   text: {
-     flex: 1,
+    flex: 1,
     color: theme.colors.placeholder,
     fontSize: theme.typography.fontSize.v5,
-    paddingVertical: 12,  
+    paddingVertical: 12,
   },
   iconWrap: {
     marginLeft: 12,
