@@ -99,3 +99,9 @@ export const uploadEventImage = async (image: Asset) => {
   // { "url": "https://storage.googleapis.com/..." }
   return response.data as { url: string };
 };
+
+export const deleteEvent = async (
+  id: any) => {
+  const res = await api.delete(`/events/${id}`); // 👈 plural
+  return res.data?.data ?? res.data;
+};

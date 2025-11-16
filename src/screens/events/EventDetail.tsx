@@ -1,6 +1,11 @@
 // screens/Event/EventDetail.tsx
 
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+} from "react";
 import {
   View,
   StyleSheet,
@@ -11,8 +16,12 @@ import {
   ActivityIndicator,
   RefreshControl,
   Share,
+  Modal,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import LinearGradient from "react-native-linear-gradient";
 import {
@@ -23,19 +32,22 @@ import {
   MapPin,
   Tag,
   ShareNetwork,
+  Trash as TrashIcon,
 } from "phosphor-react-native";
 import { Text } from "@/components";
 import { useTheme } from "@/theme/ThemeContext";
-import { getEventsDetail } from "@/api/events";
+import { getEventsDetail, deleteEvent } from "@/api/events";
 import { formatDate } from "@/utils";
 import Card from "@/components/Card";
 import { theme as appTheme } from "@/theme/theme";
+import { useAuth } from "@/context/Authcontext";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 type ApiEvent = {
   id: number | string;
   title: string;
   description?: string | null;
-  flyer?: string | null; // URL (if available)
+  flyer?: string | null;
   city?: string | null;
   address?: string | null;
   country?: string | null;
@@ -44,6 +56,7 @@ type ApiEvent = {
   ticket_link?: string | null;
   promo_code?: string | null;
   organizer_name?: string | null;
+  userId?: string | number | null;
 };
 
 const CTA_HEIGHT = 56;
@@ -53,16 +66,19 @@ const EventDetail: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const paramEventId: number | string | undefined = route?.params?.eventId;
   const [event, setEvent] = useState<ApiEvent | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  const [deleteVisible, setDeleteVisible] = useState(false);
+
   const id = useMemo(() => paramEventId, [paramEventId]);
 
-  const contentBottomPad =
-    CTA_HEIGHT + (insets.bottom || 16) + 32;
+  const contentBottomPad = CTA_HEIGHT + (insets.bottom || 16) + 32;
 
   const normalizeEvent = (res: any): ApiEvent | null => {
     if (!res) return null;
@@ -119,6 +135,29 @@ const EventDetail: React.FC = () => {
     }
   };
 
+  // 🔥 Delete mutation – ab id argument se aa rahi hai
+  const {
+    mutate: mutateDelete,
+    isPending: deleting,
+  } = useMutation({
+    mutationFn: async (eventId: number | string) => {
+      console.log("Deleting event id --->", eventId);
+      return deleteEvent(eventId);
+    },
+    onSuccess: () => {
+      // lists refresh
+      queryClient.invalidateQueries({ queryKey: ["approvedEvents"] });
+      queryClient.invalidateQueries({ queryKey: ["myEvents"] });
+
+      setDeleteVisible(false);
+      navigation.goBack();
+    },
+    onError: (err) => {
+      console.error("Delete event error:", err);
+      // yahan custom toast use kar sakte ho agar hai
+    },
+  });
+
   if (loading) {
     return (
       <SafeAreaView
@@ -174,6 +213,12 @@ const EventDetail: React.FC = () => {
   const hasPromo = !!event.promo_code;
   const hasTicket = !!event.ticket_link;
   const hasOrganizer = !!event.organizer_name;
+
+  // ✅ sirf owner ko delete ka UI dikhana
+  const isOwner =
+    event.userId != null &&
+    user?.id != null &&
+    String(event.userId) === String(user.id);
 
   return (
     <SafeAreaView
@@ -237,7 +282,7 @@ const EventDetail: React.FC = () => {
 
           {/* Description */}
           {!!event.description && (
-            <View style={{ marginTop: 4, marginBottom: 0}}>
+            <View style={{ marginTop: 4, marginBottom: 0 }}>
               <Text variant="body2" color={theme.colors.textLight}>
                 {event.description}
               </Text>
@@ -321,7 +366,7 @@ const EventDetail: React.FC = () => {
                 </Text>
                 <TouchableOpacity
                   activeOpacity={0.8}
-                  onPress={() => onBookNow()}
+                  onPress={onBookNow}
                 >
                   <Text
                     variant="body2"
@@ -390,15 +435,37 @@ const EventDetail: React.FC = () => {
             </View>
           )}
         </Card>
+
+        {/* Delete Event row (only owner) */}
+        {isOwner && (
+          <TouchableOpacity
+            style={{
+              backgroundColor: theme.colors.errorLight,
+              padding: 16,
+              borderRadius: 12,
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginTop: 20,
+            }}
+            activeOpacity={0.8}
+            onPress={() => setDeleteVisible(true)}
+          >
+            <Text variant="caption" color={theme.colors.error}>
+              Delete Event
+            </Text>
+            <TrashIcon
+              weight="fill"
+              color={theme.colors.error}
+              size={20}
+            />
+          </TouchableOpacity>
+        )}
       </ScrollView>
 
       {/* Sticky Bottom CTA (only if ticket link) */}
       {hasTicket && (
-        <View
-          style={[
-            styles.ctaWrap,
-          ]}
-        >
+        <View style={styles.ctaWrap}>
           <View style={styles.ctaShadow}>
             <TouchableOpacity
               activeOpacity={0.9}
@@ -420,6 +487,86 @@ const EventDetail: React.FC = () => {
           </View>
         </View>
       )}
+
+      {/* 🔴 Delete confirm modal */}
+      <Modal
+        visible={deleteVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          if (!deleting) setDeleteVisible(false);
+        }}
+      >
+        <View style={styles.modalBackdrop}>
+          <View
+            style={[
+              styles.modalCard,
+              { backgroundColor: theme.colors.background },
+            ]}
+          >
+            <View style={styles.modalIconCircle}>
+              <TrashIcon
+                size={32}
+                color={theme.colors.error}
+                weight="fill"
+              />
+            </View>
+
+            <Text
+              style={[
+                styles.modalTitle,
+                { color: theme.colors.text },
+              ]}
+            >
+              Delete This Listing
+            </Text>
+
+            <Text
+              style={[
+                styles.modalSubtitle,
+                { color: theme.colors.textLight },
+              ]}
+            >
+              Are you sure you want to delete this event? This action
+              can’t be undone.
+            </Text>
+
+            <View style={styles.modalButtonsRow}>
+              <TouchableOpacity
+                style={[
+                  styles.modalBtn,
+                  styles.modalBtnSecondary,
+                ]}
+                activeOpacity={0.8}
+                onPress={() => setDeleteVisible(false)}
+                disabled={deleting}
+              >
+                <Text variant="caption" style={styles.modalBtnSecondaryText}>
+                  No, Keep it
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.modalBtn,
+                  styles.modalBtnDanger,
+                ]}
+                activeOpacity={0.8}
+                onPress={() => mutateDelete(event.id)}
+                disabled={deleting}
+              >
+                {deleting ? (
+                  <ActivityIndicator color="#D32F2F" />
+                ) : (
+                  <Text variant="caption" style={styles.modalBtnDangerText}>
+                    Delete Now
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -520,6 +667,66 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     width: "100%",
+  },
+
+  // modal styles
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+  },
+  modalCard: {
+    width: "100%",
+    borderRadius: 24,
+    paddingHorizontal: 24,
+    paddingTop: 28,
+    paddingBottom: 20,
+  },
+  modalIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#FDE4E4",
+    alignSelf: "center",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  modalSubtitle: {
+    fontSize: 13,
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  modalButtonsRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  modalBtn: {
+    flex: 1,
+    height: 44,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalBtnSecondary: {
+    backgroundColor: "#E4F5EC",
+  },
+  modalBtnSecondaryText: {
+    color: "#1BAD7A",
+  },
+  modalBtnDanger: {
+    backgroundColor: "#FDE4E4",
+  },
+  modalBtnDangerText: {
+    color: "#D32F2F",
   },
 });
 
