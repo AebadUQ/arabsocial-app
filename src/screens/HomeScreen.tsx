@@ -7,8 +7,6 @@ import {
   View,
   ActivityIndicator,
   TouchableOpacity,
-  TextInput,
-  Image,
   Text,
 } from "react-native";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
@@ -21,28 +19,29 @@ import {
   createPost,
   likePost,
   deletePost,
+  uploadPostImage, // 👈 image upload
 } from "@/api/post";
-import ImagePickerField, {
-  ImagePickerFieldHandle,
-} from "@/components/common/ImagePicker";
-import type { Asset } from "react-native-image-picker";
 import {
-  ImageSquareIcon,
-  PaperPlaneRightIcon,
-  XCircle,
-} from "phosphor-react-native";
+  launchImageLibrary,
+  Asset,
+  ImageLibraryOptions,
+} from "react-native-image-picker";
+import { ImageSquareIcon } from "phosphor-react-native";
 import { useAuth } from "@/context/Authcontext";
 import CommentsSheet, {
   CommentsSheetHandle,
 } from "@/components/home/CommentSheet";
+import PostComposerSheet, {
+  ComposerSheetHandle,
+} from "@/components/home/CreatePostSheet";
 
 const PAGE_SIZE = 10;
 
 const HomeScreen: React.FC = ({ navigation }: any) => {
   const { theme } = useTheme();
   const queryClient = useQueryClient();
-  const pickerRef = useRef<ImagePickerFieldHandle>(null);
   const commentsRef = useRef<CommentsSheetHandle>(null);
+  const composerRef = useRef<ComposerSheetHandle>(null);
   const { user } = useAuth();
 
   // composer state
@@ -54,7 +53,7 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
   const [likingMap, setLikingMap] = useState<Record<string, boolean>>({});
   const [deletingMap, setDeletingMap] = useState<Record<string, boolean>>({});
 
-  // feed loader
+  // -------- Feed loader --------
   const {
     data,
     isLoading,
@@ -83,26 +82,55 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
     return data.pages.flatMap((page) => page.data) as ApiPost[];
   }, [data]);
 
-  // -------- Composer helpers --------
-  const onPickImage = () => pickerRef.current?.open();
+  // -------- Image picker (no extra UI) --------
+  const onPickImage = () => {
+    const options: ImageLibraryOptions = {
+      mediaType: "photo",
+      selectionLimit: 1,
+      quality: 1,
+    };
+
+    launchImageLibrary(options, (response) => {
+      if (response.didCancel) return;
+      if (response.errorCode) {
+        console.warn("ImagePicker error:", response.errorMessage);
+        return;
+      }
+
+      const asset = response.assets?.[0];
+      if (!asset) return;
+
+      const normalized: Asset = {
+        ...asset,
+        uri: asset.uri || asset.fileName || "",
+      };
+
+      setPickedImage(normalized);
+      // image pick hote hi sheet open
+      composerRef.current?.open();
+    });
+  };
+
   const removePicked = () => setPickedImage(null);
 
   const canSend =
     (newPost.trim().length > 0 || !!pickedImage?.uri) && !posting;
 
+  // ====================== CREATE POST ======================
   const handleAddPost = async () => {
-    if (posting) return;
-    const text = newPost.trim();
-    const imgUri = pickedImage?.uri;
-    if (!text && !imgUri) return;
+    if (!canSend) return;
 
+    const text = newPost.trim();
+    const imageAsset = pickedImage; // local copy
+    const localUri = imageAsset?.uri || null;
     const tempId = `temp-${Date.now()}`;
 
+    // optimistic fake post (local uri for preview)
     const fakePost: ApiPost = {
       id: tempId as unknown as number,
       authorId: user?.id ?? 0,
-      content: text + (imgUri ? "\n\n(attachment pending upload)" : ""),
-      image_url: imgUri || null,
+      content: text,
+      image_url: localUri,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       likes_count: 0,
@@ -113,7 +141,7 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
         id: user?.id ?? 0,
         name: user?.name ?? "You",
         image: user?.image ?? null,
-        country: user?.country ?? null,
+        country: user?.country ?? null, // 👈 yahan se country aa rahi hai
       },
     };
 
@@ -148,26 +176,54 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
       return { ...oldData, pages: newPages };
     });
 
+    // UI reset + sheet close immediately
     setNewPost("");
     setPickedImage(null);
+    composerRef.current?.close();
 
     try {
       setPosting(true);
-      const created = await createPost({ content: text });
 
+      // 1) upload image if available
+      let uploadedUrl: string | null = null;
+      if (imageAsset) {
+        const res = await uploadPostImage(imageAsset);
+        uploadedUrl = res.url;
+      }
+
+      // 2) create post with content + image_url
+      const created = await createPost({
+        content: text,
+        ...(uploadedUrl ? { image_url: uploadedUrl } : {}),
+      });
+
+      // 3) replace fake post with real post (MERGE AUTHOR so country na udday)
       if (created?.id) {
         queryClient.setQueryData(["posts"], (oldData: any) => {
           if (!oldData?.pages) return oldData;
+
           const newPages = oldData.pages.map((pg: any) => ({
             ...pg,
-            data: pg.data.map((p: ApiPost) =>
-              String(p.id) === String(tempId) ? { ...created } : p
-            ),
+            data: pg.data.map((p: ApiPost) => {
+              if (String(p.id) !== String(tempId)) return p;
+
+              const mergedAuthor = {
+                ...(p as any).author,
+                ...(created as any).author,
+              };
+
+              return {
+                ...p,        // optimistic data (including author.country)
+                ...created,  // backend real data
+                author: mergedAuthor,
+              };
+            }),
           }));
+
           return { ...oldData, pages: newPages };
         });
       } else {
-        // rollback
+        // rollback if create failed
         queryClient.setQueryData(["posts"], (oldData: any) => {
           if (!oldData?.pages) return oldData;
           const newPages = oldData.pages.map((pg: any) => ({
@@ -183,8 +239,9 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
           return { ...oldData, pages: newPages };
         });
       }
-    } catch {
-      // rollback
+    } catch (e) {
+      console.warn("create post failed", e);
+      // rollback on any error (upload or create)
       queryClient.setQueryData(["posts"], (oldData: any) => {
         if (!oldData?.pages) return oldData;
         const newPages = oldData.pages.map((pg: any) => ({
@@ -201,8 +258,10 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
       });
     } finally {
       setPosting(false);
+      // composerRef.current?.close(); // already closed upar, yahan optional hai
     }
   };
+  // ====================== /CREATE POST ======================
 
   // -------- Like / Delete / Comments --------
   const handleToggleLike = useCallback(
@@ -247,7 +306,6 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
       try {
         await likePost({ postId });
       } catch {
-        // rollback
         queryClient.setQueryData(["posts"], (oldData: any) => {
           if (!oldData?.pages) return oldData;
 
@@ -360,77 +418,58 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
     };
   };
 
-  // -------- Composer UI (now OUTSIDE FlatList header) --------
+  // -------- Composer UI (top, fixed) --------
   const renderComposer = () => (
-    <>
-      <View style={styles.inputWrap}>
-        <TextInput
-          placeholder="Ask for help or give suggestions"
-          placeholderTextColor="#999"
-          value={newPost}
-          onChangeText={setNewPost}
-          style={styles.input}
-          multiline
-          numberOfLines={4}
-          textAlignVertical="top"
-          editable={!posting}
-        />
-
-        {pickedImage?.uri && (
-          <View style={styles.previewContainer}>
-            <Image
-              source={{ uri: pickedImage.uri }}
-              style={styles.previewImage}
-            />
-            <TouchableOpacity
-              onPress={removePicked}
-              hitSlop={10}
-              style={styles.removeBadge}
-              disabled={posting}
-            >
-              <XCircle size={18} weight="fill" color="#fff" />
-            </TouchableOpacity>
-          </View>
-        )}
-
-        <TouchableOpacity
-          onPress={onPickImage}
-          style={styles.imageIcon}
-          hitSlop={10}
-          disabled={posting}
+    <View
+      style={{
+        display: "flex",
+        flexDirection: "row",
+        gap: 10,
+        paddingHorizontal: 18,
+        marginBottom: 20,
+      }}
+    >
+      {/* fake input -> open bottom sheet */}
+      <TouchableOpacity
+        style={{ flex: 1 }}
+        activeOpacity={0.9}
+        onPress={() => {
+          composerRef.current?.open();
+        }}
+      >
+        <View
+          style={{
+            width: "100%",
+            borderWidth: 0.25,
+            borderColor: theme.colors.borderColor,
+            padding: 14,
+            backgroundColor: "white",
+            borderRadius: 9999,
+            justifyContent: "center",
+          }}
         >
-          <ImageSquareIcon
-            size={22}
-            weight="regular"
-            color="#9AA0A6"
-          />
-        </TouchableOpacity>
+          <Text style={{ color: "#999" }}>Share Something..</Text>
+        </View>
+      </TouchableOpacity>
 
-        {canSend && (
-          <TouchableOpacity
-            onPress={handleAddPost}
-            style={styles.sendIcon}
-            hitSlop={10}
-            disabled={posting}
-          >
-            <PaperPlaneRightIcon
-              size={22}
-              weight="fill"
-              color={theme.colors.primary}
-            />
-          </TouchableOpacity>
-        )}
-      </View>
-
-      <ImagePickerField
-        ref={pickerRef}
-        value={pickedImage}
-        onChange={setPickedImage}
-        size={0}
-        style={{ height: 0, opacity: 0 }}
-        showRemove={false}
-      />
-    </>
+      {/* image icon */}
+      <TouchableOpacity
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          borderWidth: 0.25,
+          borderColor: theme.colors.primary,
+          width: 40,
+          height: 40,
+          backgroundColor: theme.colors.primaryLight,
+          borderRadius: 20,
+        }}
+        onPress={onPickImage}
+      >
+        <ImageSquareIcon color={theme.colors.primary} size={20} />
+      </TouchableOpacity>
+    </View>
   );
 
   return (
@@ -440,37 +479,33 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
         backgroundColor: theme.colors.background,
       }}
     >
-      <TopBar onMenuPress={() => navigation.openDrawer()} showCenterLogo/>
+      <TopBar onMenuPress={() => navigation.openDrawer()} showCenterLogo />
 
-      <View style={{ flex: 1 }}>
+      <View style={{  }}>
+        {/* 🔹 FIXED COMPOSER ON TOP */}
         {renderComposer()}
 
+        {/* 🔹 ONLY LIST SCROLLS (NO SCROLLVIEW WRAPPING) */}
         {isLoading ? (
           <View style={styles.center}>
             <ActivityIndicator
               size="large"
               color={theme.colors.primary}
             />
-            <Text style={{ marginTop: 10 }}>
-              Loading posts...
-            </Text>
+            <Text style={{ marginTop: 10 }}>Loading posts...</Text>
           </View>
         ) : isError ? (
           <View style={styles.center}>
             <Text style={{ color: "red" }}>
-              {(error as any)?.message ||
-                "Failed to load posts."}
+              {(error as any)?.message || "Failed to load posts."}
             </Text>
             <TouchableOpacity
               style={[
                 styles.retryBtn,
                 { backgroundColor: theme.colors.primary },
               ]}
-              // onPress={refetch}
             >
-              <Text style={{ color: "#fff" }}>
-                Retry
-              </Text>
+              <Text style={{ color: "#fff" }}>Retry</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -490,9 +525,7 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
             ListFooterComponent={
               isFetchingNextPage ? (
                 <View style={{ paddingVertical: 20 }}>
-                  <ActivityIndicator
-                    color={theme.colors.primary}
-                  />
+                  <ActivityIndicator color={theme.colors.primary} />
                 </View>
               ) : null
             }
@@ -505,70 +538,33 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
         )}
       </View>
 
+      {/* Comments Bottom Sheet */}
       <CommentsSheet
         ref={commentsRef}
         loadPage={loadCommentsPage}
         pageSize={10}
         title="Comments"
       />
+
+      {/* Post Composer Bottom Sheet */}
+      <PostComposerSheet
+        ref={composerRef}
+        newPost={newPost}
+        onChangeText={setNewPost}
+        pickedImage={pickedImage}
+        onRemoveImage={removePicked}
+        onSend={handleAddPost}
+        posting={posting}
+        onPickImage={onPickImage}
+        userName={user?.name}
+        userLocation={user?.country || ""}
+        userAvatarUri={user?.image ?? null}
+      />
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  inputWrap: {
-    position: "relative",
-    flexDirection: "column",
-    alignItems: "stretch",
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    backgroundColor: "white",
-    marginHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#EEE",
-    overflow: "hidden",
-  },
-  input: {
-    minHeight: 48,
-    fontSize: 14,
-    paddingRight: 56,
-    paddingTop: 6,
-    paddingBottom: 6,
-  },
-  previewContainer: {
-    marginTop: 10,
-    borderRadius: 10,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "#e5e5e5",
-    backgroundColor: "#f7f7f7",
-  },
-  previewImage: {
-    width: "100%",
-    height: 180,
-    resizeMode: "cover",
-  },
-  removeBadge: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    borderRadius: 12,
-    padding: 2,
-  },
-  imageIcon: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-  },
-  sendIcon: {
-    position: "absolute",
-    bottom: 10,
-    right: 12,
-  },
   center: {
     flex: 1,
     alignItems: "center",

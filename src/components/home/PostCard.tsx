@@ -173,7 +173,7 @@ const PostCard: React.FC<Props> = ({
   const closeImagePreview = () => {
     setImagePreviewVisible(false);
   };
-
+console.log("post",post.author.country)
   return (
     <View style={[styles.card, { shadowColor: "#000" }]}>
       {/* Header */}
@@ -209,6 +209,7 @@ const PostCard: React.FC<Props> = ({
                 </Text>
               )}
             </View>
+            
             <Text
               variant="overline"
               style={styles.userLocation}

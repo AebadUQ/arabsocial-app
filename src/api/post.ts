@@ -1,3 +1,4 @@
+import { Asset } from 'react-native-image-picker';
 import api from './api';
 export const getAllPost = async (params: {
   page?: number;
@@ -13,10 +14,24 @@ export const getAllPost = async (params: {
   console.log("rassds",response.data)
   return response.data.data;
 };
-export const createPost = async ({  content }: {  content: string; }) => {
-  const res = await api.post(`/posts/create`, { content });
-  return res.data?.data; // server ka created comment object
+// types optional
+type CreatePostArgs = {
+  content: string;
+  image_url?: string | null;
 };
+
+export const createPost = async ({ content, image_url }: CreatePostArgs) => {
+  const payload: any = { content };
+
+  // sirf tab bhejo jab url ho
+  if (image_url) {
+    payload.image_url = image_url;
+  }
+
+  const res = await api.post(`/posts/create`, payload);
+  return res.data?.data; // server ka created post object
+};
+
 export const getPostComments = async (params: {
   postId: number | string;
   page?: number;
@@ -69,4 +84,22 @@ export const deletePost = async ({
 }) => {
   const res = await api.delete(`/posts/${postId}`); // 👈 plural
   return res.data?.data ?? res.data;
+};
+export const uploadPostImage = async (image: Asset) => {
+  const formData = new FormData();
+
+  formData.append("file", {
+    // @ts-ignore
+    uri: image.uri,
+    name: image.fileName || `post-${Date.now()}.jpg`,
+    type: image.type || "image/jpeg",
+  });
+
+  const response = await api.post("/upload/image/post", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
+  return response.data as { url: string };
 };
