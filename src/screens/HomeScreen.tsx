@@ -2,12 +2,15 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
-  FlatList,
   StyleSheet,
   View,
   ActivityIndicator,
   TouchableOpacity,
   Text,
+  ScrollView,
+  RefreshControl,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
 } from "react-native";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@/theme/ThemeContext";
@@ -19,7 +22,7 @@ import {
   createPost,
   likePost,
   deletePost,
-  uploadPostImage, // 👈 image upload
+  uploadPostImage,
 } from "@/api/post";
 import {
   launchImageLibrary,
@@ -66,7 +69,7 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
     error,
   } = useInfiniteQuery({
     queryKey: ["posts"],
-    queryFn: async ({ pageParam }) =>
+    queryFn: async ({ pageParam = 1 }) =>
       getAllPost({ page: pageParam, limit: PAGE_SIZE }),
     getNextPageParam: (lastPage) => {
       if (lastPage?.meta?.page < lastPage?.meta?.lastPage) {
@@ -82,7 +85,7 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
     return data.pages.flatMap((page) => page.data) as ApiPost[];
   }, [data]);
 
-  // -------- Image picker (no extra UI) --------
+  // -------- Image picker --------
   const onPickImage = () => {
     const options: ImageLibraryOptions = {
       mediaType: "photo",
@@ -106,7 +109,6 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
       };
 
       setPickedImage(normalized);
-      // image pick hote hi sheet open
       composerRef.current?.open();
     });
   };
@@ -125,7 +127,7 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
     const localUri = imageAsset?.uri || null;
     const tempId = `temp-${Date.now()}`;
 
-    // optimistic fake post (local uri for preview)
+    // optimistic fake post
     const fakePost: ApiPost = {
       id: tempId as unknown as number,
       authorId: user?.id ?? 0,
@@ -141,7 +143,7 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
         id: user?.id ?? 0,
         name: user?.name ?? "You",
         image: user?.image ?? null,
-        country: user?.country ?? null, // 👈 yahan se country aa rahi hai
+        country: user?.country ?? null,
       },
     };
 
@@ -176,7 +178,7 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
       return { ...oldData, pages: newPages };
     });
 
-    // UI reset + sheet close immediately
+    // reset & close composer immediately
     setNewPost("");
     setPickedImage(null);
     composerRef.current?.close();
@@ -197,7 +199,7 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
         ...(uploadedUrl ? { image_url: uploadedUrl } : {}),
       });
 
-      // 3) replace fake post with real post (MERGE AUTHOR so country na udday)
+      // 3) replace fake post with real post (merge author)
       if (created?.id) {
         queryClient.setQueryData(["posts"], (oldData: any) => {
           if (!oldData?.pages) return oldData;
@@ -213,8 +215,8 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
               };
 
               return {
-                ...p,        // optimistic data (including author.country)
-                ...created,  // backend real data
+                ...p,
+                ...created,
                 author: mergedAuthor,
               };
             }),
@@ -241,7 +243,7 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
       }
     } catch (e) {
       console.warn("create post failed", e);
-      // rollback on any error (upload or create)
+      // rollback on any error
       queryClient.setQueryData(["posts"], (oldData: any) => {
         if (!oldData?.pages) return oldData;
         const newPages = oldData.pages.map((pg: any) => ({
@@ -258,7 +260,6 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
       });
     } finally {
       setPosting(false);
-      // composerRef.current?.close(); // already closed upar, yahan optional hai
     }
   };
   // ====================== /CREATE POST ======================
@@ -384,28 +385,6 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
     []
   );
 
-  const keyExtractor = useCallback(
-    (item: ApiPost) => String(item.id),
-    []
-  );
-
-  const renderItem = useCallback(
-    ({ item }: { item: ApiPost }) => (
-      <PostCard
-        post={item}
-        currentUserId={user?.id}
-        onOpenComments={openComments}
-        onToggleLike={() => handleToggleLike(item.id)}
-        onDeletePost={() => handleDeletePost(item.id)}
-      />
-    ),
-    [user?.id, openComments, handleToggleLike, handleDeletePost]
-  );
-
-  const onEndReached = () => {
-    if (hasNextPage && !isFetchingNextPage) fetchNextPage();
-  };
-
   const loadCommentsPage = async (
     postId: number | string,
     page: number,
@@ -418,7 +397,21 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
     };
   };
 
-  // -------- Composer UI (top, fixed) --------
+  // -------- Infinite scroll with ScrollView --------
+  const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (!hasNextPage || isFetchingNextPage) return;
+    const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
+    const paddingToBottom = 250; // px
+    const isNearBottom =
+      layoutMeasurement.height + contentOffset.y >=
+      contentSize.height - paddingToBottom;
+
+    if (isNearBottom) {
+      fetchNextPage();
+    }
+  };
+
+  // -------- Composer UI (top) --------
   const renderComposer = () => (
     <View
       style={{
@@ -427,6 +420,7 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
         gap: 10,
         paddingHorizontal: 18,
         marginBottom: 20,
+        marginTop: 8,
       }}
     >
       {/* fake input -> open bottom sheet */}
@@ -481,11 +475,22 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
     >
       <TopBar onMenuPress={() => navigation.openDrawer()} showCenterLogo />
 
-      <View style={{  }}>
-        {/* 🔹 FIXED COMPOSER ON TOP */}
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: 24 }}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        refreshControl={
+          <RefreshControl
+            refreshing={isFetching && !isFetchingNextPage && !isLoading}
+            onRefresh={refetch}
+            tintColor={theme.colors.primary}
+          />
+        }
+        keyboardShouldPersistTaps="handled"
+      >
         {renderComposer()}
 
-        {/* 🔹 ONLY LIST SCROLLS (NO SCROLLVIEW WRAPPING) */}
         {isLoading ? (
           <View style={styles.center}>
             <ActivityIndicator
@@ -504,39 +509,36 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
                 styles.retryBtn,
                 { backgroundColor: theme.colors.primary },
               ]}
+              // onPress={refetch}
             >
               <Text style={{ color: "#fff" }}>Retry</Text>
             </TouchableOpacity>
           </View>
+        ) : posts.length === 0 ? (
+          <View style={styles.center}>
+            <Text>No posts yet.</Text>
+          </View>
         ) : (
-          <FlatList
-            data={posts}
-            keyExtractor={keyExtractor}
-            renderItem={renderItem}
-            windowSize={7}
-            initialNumToRender={10}
-            maxToRenderPerBatch={8}
-            removeClippedSubviews={false}
-            onEndReached={onEndReached}
-            onEndReachedThreshold={0.4}
-            refreshing={isFetching && !isFetchingNextPage}
-            onRefresh={refetch}
-            keyboardShouldPersistTaps="handled"
-            ListFooterComponent={
-              isFetchingNextPage ? (
-                <View style={{ paddingVertical: 20 }}>
-                  <ActivityIndicator color={theme.colors.primary} />
-                </View>
-              ) : null
-            }
-            ListEmptyComponent={
-              <View style={styles.center}>
-                <Text>No posts yet.</Text>
+          <View>
+            {posts.map((item) => (
+              <PostCard
+                key={String(item.id)}
+                post={item}
+                currentUserId={user?.id}
+                onOpenComments={openComments}
+                onToggleLike={() => handleToggleLike(item.id)}
+                onDeletePost={() => handleDeletePost(item.id)}
+              />
+            ))}
+
+            {isFetchingNextPage && (
+              <View style={{ paddingVertical: 16, alignItems: "center" }}>
+                <ActivityIndicator color={theme.colors.primary} />
               </View>
-            }
-          />
+            )}
+          </View>
         )}
-      </View>
+      </ScrollView>
 
       {/* Comments Bottom Sheet */}
       <CommentsSheet
