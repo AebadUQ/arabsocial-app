@@ -442,7 +442,7 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
             justifyContent: "center",
           }}
         >
-          <Text style={{ color: "#999" }}>Share Something..</Text>
+          <Text style={{ color: "#999" }}>Share Something interesting about yourself..</Text>
         </View>
       </TouchableOpacity>
 

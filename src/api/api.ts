@@ -4,9 +4,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://192.168.18.29:3000",
-  // baseURL: "https://arabsocials.duckdns.org",
-  timeout: 10000,
+  // baseURL: "http://192.168.18.29:3000",
+  baseURL: "https://arabsocials.duckdns.org",
+  // timeout: 10000,
 });
 
 export const setupInterceptors = (logout: () => void) => {

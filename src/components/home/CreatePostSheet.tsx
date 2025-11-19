@@ -1,11 +1,11 @@
 // app/components/home/PostComposerSheet.tsx
-import React,
-{
+import React, {
   forwardRef,
   useImperativeHandle,
   useMemo,
   useRef,
   useCallback,
+  useState,
 } from "react";
 import {
   View,
@@ -21,6 +21,7 @@ import {
   BottomSheetView,
   BottomSheetBackdrop,
 } from "@gorhom/bottom-sheet";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { Asset } from "react-native-image-picker";
 import { useTheme } from "@/theme/ThemeContext";
 import { XCircle, SmileyIcon, ImageSquareIcon } from "phosphor-react-native";
@@ -62,11 +63,15 @@ const PostComposerSheet = forwardRef<ComposerSheetHandle, Props>(
     ref
   ) => {
     const { theme: ctxTheme } = useTheme();
+    const insets = useSafeAreaInsets();
     const bottomSheetModalRef = useRef<BottomSheetModal>(null);
     const inputRef = useRef<TextInput | null>(null);
 
-    // ⬆️ sheet thoda upar: 80% instead of 85%
-    const snapPoints = useMemo(() => ["80%"], []);
+    // keyboard pe typing ho rahi ho to sheet pan block karein
+    const [isComposing, setIsComposing] = useState(false);
+
+    // ✅ same style as CommentsSheet, but default 80%
+    const snapPoints = useMemo(() => ["40%", "80%"], []);
 
     useImperativeHandle(ref, () => ({
       open: () => bottomSheetModalRef.current?.present(),
@@ -78,9 +83,7 @@ const PostComposerSheet = forwardRef<ComposerSheetHandle, Props>(
       onSend();
     };
 
-    const hasContent =
-      newPost.trim().length > 0 || !!pickedImage?.uri;
-    const canSend = hasContent && !posting;
+    const hasContent = newPost.trim().length > 0 || !!pickedImage?.uri;
 
     const renderBackdrop = useCallback(
       (backdropProps: any) => (
@@ -104,14 +107,24 @@ const PostComposerSheet = forwardRef<ComposerSheetHandle, Props>(
     return (
       <BottomSheetModal
         ref={bottomSheetModalRef}
-        index={0}
+        // 👉 index 1 = 80% initial height
+        index={1}
         snapPoints={snapPoints}
-        handleIndicatorStyle={{ backgroundColor: "#CCC" }}
-        backdropComponent={renderBackdrop}
+        enableDynamicSizing={false}
         enablePanDownToClose
-        // 👇 keyboard behaviour (sheet upar move hoga)
+        enableOverDrag={false}
+        enableContentPanningGesture={!isComposing}
         keyboardBehavior="interactive"
-        keyboardBlurBehavior="restore"
+        keyboardBlurBehavior="none"
+        android_keyboardInputMode="adjustResize"
+        backdropComponent={renderBackdrop}
+        topInset={insets.top + 20}
+        handleIndicatorStyle={{ backgroundColor: "#CCC" }}
+        backgroundStyle={{
+          backgroundColor: ctxTheme.colors.background,
+          borderTopLeftRadius: 16,
+          borderTopRightRadius: 16,
+        }}
       >
         <BottomSheetView style={styles.sheetContainer}>
           {/* Header */}
@@ -129,9 +142,7 @@ const PostComposerSheet = forwardRef<ComposerSheetHandle, Props>(
             >
               <LinearGradient
                 colors={
-                  hasContent
-                    ? ["#1BAD7A", "#008F5C"]
-                    : ["#CFCFCF", "#B4B4B4"]
+                  hasContent ? ["#1BAD7A", "#008F5C"] : ["#CFCFCF", "#B4B4B4"]
                 }
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
@@ -194,6 +205,9 @@ const PostComposerSheet = forwardRef<ComposerSheetHandle, Props>(
               multiline
               value={newPost}
               onChangeText={onChangeText}
+              onFocus={() => setIsComposing(true)}
+              onBlur={() => setIsComposing(false)}
+              textAlignVertical="top"
             />
 
             {/* Add emoji + add photo row */}
@@ -248,7 +262,7 @@ const PostComposerSheet = forwardRef<ComposerSheetHandle, Props>(
             ) : null}
 
             {/* Story card */}
-            <View style={styles.storyCard}>
+            {/* <View style={styles.storyCard}>
               <View style={styles.storyIconCircle}>
                 <SmileyIcon size={18} color={"white"} />
               </View>
@@ -259,7 +273,7 @@ const PostComposerSheet = forwardRef<ComposerSheetHandle, Props>(
                   you&apos;d like to share with the community.
                 </Text>
               </View>
-            </View>
+            </View> */}
           </View>
         </BottomSheetView>
       </BottomSheetModal>
@@ -271,7 +285,7 @@ const styles = StyleSheet.create({
   sheetContainer: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingTop: 4, // ⬅️ thoda kam top padding (upar shift feel)
+    paddingTop: 4,
   },
   headerRow: {
     flexDirection: "row",

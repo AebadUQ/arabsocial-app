@@ -137,7 +137,9 @@ const ProfileEditScreen: React.FC = () => {
       // server se aaya final URL
       setAvatarUri(url);
     } catch (e) {
+      console.log(e)
       console.error("Image picker / upload error:", e);
+      
       // optional: revert to old image if needed
     } finally {
       setAvatarUploading(false);
