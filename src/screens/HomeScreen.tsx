@@ -23,6 +23,7 @@ import {
   likePost,
   deletePost,
   uploadPostImage,
+  updatePost, // ✅ add this
 } from "@/api/post";
 import {
   launchImageLibrary,
@@ -51,6 +52,10 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
   const [newPost, setNewPost] = useState("");
   const [pickedImage, setPickedImage] = useState<Asset | null>(null);
   const [posting, setPosting] = useState(false);
+
+  // edit state
+  const [editingPost, setEditingPost] = useState<ApiPost | null>(null);
+  const [editingImageUrl, setEditingImageUrl] = useState<string | null>(null);
 
   // like / delete in-flight guards per post
   const [likingMap, setLikingMap] = useState<Record<string, boolean>>({});
@@ -113,36 +118,45 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
     });
   };
 
-  const removePicked = () => setPickedImage(null);
+  const removePicked = () => {
+    setPickedImage(null);
+    if (editingPost) {
+      // edit mode me agar old image thi, usko bhi remove karna hai
+      setEditingImageUrl(null);
+    }
+  };
 
+  const hasExistingImage = !!editingImageUrl;
   const canSend =
-    (newPost.trim().length > 0 || !!pickedImage?.uri) && !posting;
+    (newPost.trim().length > 0 || !!pickedImage?.uri || hasExistingImage) &&
+    !posting;
 
-  // ====================== CREATE POST (no optimistic card) ======================
-  const handleAddPost = async () => {
+  // ====================== CREATE / UPDATE POST ======================
+
+  // create new post
+  const handleCreatePost = async () => {
     if (!canSend || posting) return;
 
     const text = newPost.trim();
-    const imageAsset = pickedImage; // local copy
+    const imageAsset = pickedImage;
 
     try {
       setPosting(true);
 
-      // 1) upload image if available
+      // upload image if available
       let uploadedUrl: string | null = null;
-      if (imageAsset) {
+      if (imageAsset?.uri) {
         const res = await uploadPostImage(imageAsset);
         uploadedUrl = res.url;
       }
 
-      // 2) create post with content + image_url
       const created = await createPost({
         content: text,
         ...(uploadedUrl ? { image_url: uploadedUrl } : {}),
       });
 
       if (created?.id) {
-        // 3) ab sirf SUCCESS ke baad feed me prepend karo
+        // prepend into first page
         queryClient.setQueryData(["posts"], (oldData: any) => {
           if (!oldData) {
             return {
@@ -176,20 +190,83 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
           return { ...oldData, pages: newPages };
         });
 
-        // 4) success ke baad hi composer clear + close
+        // reset
         setNewPost("");
         setPickedImage(null);
+        setEditingPost(null);
+        setEditingImageUrl(null);
         composerRef.current?.close();
       }
     } catch (e) {
       console.warn("create post failed", e);
-      // yahan feed touch nahi kar rahe, user ka text/image composer me hi rahein
-      // optionally: yahan toast dikhana ho to dikha sakte ho
     } finally {
       setPosting(false);
     }
   };
-  // ====================== /CREATE POST ======================
+
+  // update existing post
+  const handleUpdatePost = async () => {
+    if (!editingPost) return;
+    if (!canSend || posting) return;
+
+    const text = newPost.trim();
+
+    try {
+      setPosting(true);
+
+      // default: existing server image url
+      let imageUrlToSend: string | null = editingImageUrl ?? null;
+
+      // agar user ne nayi image pick ki
+      if (pickedImage?.uri) {
+        const res = await uploadPostImage(pickedImage);
+        imageUrlToSend = res.url;
+      }
+
+      const payload: any = {
+        content: text,
+        image_url: imageUrlToSend, // null bhi ho sakta hai (remove image)
+      };
+
+      const updated = await updatePost(editingPost.id, payload);
+
+      // cache update
+      queryClient.setQueryData(["posts"], (oldData: any) => {
+        if (!oldData?.pages) return oldData;
+
+        const newPages = oldData.pages.map((pg: any) => ({
+          ...pg,
+          data: pg.data.map((p: ApiPost) =>
+            String(p.id) === String(editingPost.id) ? { ...p, ...updated } : p
+          ),
+        }));
+
+        return { ...oldData, pages: newPages };
+      });
+
+      // reset
+      setEditingPost(null);
+      setEditingImageUrl(null);
+      setNewPost("");
+      setPickedImage(null);
+      composerRef.current?.close();
+    } catch (e) {
+      console.warn("update post failed", e);
+    } finally {
+      setPosting(false);
+    }
+  };
+
+  // wrapper (sheet se ye hi call hoga)
+  const handleSubmitPost = async () => {
+    if (editingPost) {
+      await handleUpdatePost();
+    } else {
+      await handleCreatePost();
+    }
+  };
+
+  // ====================== /CREATE / UPDATE POST ======================
 
   // -------- Like / Delete / Comments --------
   const handleToggleLike = useCallback(
@@ -349,6 +426,15 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
     [queryClient]
   );
 
+  // ===== Edit start handler =====
+  const startEditPost = (post: ApiPost) => {
+    setEditingPost(post);
+    setNewPost(post.content || "");
+    setPickedImage(null);
+    setEditingImageUrl(post.image_url || null);
+    composerRef.current?.open();
+  };
+
   // -------- Infinite scroll with ScrollView --------
   const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     if (!hasNextPage || isFetchingNextPage) return;
@@ -380,6 +466,10 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
         style={{ flex: 1 }}
         activeOpacity={0.9}
         onPress={() => {
+          setEditingPost(null);
+          setEditingImageUrl(null);
+          setNewPost("");
+          setPickedImage(null);
           composerRef.current?.open();
         }}
       >
@@ -413,7 +503,11 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
           backgroundColor: theme.colors.primaryLight,
           borderRadius: 20,
         }}
-        onPress={onPickImage}
+        onPress={() => {
+          setEditingPost(null);
+          setEditingImageUrl(null);
+          onPickImage();
+        }}
       >
         <ImageSquareIcon color={theme.colors.primary} size={20} />
       </TouchableOpacity>
@@ -482,6 +576,7 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
                 onOpenComments={openComments}
                 onToggleLike={() => handleToggleLike(item.id)}
                 onDeletePost={() => handleDeletePost(item.id)}
+                onEditPost={() => startEditPost(item)} // ✅ edit handler
               />
             ))}
 
@@ -510,12 +605,14 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
         onChangeText={setNewPost}
         pickedImage={pickedImage}
         onRemoveImage={removePicked}
-        onSend={handleAddPost}
+        onSend={handleSubmitPost}
         posting={posting}
         onPickImage={onPickImage}
         userName={user?.name}
         userLocation={user?.country || ""}
         userAvatarUri={user?.image ?? null}
+        mode={editingPost ? "edit" : "create"}         // ✅
+        existingImageUrl={editingImageUrl}             // ✅
       />
     </SafeAreaView>
   );

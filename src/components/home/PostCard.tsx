@@ -1,3 +1,4 @@
+// app/components/home/PostCard.tsx
 import React, {
   memo,
   useEffect,
@@ -22,6 +23,7 @@ import {
   ChatCircle,
   ShareNetwork,
   Trash,
+  PencilSimple, // ✅ for Edit
 } from "phosphor-react-native";
 import { useNavigation } from "@react-navigation/native";
 
@@ -50,7 +52,8 @@ type Props = {
   currentUserId?: number | string | null;
   onOpenComments?: (post: ApiPost) => void;
   onToggleLike?: () => void;
-  onDeletePost?: (postId: number | string) => void;
+  onDeletePost?: () => void; // ✅ now no id param here
+  onEditPost?: () => void;   // ✅ for edit
 };
 
 const AVATAR = 40;
@@ -122,6 +125,7 @@ const PostCard: React.FC<Props> = ({
   onOpenComments,
   onToggleLike,
   onDeletePost,
+  onEditPost,
 }) => {
   const { theme } = useTheme();
   const navigation = useNavigation<any>();
@@ -185,10 +189,15 @@ const PostCard: React.FC<Props> = ({
 
   const handleDeletePress = () => {
     setMenuVisible(false);
-    onDeletePost?.(post.id);
+    onDeletePost?.();
   };
 
-  console.log("post", post.image_url);
+  const handleEditPress = () => {
+    setMenuVisible(false);
+    onEditPost?.();
+  };
+
+  console.log("post image_url", post.image_url);
 
   return (
     <View style={[styles.card, { shadowColor: "#000" }]}>
@@ -264,6 +273,27 @@ const PostCard: React.FC<Props> = ({
 
             {menuVisible && (
               <View style={styles.menuContainer}>
+                {/* Edit */}
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={handleEditPress}
+                >
+                  <PencilSimple size={16} color={theme.colors.text} />
+                  <Text variant="caption" style={styles.menuItemText}>
+                    Edit
+                  </Text>
+                </TouchableOpacity>
+
+                {/* divider */}
+                <View
+                  style={{
+                    height: StyleSheet.hairlineWidth,
+                    backgroundColor: "rgba(0,0,0,0.08)",
+                    marginVertical: 4,
+                  }}
+                />
+
+                {/* Delete */}
                 <TouchableOpacity
                   style={styles.menuItem}
                   onPress={handleDeletePress}
@@ -271,7 +301,7 @@ const PostCard: React.FC<Props> = ({
                   <Trash size={16} color="#DC2626" />
                   <Text
                     variant="caption"
-                    style={styles.menuItemText}
+                    style={[styles.menuItemText, { color: "#DC2626" }]}
                   >
                     Delete
                   </Text>
@@ -347,7 +377,7 @@ const PostCard: React.FC<Props> = ({
         </View>
       )}
 
-      {/* Image (no preview) */}
+      {/* Image */}
       {!!post.image_url && (
         <Image
           source={{ uri: post.image_url }}
@@ -388,10 +418,7 @@ const PostCard: React.FC<Props> = ({
           activeOpacity={0.7}
         >
           <ChatCircle size={18} color="#5F6367" />
-          <Text
-            variant="caption"
-            style={styles.actionLabel}
-          >
+          <Text variant="caption" style={styles.actionLabel}>
             Comment
             {post.comments_count > 0
               ? `· ${post.comments_count}`
@@ -405,11 +432,8 @@ const PostCard: React.FC<Props> = ({
           activeOpacity={0.7}
         >
           <ShareNetwork size={18} color="#5F6367" />
-          <Text
-            variant="caption"
-            style={styles.actionLabel}
-          >
-            Share 
+          <Text variant="caption" style={styles.actionLabel}>
+            Share
           </Text>
         </TouchableOpacity>
       </View>
@@ -458,7 +482,7 @@ const styles = StyleSheet.create({
   nameRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between", // name+email left, time right
+    justifyContent: "space-between",
   },
   nameHandleWrap: {
     flexDirection: "row",
@@ -516,7 +540,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 22,
     right: 0,
-    minWidth: 110,
+    minWidth: 130,
     paddingVertical: 6,
     backgroundColor: "#FFFFFF",
     borderRadius: 8,
@@ -537,7 +561,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   menuItemText: {
-    color: "#DC2626",
+    color: "#111827",
   },
 });
 

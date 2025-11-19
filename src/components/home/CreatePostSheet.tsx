@@ -24,7 +24,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { Asset } from "react-native-image-picker";
 import { useTheme } from "@/theme/ThemeContext";
-import { XCircle, SmileyIcon, ImageSquareIcon } from "phosphor-react-native";
+import { XCircle, ImageSquareIcon } from "phosphor-react-native";
 import LinearGradient from "react-native-linear-gradient";
 import { theme } from "@/theme/theme";
 
@@ -44,6 +44,10 @@ type Props = {
   userName?: string;
   userLocation?: string;
   userAvatarUri?: string | null;
+
+  // ✅ edit mode support
+  mode?: "create" | "edit";
+  existingImageUrl?: string | null;
 };
 
 const PostComposerSheet = forwardRef<ComposerSheetHandle, Props>(
@@ -59,6 +63,8 @@ const PostComposerSheet = forwardRef<ComposerSheetHandle, Props>(
       userName = "You",
       userLocation = "",
       userAvatarUri,
+      mode = "create",
+      existingImageUrl = null,
     },
     ref
   ) => {
@@ -67,11 +73,15 @@ const PostComposerSheet = forwardRef<ComposerSheetHandle, Props>(
     const bottomSheetModalRef = useRef<BottomSheetModal>(null);
     const inputRef = useRef<TextInput | null>(null);
 
-    // keyboard pe typing ho rahi ho to sheet pan block karein
     const [isComposing, setIsComposing] = useState(false);
 
-    // ✅ same style as CommentsSheet, but default 80%
     const snapPoints = useMemo(() => ["40%", "80%"], []);
+    const isEditing = mode === "edit";
+
+    const previewUri = pickedImage?.uri || existingImageUrl || null;
+
+    const hasContent =
+      newPost.trim().length > 0 || !!previewUri;
 
     useImperativeHandle(ref, () => ({
       open: () => bottomSheetModalRef.current?.present(),
@@ -82,8 +92,6 @@ const PostComposerSheet = forwardRef<ComposerSheetHandle, Props>(
       if (posting) return;
       onSend();
     };
-
-    const hasContent = newPost.trim().length > 0 || !!pickedImage?.uri;
 
     const renderBackdrop = useCallback(
       (backdropProps: any) => (
@@ -107,8 +115,7 @@ const PostComposerSheet = forwardRef<ComposerSheetHandle, Props>(
     return (
       <BottomSheetModal
         ref={bottomSheetModalRef}
-        // 👉 index 1 = 80% initial height
-        index={1}
+        index={1} // 80%
         snapPoints={snapPoints}
         enableDynamicSizing={false}
         enablePanDownToClose
@@ -130,10 +137,10 @@ const PostComposerSheet = forwardRef<ComposerSheetHandle, Props>(
           {/* Header */}
           <View style={styles.headerRow}>
             <Text style={[styles.headerTitle, { color: ctxTheme.colors.text }]}>
-              Create Post
+              {isEditing ? "Edit Post" : "Create Post"}
             </Text>
 
-            {/* Gradient Post button */}
+            {/* Gradient Post/Update button */}
             <TouchableOpacity
               activeOpacity={0.85}
               onPress={handleSend}
@@ -155,7 +162,9 @@ const PostComposerSheet = forwardRef<ComposerSheetHandle, Props>(
                   {posting ? (
                     <ActivityIndicator size="small" color="#fff" />
                   ) : (
-                    <Text style={styles.postBtnLabel}>Post</Text>
+                    <Text style={styles.postBtnLabel}>
+                      {isEditing ? "Update" : "Post"}
+                    </Text>
                   )}
                 </View>
               </LinearGradient>
@@ -210,31 +219,9 @@ const PostComposerSheet = forwardRef<ComposerSheetHandle, Props>(
               textAlignVertical="top"
             />
 
-            {/* Add emoji + add photo row */}
+            {/* Tools row */}
             <View style={styles.toolsRow}>
-                <View                 style={styles.toolsLeft}
->
-
-                </View>
-              {/* <TouchableOpacity
-                style={styles.toolsLeft}
-                onPress={() => {
-                  inputRef.current?.focus();
-                  onChangeText((newPost || "") + " 😊");
-                }}
-              >
-                <SmileyIcon size={20} color={ctxTheme.colors.textLight} />
-                <Text
-                  style={{
-                    marginLeft: 6,
-                    color: ctxTheme.colors.textLight,
-                    fontSize: 13,
-                  }}
-                >
-                  Add emoji
-                </Text>
-              </TouchableOpacity> */}
-
+              <View style={styles.toolsLeft} />
               <TouchableOpacity
                 style={[
                   styles.addImageBtn,
@@ -247,11 +234,11 @@ const PostComposerSheet = forwardRef<ComposerSheetHandle, Props>(
               </TouchableOpacity>
             </View>
 
-            {/* Image preview */}
-            {pickedImage?.uri ? (
+            {/* Image preview (existing or new) */}
+            {previewUri ? (
               <View style={styles.imageWrap}>
                 <Image
-                  source={{ uri: pickedImage.uri }}
+                  source={{ uri: previewUri }}
                   style={styles.previewImage}
                 />
                 <TouchableOpacity
@@ -263,20 +250,6 @@ const PostComposerSheet = forwardRef<ComposerSheetHandle, Props>(
                 </TouchableOpacity>
               </View>
             ) : null}
-
-            {/* Story card */}
-            {/* <View style={styles.storyCard}>
-              <View style={styles.storyIconCircle}>
-                <SmileyIcon size={18} color={"white"} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.storyTitle}>Share your story</Text>
-                <Text style={styles.storyText}>
-                  Tell us about your adventures, experiences, or anything
-                  you&apos;d like to share with the community.
-                </Text>
-              </View>
-            </View> */}
           </View>
         </BottomSheetView>
       </BottomSheetModal>
@@ -388,33 +361,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
     borderRadius: 14,
     padding: 4,
-  },
-  storyCard: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    padding: 12,
-    borderRadius: 14,
-    backgroundColor: theme.colors.primaryLight,
-    borderWidth: 0.25,
-    borderColor: theme.colors.primary,
-    marginTop: 4,
-  },
-  storyIconCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: theme.colors.primary,
-    marginRight: 10,
-  },
-  storyTitle: {
-    fontSize: 14,
-    marginBottom: 4,
-  },
-  storyText: {
-    fontSize: 13,
-    color: theme.colors.textLight,
   },
 });
 
