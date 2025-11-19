@@ -103,3 +103,11 @@ export const uploadPostImage = async (image: Asset) => {
 
   return response.data as { url: string };
 };
+// ✅ Update Post
+export const updatePost = async (
+  postId: string | number,               // param me postId
+  body: Record<string, any> | FormData,  // body (json ya FormData)
+) => {
+  const response = await api.patch(`/posts/${postId}`, body);
+  return response.data.data;
+};

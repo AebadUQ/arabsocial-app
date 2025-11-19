@@ -188,7 +188,7 @@ const PostCard: React.FC<Props> = ({
     onDeletePost?.(post.id);
   };
 
-  console.log("post", post.author.country);
+  console.log("post", post.image_url);
 
   return (
     <View style={[styles.card, { shadowColor: "#000" }]}>
@@ -409,7 +409,7 @@ const PostCard: React.FC<Props> = ({
             variant="caption"
             style={styles.actionLabel}
           >
-            Share
+            Share 
           </Text>
         </TouchableOpacity>
       </View>
