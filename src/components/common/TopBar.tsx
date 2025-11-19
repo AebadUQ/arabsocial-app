@@ -4,6 +4,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { BellIcon, ListIcon } from 'phosphor-react-native';
 import { useNavigation } from '@react-navigation/native';
 import Logo from '@/assets/images/logo.svg';
+import { useAuth } from '@/context/Authcontext';
 
 type Props = {
   title?: string;
@@ -22,7 +23,7 @@ const TopBar: React.FC<Props> = ({
   showCenterLogo = false, // 👈 default: false
 }) => {
   const navigation = useNavigation();
-
+  const {user}=useAuth()
   return (
     <View style={styles.bar}>
       {/* Left: Hamburger */}
@@ -68,8 +69,8 @@ const TopBar: React.FC<Props> = ({
           onPress={() => navigation.navigate('ProfileTab')}
           style={styles.avatarWrap}
         >
-          {avatarUri ? (
-            <Image source={{ uri: avatarUri }} style={styles.avatar} />
+          {user?.image ? (
+            <Image source={{ uri: user?.image }} style={styles.avatar} />
           ) : (
             <View style={[styles.avatar, styles.fallback]}>
               <Text style={styles.fallbackTxt}>U</Text>

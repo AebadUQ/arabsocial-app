@@ -627,14 +627,31 @@ export default function PromoteEventScreen() {
           style={styles.fieldGap}
           onLayout={handleFieldLayout("total_spots")}
         >
-          <InputField
+          {/* <InputField
             label="Total spots"
             labelColor={appTheme.colors.text}
             placeholder="e.g 100"
             value={form.total_spots}
             onChangeText={(t) => set("total_spots", t)}
             keyboardType="numeric"
-          />
+            
+          /> */}
+          <InputField
+    label="Total spots"
+    labelColor={appTheme.colors.text}
+    placeholder="e.g 100"
+    value={form.total_spots}
+    keyboardType="numeric"
+    onChangeText={(t) => {
+      // sirf digits allow karo
+      const onlyDigits = t.replace(/[^0-9]/g, "");
+
+      // max 4 digits
+      if (onlyDigits.length <= 4) {
+        set("total_spots", onlyDigits);
+      }
+    }}
+  />
         </View>
 
         <View
@@ -661,7 +678,6 @@ export default function PromoteEventScreen() {
             value={form.description}
             onChangeText={(t) => set("description", t)}
             numberOfLines={4}
-            style={{ textAlignVertical: "top" }}
           />
         </View>
       </ScrollView>

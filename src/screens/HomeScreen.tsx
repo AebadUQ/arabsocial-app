@@ -118,70 +118,12 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
   const canSend =
     (newPost.trim().length > 0 || !!pickedImage?.uri) && !posting;
 
-  // ====================== CREATE POST ======================
+  // ====================== CREATE POST (no optimistic card) ======================
   const handleAddPost = async () => {
-    if (!canSend) return;
+    if (!canSend || posting) return;
 
     const text = newPost.trim();
     const imageAsset = pickedImage; // local copy
-    const localUri = imageAsset?.uri || null;
-    const tempId = `temp-${Date.now()}`;
-
-    // optimistic fake post
-    const fakePost: ApiPost = {
-      id: tempId as unknown as number,
-      authorId: user?.id ?? 0,
-      content: text,
-      image_url: localUri,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      likes_count: 0,
-      comments_count: 0,
-      is_active: true,
-      isLikedByMe: false,
-      author: {
-        id: user?.id ?? 0,
-        name: user?.name ?? "You",
-        image: user?.image ?? null,
-        country: user?.country ?? null,
-      },
-    };
-
-    // optimistic prepend
-    queryClient.setQueryData(["posts"], (oldData: any) => {
-      if (!oldData) {
-        return {
-          pageParams: [1],
-          pages: [
-            {
-              data: [fakePost],
-              meta: { page: 1, lastPage: 1, total: 1 },
-            },
-          ],
-        };
-      }
-      const newPages = [...oldData.pages];
-      if (!newPages[0]) {
-        newPages[0] = {
-          data: [],
-          meta: { page: 1, lastPage: 1, total: 0 },
-        };
-      }
-      newPages[0] = {
-        ...newPages[0],
-        data: [fakePost, ...newPages[0].data],
-        meta: {
-          ...newPages[0].meta,
-          total: (newPages[0].meta?.total || 0) + 1,
-        },
-      };
-      return { ...oldData, pages: newPages };
-    });
-
-    // reset & close composer immediately
-    setNewPost("");
-    setPickedImage(null);
-    composerRef.current?.close();
 
     try {
       setPosting(true);
@@ -199,65 +141,50 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
         ...(uploadedUrl ? { image_url: uploadedUrl } : {}),
       });
 
-      // 3) replace fake post with real post (merge author)
       if (created?.id) {
+        // 3) ab sirf SUCCESS ke baad feed me prepend karo
         queryClient.setQueryData(["posts"], (oldData: any) => {
-          if (!oldData?.pages) return oldData;
+          if (!oldData) {
+            return {
+              pageParams: [1],
+              pages: [
+                {
+                  data: [created],
+                  meta: { page: 1, lastPage: 1, total: 1 },
+                },
+              ],
+            };
+          }
 
-          const newPages = oldData.pages.map((pg: any) => ({
-            ...pg,
-            data: pg.data.map((p: ApiPost) => {
-              if (String(p.id) !== String(tempId)) return p;
+          const newPages = [...oldData.pages];
+          if (!newPages[0]) {
+            newPages[0] = {
+              data: [],
+              meta: { page: 1, lastPage: 1, total: 0 },
+            };
+          }
 
-              const mergedAuthor = {
-                ...(p as any).author,
-                ...(created as any).author,
-              };
-
-              return {
-                ...p,
-                ...created,
-                author: mergedAuthor,
-              };
-            }),
-          }));
-
-          return { ...oldData, pages: newPages };
-        });
-      } else {
-        // rollback if create failed
-        queryClient.setQueryData(["posts"], (oldData: any) => {
-          if (!oldData?.pages) return oldData;
-          const newPages = oldData.pages.map((pg: any) => ({
-            ...pg,
-            data: pg.data.filter(
-              (p: ApiPost) => String(p.id) !== String(tempId)
-            ),
+          newPages[0] = {
+            ...newPages[0],
+            data: [created, ...newPages[0].data],
             meta: {
-              ...pg.meta,
-              total: Math.max(0, (pg.meta?.total || 1) - 1),
+              ...newPages[0].meta,
+              total: (newPages[0].meta?.total || 0) + 1,
             },
-          }));
+          };
+
           return { ...oldData, pages: newPages };
         });
+
+        // 4) success ke baad hi composer clear + close
+        setNewPost("");
+        setPickedImage(null);
+        composerRef.current?.close();
       }
     } catch (e) {
       console.warn("create post failed", e);
-      // rollback on any error
-      queryClient.setQueryData(["posts"], (oldData: any) => {
-        if (!oldData?.pages) return oldData;
-        const newPages = oldData.pages.map((pg: any) => ({
-          ...pg,
-          data: pg.data.filter(
-            (p: ApiPost) => String(p.id) !== String(tempId)
-          ),
-          meta: {
-            ...pg.meta,
-            total: Math.max(0, (pg.meta?.total || 1) - 1),
-          },
-        }));
-        return { ...oldData, pages: newPages };
-      });
+      // yahan feed touch nahi kar rahe, user ka text/image composer me hi rahein
+      // optionally: yahan toast dikhana ho to dikha sakte ho
     } finally {
       setPosting(false);
     }
@@ -397,6 +324,31 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
     };
   };
 
+  // 🔥 comment add hone pe PostCard ka comments_count increment
+  const handleCommentAdded = useCallback(
+    (postId: number | string) => {
+      const key = String(postId);
+
+      queryClient.setQueryData(["posts"], (oldData: any) => {
+        if (!oldData?.pages) return oldData;
+
+        const newPages = oldData.pages.map((pg: any) => ({
+          ...pg,
+          data: pg.data.map((p: ApiPost) => {
+            if (String(p.id) !== key) return p;
+            return {
+              ...p,
+              comments_count: (p.comments_count || 0) + 1,
+            };
+          }),
+        }));
+
+        return { ...oldData, pages: newPages };
+      });
+    },
+    [queryClient]
+  );
+
   // -------- Infinite scroll with ScrollView --------
   const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     if (!hasNextPage || isFetchingNextPage) return;
@@ -442,7 +394,9 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
             justifyContent: "center",
           }}
         >
-          <Text style={{ color: "#999" }}>Share Something interesting about yourself..</Text>
+          <Text style={{ color: "#999" }}>
+            Share Something interesting about yourself..
+          </Text>
         </View>
       </TouchableOpacity>
 
@@ -546,6 +500,7 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
         loadPage={loadCommentsPage}
         pageSize={10}
         title="Comments"
+        onCommentAdded={handleCommentAdded}
       />
 
       {/* Post Composer Bottom Sheet */}

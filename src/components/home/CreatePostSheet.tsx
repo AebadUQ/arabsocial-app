@@ -212,7 +212,11 @@ const PostComposerSheet = forwardRef<ComposerSheetHandle, Props>(
 
             {/* Add emoji + add photo row */}
             <View style={styles.toolsRow}>
-              <TouchableOpacity
+                <View                 style={styles.toolsLeft}
+>
+
+                </View>
+              {/* <TouchableOpacity
                 style={styles.toolsLeft}
                 onPress={() => {
                   inputRef.current?.focus();
@@ -229,9 +233,8 @@ const PostComposerSheet = forwardRef<ComposerSheetHandle, Props>(
                 >
                   Add emoji
                 </Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
 
-              {/* image icon */}
               <TouchableOpacity
                 style={[
                   styles.addImageBtn,

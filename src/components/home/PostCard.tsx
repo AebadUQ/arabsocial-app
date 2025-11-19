@@ -13,7 +13,6 @@ import {
   Share,
   NativeSyntheticEvent,
   TextLayoutEventData,
-  Modal,
 } from "react-native";
 import { useTheme } from "@/theme/ThemeContext";
 import { Text } from "@/components";
@@ -24,6 +23,7 @@ import {
   ShareNetwork,
   Trash,
 } from "phosphor-react-native";
+import { useNavigation } from "@react-navigation/native";
 
 export type ApiPost = {
   id: number | string;
@@ -95,6 +95,27 @@ const getEmailHandle = (email?: string | null): string | null => {
   return `@${clean}`;
 };
 
+// -------- Time formatter (for "2h ago" etc.) --------
+const formatPostTime = (createdAt: string) => {
+  const created = new Date(createdAt);
+  const now = new Date();
+  const diffMs = now.getTime() - created.getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+
+  if (diffSec < 60) return "Just now";
+
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `${diffDays}d ago`;
+
+  return created.toLocaleDateString();
+};
+
 const PostCard: React.FC<Props> = ({
   post,
   currentUserId,
@@ -103,6 +124,7 @@ const PostCard: React.FC<Props> = ({
   onDeletePost,
 }) => {
   const { theme } = useTheme();
+  const navigation = useNavigation<any>();
 
   // see-more/less state
   const [measured, setMeasured] = useState(false);
@@ -112,12 +134,14 @@ const PostCard: React.FC<Props> = ({
   // 3-dot menu
   const [menuVisible, setMenuVisible] = useState(false);
 
-  // image preview
-  const [imagePreviewVisible, setImagePreviewVisible] = useState(false);
-
   const emailHandle = useMemo(
     () => getEmailHandle(post.author?.email),
     [post.author?.email]
+  );
+
+  const timeLabel = useMemo(
+    () => formatPostTime(post.created_at),
+    [post.created_at]
   );
 
   // reset UI toggles when post changes
@@ -126,7 +150,6 @@ const PostCard: React.FC<Props> = ({
     setShowSeeMore(false);
     setIsExpanded(false);
     setMenuVisible(false);
-    setImagePreviewVisible(false);
   }, [post.id, post.content, post.image_url]);
 
   const liked = post.isLikedByMe;
@@ -165,51 +188,57 @@ const PostCard: React.FC<Props> = ({
     onDeletePost?.(post.id);
   };
 
-  const openImagePreview = () => {
-    if (!post.image_url) return;
-    setImagePreviewVisible(true);
-  };
+  console.log("post", post.author.country);
 
-  const closeImagePreview = () => {
-    setImagePreviewVisible(false);
-  };
-console.log("post",post.author.country)
   return (
     <View style={[styles.card, { shadowColor: "#000" }]}>
       {/* Header */}
       <View style={styles.headerRow}>
         <View style={styles.userRow}>
-          <UserAvatar
-            uri={post.author?.image || null}
-            fallback={post.author?.name || "U"}
-          />
-          <View style={{ flex: 1 }}>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 10,
-              }}
-            >
-              <Text
-                variant="body1"
-                style={styles.userName}
-                numberOfLines={1}
-              >
-                {post.author?.name || "Unknown"}
-              </Text>
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate("PublicProfile", { userId: post.author.id })
+            }
+          >
+            <UserAvatar
+              uri={post.author?.image || null}
+              fallback={post.author?.name || "U"}
+            />
+          </TouchableOpacity>
 
-              {!!emailHandle && (
+          <View style={{ flex: 1 }}>
+            {/* 🔥 Name + handle (left) | Time (right) */}
+            <View style={styles.nameRow}>
+              <View style={styles.nameHandleWrap}>
                 <Text
-                  variant="caption"
-                  style={styles.userHandle}
+                  variant="body1"
+                  style={styles.userName}
                   numberOfLines={1}
                 >
-                  {emailHandle}
+                  {post.author?.name || "Unknown"}
                 </Text>
-              )}
+
+                {!!emailHandle && (
+                  <Text
+                    variant="caption"
+                    style={styles.userHandle}
+                    numberOfLines={1}
+                  >
+                    {emailHandle}
+                  </Text>
+                )}
+              </View>
+
+              <Text
+                variant="overline"
+                style={styles.postTime}
+                numberOfLines={1}
+              >
+                {timeLabel}
+              </Text>
             </View>
-            
+
+            {/* Location (only left) */}
             <Text
               variant="overline"
               style={styles.userLocation}
@@ -274,12 +303,8 @@ console.log("post",post.author.country)
           <Text
             variant="body2"
             style={styles.contentText}
-            numberOfLines={
-              showSeeMore && !isExpanded ? 4 : undefined
-            }
-            ellipsizeMode={
-              showSeeMore && !isExpanded ? "tail" : "clip"
-            }
+            numberOfLines={showSeeMore && !isExpanded ? 4 : undefined}
+            ellipsizeMode={showSeeMore && !isExpanded ? "tail" : "clip"}
           >
             {post.content}
           </Text>
@@ -322,48 +347,13 @@ console.log("post",post.author.country)
         </View>
       )}
 
-      {/* Image + Preview */}
+      {/* Image (no preview) */}
       {!!post.image_url && (
-        <>
-          <TouchableOpacity
-            activeOpacity={0.9}
-            onPress={openImagePreview}
-          >
-            <Image
-              source={{ uri: post.image_url }}
-              style={styles.image}
-              resizeMode="cover"
-            />
-          </TouchableOpacity>
-
-          <Modal
-            visible={imagePreviewVisible}
-            transparent
-            animationType="fade"
-            onRequestClose={closeImagePreview}
-          >
-            <View style={styles.previewOverlay}>
-              {/* tap anywhere to close */}
-              <TouchableOpacity
-                style={styles.previewBackdrop}
-                activeOpacity={1}
-                onPress={closeImagePreview}
-              />
-              <Image
-                source={{ uri: post.image_url }}
-                style={styles.previewImage}
-                resizeMode="contain"
-              />
-              <TouchableOpacity
-                onPress={closeImagePreview}
-                style={styles.previewCloseButton}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.previewCloseText}>Close</Text>
-              </TouchableOpacity>
-            </View>
-          </Modal>
-        </>
+        <Image
+          source={{ uri: post.image_url }}
+          style={styles.image}
+          resizeMode="cover"
+        />
       )}
 
       {/* Actions */}
@@ -376,9 +366,7 @@ console.log("post",post.author.country)
           <ThumbsUp
             size={18}
             weight={liked ? "fill" : "regular"}
-            color={
-              liked ? theme.colors.primary : "#5F6367"
-            }
+            color={liked ? theme.colors.primary : "#5F6367"}
           />
           <Text
             variant="caption"
@@ -467,11 +455,26 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: AVATAR * 0.4,
   },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between", // name+email left, time right
+  },
+  nameHandleWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexShrink: 1,
+  },
   userName: {
     textTransform: "capitalize",
   },
   userHandle: {
     color: "#7E8A97",
+  },
+  postTime: {
+    color: "#9EA6B2",
+    marginLeft: 8,
   },
   userLocation: {
     color: "#9EA6B2",
@@ -535,33 +538,6 @@ const styles = StyleSheet.create({
   },
   menuItemText: {
     color: "#DC2626",
-  },
-  // preview styles
-  previewOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.9)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  previewBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  previewImage: {
-    width: "100%",
-    height: "80%",
-  },
-  previewCloseButton: {
-    position: "absolute",
-    top: 40,
-    right: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: "rgba(0,0,0,0.7)",
-  },
-  previewCloseText: {
-    color: "#FFFFFF",
-    fontSize: 12,
   },
 });
 

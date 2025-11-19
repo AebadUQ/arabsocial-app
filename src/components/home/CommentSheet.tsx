@@ -58,6 +58,9 @@ type Props = {
   ) => Promise<{ data: CommentItemType[]; total: number }>;
   pageSize?: number;
   title?: string;
+
+  // 🔥 NEW: parent ko batane ke liye ke comment add ho gaya
+  onCommentAdded?: (postId: number | string) => void;
 };
 
 const REPLIES_PAGE_SIZE = 3;
@@ -170,9 +173,7 @@ const Header = memo(function Header({
           ) : (
             <Text
               style={{
-                color: value.trim()
-                  ? colors.primary
-                  : colors.textLight,
+                color: value.trim() ? colors.primary : colors.textLight,
                 fontWeight: "700",
               }}
             >
@@ -189,13 +190,12 @@ const Header = memo(function Header({
    Main
 ───────────────────────────────────────── */
 const CommentsSheet = forwardRef<CommentsSheetHandle, Props>(
-  ({ loadPage, pageSize = 10, title = "Comments" }, ref) => {
+  ({ loadPage, pageSize = 10, title = "Comments", onCommentAdded }, ref) => {
     const { theme } = useTheme();
     const insets = useSafeAreaInsets();
     const sheetRef = useRef<BottomSheetModal>(null);
 
-    const [selectedPost, setSelectedPost] =
-      useState<ApiPostLite | null>(null);
+    const [selectedPost, setSelectedPost] = useState<ApiPostLite | null>(null);
 
     // comments pagination
     const [comments, setComments] = useState<CommentItemType[]>([]);
@@ -209,9 +209,7 @@ const CommentsSheet = forwardRef<CommentsSheetHandle, Props>(
     const [posting, setPosting] = useState(false);
 
     // inline reply state
-    const [replyToId, setReplyToId] = useState<
-      string | number | null
-    >(null);
+    const [replyToId, setReplyToId] = useState<string | number | null>(null);
     const [replyDraft, setReplyDraft] = useState<
       Record<string | number, string>
     >({});
@@ -250,16 +248,12 @@ const CommentsSheet = forwardRef<CommentsSheetHandle, Props>(
     );
 
     // ===== Comments paging =====
-    const fetchFirstPage = async (
-      postId: number | string
-    ) => {
+    const fetchFirstPage = async (postId: number | string) => {
       setLoading(true);
       try {
         const res = await loadPage(postId, 1, pageSize);
         setComments(res.data || []);
-        setTotal(
-          res.total || res.data?.length || 0
-        );
+        setTotal(res.total || res.data?.length || 0);
         setPage(1);
       } finally {
         setLoading(false);
@@ -273,15 +267,8 @@ const CommentsSheet = forwardRef<CommentsSheetHandle, Props>(
       const next = page + 1;
       try {
         setLoadingMore(true);
-        const res = await loadPage(
-          selectedPost.id,
-          next,
-          pageSize
-        );
-        setComments((prev) => [
-          ...prev,
-          ...(res.data || []),
-        ]);
+        const res = await loadPage(selectedPost.id, next, pageSize);
+        setComments((prev) => [...prev, ...(res.data || [])]);
         setPage(next);
       } finally {
         setLoadingMore(false);
@@ -290,12 +277,7 @@ const CommentsSheet = forwardRef<CommentsSheetHandle, Props>(
 
     // ===== Add top-level comment =====
     const handleAddComment = async () => {
-      if (
-        !newComment.trim() ||
-        !selectedPost ||
-        posting
-      )
-        return;
+      if (!newComment.trim() || !selectedPost || posting) return;
 
       const tempId = `local-${Date.now()}`;
       const optimistic: CommentItemType = {
@@ -308,84 +290,63 @@ const CommentsSheet = forwardRef<CommentsSheetHandle, Props>(
         },
       };
 
-      setComments((prev) => [
-        optimistic,
-        ...prev,
-      ]);
+      setComments((prev) => [optimistic, ...prev]);
       setTotal((t) => t + 1);
       setNewComment("");
       setPosting(true);
 
+      // 🔥 Parent ko inform karo ke is post ke comments_count +1 kar do
+      onCommentAdded?.(selectedPost.id);
+
       try {
-        const created =
-          await addPostComment({
-            postId: selectedPost.id,
-            content:
-              optimistic.content || "",
-          });
+        const created = await addPostComment({
+          postId: selectedPost.id,
+          content: optimistic.content || "",
+        });
 
         if (created && created.id) {
           setComments((prev) =>
-            prev.map((c) =>
-              String(c.id) === tempId
-                ? created
-                : c
-            )
+            prev.map((c) => (String(c.id) === tempId ? created : c))
           );
         }
       } catch {
+        // Optimistic comment rollback
         setComments((prev) =>
-          prev.filter(
-            (c) =>
-              String(c.id) !== tempId
-          )
+          prev.filter((c) => String(c.id) !== tempId)
         );
-        setTotal((t) =>
-          Math.max(0, t - 1)
-        );
+        setTotal((t) => Math.max(0, t - 1));
+        // NOTE: agar chaho to yahan post-count rollback bhi kar sakte ho
+        // e.g. onCommentAddedRollback?.(selectedPost.id)
       } finally {
         setPosting(false);
       }
     };
 
     // ===== Replies (fetch/show/more) =====
-    const openOrLoadReplies = async (
-      commentId: string | number
-    ) => {
-      const isOpen =
-        !!openReplies[commentId];
+    const openOrLoadReplies = async (commentId: string | number) => {
+      const isOpen = !!openReplies[commentId];
 
-      if (
-        !isOpen &&
-        !replies[commentId]?.length
-      ) {
+      if (!isOpen && !replies[commentId]?.length) {
         setRepliesLoading((s) => ({
           ...s,
           [commentId]: true,
         }));
         try {
-          const res =
-            await getPostCommentsReplies(
-              {
-                commentId,
-                page: 1,
-                limit:
-                  REPLIES_PAGE_SIZE,
-              }
-            );
+          const res = await getPostCommentsReplies({
+            commentId,
+            page: 1,
+            limit: REPLIES_PAGE_SIZE,
+          });
           setReplies((r) => ({
             ...r,
-            [commentId]:
-              res.data || [],
+            [commentId]: res.data || [],
           }));
           setRepliesMeta((m) => ({
             ...m,
             [commentId]: {
               page: 1,
               total:
-                res?.meta?.total ??
-                (res.data?.length ||
-                  0),
+                res?.meta?.total ?? (res.data?.length || 0),
             },
           }));
         } finally {
@@ -402,38 +363,27 @@ const CommentsSheet = forwardRef<CommentsSheetHandle, Props>(
       }));
     };
 
-    const loadMoreReplies = async (
-      commentId: string | number
-    ) => {
-      if (repliesLoading[commentId])
-        return;
+    const loadMoreReplies = async (commentId: string | number) => {
+      if (repliesLoading[commentId]) return;
 
-      const meta =
-        repliesMeta[commentId] || {
-          page: 0,
-          total: 0,
-        };
-      const currentCount =
-        replies[commentId]?.length || 0;
-      if (currentCount >= meta.total)
-        return;
+      const meta = repliesMeta[commentId] || {
+        page: 0,
+        total: 0,
+      };
+      const currentCount = replies[commentId]?.length || 0;
+      if (currentCount >= meta.total) return;
 
       setRepliesLoading((s) => ({
         ...s,
         [commentId]: true,
       }));
       try {
-        const nextPage =
-          meta.page + 1;
-        const res =
-          await getPostCommentsReplies(
-            {
-              commentId,
-              page: nextPage,
-              limit:
-                REPLIES_PAGE_SIZE,
-            }
-          );
+        const nextPage = meta.page + 1;
+        const res = await getPostCommentsReplies({
+          commentId,
+          page: nextPage,
+          limit: REPLIES_PAGE_SIZE,
+        });
         setReplies((r) => ({
           ...r,
           [commentId]: [
@@ -445,9 +395,7 @@ const CommentsSheet = forwardRef<CommentsSheetHandle, Props>(
           ...m,
           [commentId]: {
             page: nextPage,
-            total:
-              res?.meta?.total ??
-              meta.total,
+            total: res?.meta?.total ?? meta.total,
           },
         }));
       } finally {
@@ -459,28 +407,22 @@ const CommentsSheet = forwardRef<CommentsSheetHandle, Props>(
     };
 
     // ===== Send reply (optimistic) =====
-    const handleSendReply = async (
-      parentId: string | number
-    ) => {
+    const handleSendReply = async (parentId: string | number) => {
       if (replyPosting) return;
 
-      const text =
-        (replyDraft[parentId] ||
-          "").trim();
+      const text = (replyDraft[parentId] || "").trim();
       if (!text) return;
 
       const tempId = `reply-${Date.now()}`;
-      const optimistic: CommentItemType =
-        {
-          id: tempId,
-          content: text,
-          createdAt:
-            new Date().toISOString(),
-          user: {
-            name: "You",
-            image: null,
-          },
-        };
+      const optimistic: CommentItemType = {
+        id: tempId,
+        content: text,
+        createdAt: new Date().toISOString(),
+        user: {
+          name: "You",
+          image: null,
+        },
+      };
 
       setOpenReplies((s) => ({
         ...s,
@@ -488,26 +430,19 @@ const CommentsSheet = forwardRef<CommentsSheetHandle, Props>(
       }));
       setReplies((r) => ({
         ...r,
-        [parentId]:
-          r[parentId] || [],
+        [parentId]: r[parentId] || [],
       }));
       setReplies((r) => ({
         ...r,
-        [parentId]: [
-          ...(r[parentId] || []),
-          optimistic,
-        ],
+        [parentId]: [...(r[parentId] || []), optimistic],
       }));
 
       setComments((prev) =>
         prev.map((c) =>
-          String(c.id) ===
-          String(parentId)
+          String(c.id) === String(parentId)
             ? {
                 ...c,
-                replies_count:
-                  (c.replies_count ??
-                    0) + 1,
+                replies_count: (c.replies_count ?? 0) + 1,
               }
             : c
         )
@@ -521,41 +456,29 @@ const CommentsSheet = forwardRef<CommentsSheetHandle, Props>(
       setReplyToId(null);
 
       try {
-        const created =
-          await addReplytoPost({
-            commentId: parentId,
-            content: text,
-          });
+        const created = await addReplytoPost({
+          commentId: parentId,
+          content: text,
+        });
 
         if (created?.id) {
           setReplies((r) => ({
             ...r,
-            [parentId]: (
-              r[parentId] || []
-            ).map((x) =>
-              String(x.id) ===
-              tempId
-                ? created
-                : x
+            [parentId]: (r[parentId] || []).map((x) =>
+              String(x.id) === tempId ? created : x
             ),
           }));
           setRepliesMeta((m) => {
-            const meta =
-              m[parentId] || {
-                page: 1,
-                total: 0,
-              };
-            const lengthNow =
-              (replies[parentId] ||
-                []).length + 1;
+            const meta = m[parentId] || {
+              page: 1,
+              total: 0,
+            };
+            const lengthNow = (replies[parentId] || []).length + 1;
             return {
               ...m,
               [parentId]: {
                 ...meta,
-                total: Math.max(
-                  meta.total,
-                  lengthNow
-                ),
+                total: Math.max(meta.total, lengthNow),
               },
             };
           });
@@ -563,26 +486,19 @@ const CommentsSheet = forwardRef<CommentsSheetHandle, Props>(
       } catch {
         setReplies((r) => ({
           ...r,
-          [parentId]: (
-            r[parentId] || []
-          ).filter(
-            (x) =>
-              String(x.id) !==
-              tempId
+          [parentId]: (r[parentId] || []).filter(
+            (x) => String(x.id) !== tempId
           ),
         }));
         setComments((prev) =>
           prev.map((c) =>
-            String(c.id) ===
-            String(parentId)
+            String(c.id) === String(parentId)
               ? {
                   ...c,
-                  replies_count:
-                    Math.max(
-                      0,
-                      (c.replies_count ??
-                        1) - 1
-                    ),
+                  replies_count: Math.max(
+                    0,
+                    (c.replies_count ?? 1) - 1
+                  ),
                 }
               : c
           )
@@ -598,9 +514,9 @@ const CommentsSheet = forwardRef<CommentsSheetHandle, Props>(
     useImperativeHandle(ref, () => ({
       present: (post: ApiPostLite) => {
         setSelectedPost(post);
-        // 👇 open immediately
+        // open immediately
         sheetRef.current?.present();
-        // 👇 load comments async (no delay in opening)
+        // load comments async
         fetchFirstPage(post.id);
       },
       close: () => {
@@ -611,44 +527,25 @@ const CommentsSheet = forwardRef<CommentsSheetHandle, Props>(
     /* ───────────────────────────────────
        Render comment item
     ─────────────────────────────────── */
-    const renderItem = ({
-      item,
-    }: {
-      item: CommentItemType;
-    }) => {
-      const name =
-        item?.author?.name ??
-        item?.user?.name ??
-        "Anonymous";
-      const avatar =
-        item?.author?.image ??
-        item?.user?.image ??
-        null;
-      const created =
-        item?.created_at ||
-        item?.createdAt;
+    const renderItem = ({ item }: { item: CommentItemType }) => {
+      const name = item?.author?.name ?? item?.user?.name ?? "Anonymous";
+      const avatar = item?.author?.image ?? item?.user?.image ?? null;
+      const created = item?.created_at || item?.createdAt;
 
       const parentId = item.id;
-      const isReplyingHere =
-        replyToId === parentId;
-      const draftVal =
-        replyDraft[parentId] ?? "";
+      const isReplyingHere = replyToId === parentId;
+      const draftVal = replyDraft[parentId] ?? "";
 
-      const rItems =
-        replies[parentId] || [];
-      const rMeta =
-        repliesMeta[parentId] || {
-          page: 0,
-          total: 0,
-        };
-      const rLoading =
-        !!repliesLoading[parentId];
-      const isOpen =
-        !!openReplies[parentId];
+      const rItems = replies[parentId] || [];
+      const rMeta = repliesMeta[parentId] || {
+        page: 0,
+        total: 0,
+      };
+      const rLoading = !!repliesLoading[parentId];
+      const isOpen = !!openReplies[parentId];
       const remaining = Math.max(
         0,
-        (rMeta.total || 0) -
-          rItems.length
+        (rMeta.total || 0) - rItems.length
       );
 
       return (
@@ -658,9 +555,7 @@ const CommentsSheet = forwardRef<CommentsSheetHandle, Props>(
             paddingTop: 10,
             paddingBottom: 12,
             borderBottomWidth: 1,
-            borderBottomColor:
-              theme.colors
-                .borderColor,
+            borderBottomColor: theme.colors.borderColor,
           }}
         >
           <View
@@ -671,34 +566,25 @@ const CommentsSheet = forwardRef<CommentsSheetHandle, Props>(
           >
             {avatar ? (
               <Image
-                source={{
-                  uri: avatar,
-                }}
-                style={
-                  styles.commentAvatar
-                }
+                source={{ uri: avatar }}
+                style={styles.commentAvatar}
               />
             ) : (
               <View
                 style={[
                   styles.commentAvatar,
                   {
-                    backgroundColor:
-                      "#E5E7EB",
-                    alignItems:
-                      "center",
-                    justifyContent:
-                      "center",
+                    backgroundColor: "#E5E7EB",
+                    alignItems: "center",
+                    justifyContent: "center",
                   },
                 ]}
               >
                 <Text
                   style={{
                     fontSize: 10,
-                    fontWeight:
-                      "700",
-                    color:
-                      "#6B7280",
+                    fontWeight: "700",
+                    color: "#6B7280",
                   }}
                 >
                   {getInitials(name)}
@@ -707,20 +593,13 @@ const CommentsSheet = forwardRef<CommentsSheetHandle, Props>(
             )}
 
             <View style={{ flex: 1 }}>
-              <View
-                style={
-                  styles.commentHeader
-                }
-              >
+              <View style={styles.commentHeader}>
                 <Text
                   style={[
                     styles.commentName,
                     {
-                      color:
-                        theme.colors
-                          .text,
-                      textTransform:
-                        "capitalize",
+                      color: theme.colors.text,
+                      textTransform: "capitalize",
                     },
                   ]}
                   numberOfLines={1}
@@ -731,9 +610,7 @@ const CommentsSheet = forwardRef<CommentsSheetHandle, Props>(
                   style={[
                     styles.commentTime,
                     {
-                      color:
-                        theme.colors
-                          .textLight,
+                      color: theme.colors.textLight,
                     },
                   ]}
                 >
@@ -745,23 +622,18 @@ const CommentsSheet = forwardRef<CommentsSheetHandle, Props>(
                 style={[
                   styles.commentText,
                   {
-                    color:
-                      theme.colors
-                        .textLight,
+                    color: theme.colors.textLight,
                   },
                 ]}
               >
-                {item?.content ??
-                  ""}
+                {item?.content ?? ""}
               </Text>
 
               {/* Actions */}
               <View
                 style={{
-                  flexDirection:
-                    "row",
-                  alignItems:
-                    "center",
+                  flexDirection: "row",
+                  alignItems: "center",
                   gap: 16,
                   marginTop: 6,
                 }}
@@ -769,9 +641,7 @@ const CommentsSheet = forwardRef<CommentsSheetHandle, Props>(
                 <TouchableOpacity
                   onPress={() =>
                     setReplyToId(
-                      isReplyingHere
-                        ? null
-                        : parentId
+                      isReplyingHere ? null : parentId
                     )
                   }
                   activeOpacity={0.7}
@@ -779,11 +649,8 @@ const CommentsSheet = forwardRef<CommentsSheetHandle, Props>(
                   <Text
                     style={{
                       fontSize: 12,
-                      fontWeight:
-                        "700",
-                      color:
-                        theme.colors
-                          .primary,
+                      fontWeight: "700",
+                      color: theme.colors.primary,
                     }}
                   >
                     Reply
@@ -791,38 +658,22 @@ const CommentsSheet = forwardRef<CommentsSheetHandle, Props>(
                 </TouchableOpacity>
 
                 {!!item?.replies_count &&
-                  item
-                    .replies_count >
-                    0 && (
+                  item.replies_count > 0 && (
                     <TouchableOpacity
                       onPress={() =>
-                        openOrLoadReplies(
-                          parentId
-                        )
+                        openOrLoadReplies(parentId)
                       }
-                      activeOpacity={
-                        0.7
-                      }
+                      activeOpacity={0.7}
                     >
                       <Text
                         style={{
                           fontSize: 12,
-                          color:
-                            theme
-                              .colors
-                              .textLight,
+                          color: theme.colors.textLight,
                         }}
                       >
-                        {isOpen
-                          ? "Hide"
-                          : "View"}{" "}
-                        {
-                          item.replies_count
-                        }{" "}
-                        repl
-                        {item
-                          .replies_count ===
-                        1
+                        {isOpen ? "Hide" : "View"}{" "}
+                        {item.replies_count} repl
+                        {item.replies_count === 1
                           ? "y"
                           : "ies"}
                       </Text>
@@ -838,194 +689,129 @@ const CommentsSheet = forwardRef<CommentsSheetHandle, Props>(
                     marginLeft: 34,
                   }}
                 >
-                  {rLoading &&
-                  rItems.length ===
-                    0 ? (
+                  {rLoading && rItems.length === 0 ? (
                     <ActivityIndicator
-                      color={
-                        theme
-                          .colors
-                          .primary
-                      }
+                      color={theme.colors.primary}
                     />
                   ) : (
                     <>
-                      {rItems.map(
-                        (r) => {
-                          const rName =
-                            r
-                              ?.author
-                              ?.name ??
-                            r
-                              ?.user
-                              ?.name ??
-                            "Anonymous";
-                          const rAvatar =
-                            r
-                              ?.author
-                              ?.image ??
-                            r
-                              ?.user
-                              ?.image ??
-                            null;
-                          const rCreated =
-                            r
-                              ?.created_at ||
-                            r
-                              ?.createdAt;
+                      {rItems.map((r) => {
+                        const rName =
+                          r?.author?.name ??
+                          r?.user?.name ??
+                          "Anonymous";
+                        const rAvatar =
+                          r?.author?.image ??
+                          r?.user?.image ??
+                          null;
+                        const rCreated =
+                          r?.created_at ||
+                          r?.createdAt;
 
-                          return (
-                            <View
-                              key={String(
-                                r.id
-                              )}
-                              style={{
-                                flexDirection:
-                                  "row",
-                                gap: 8,
-                                marginBottom: 10,
-                              }}
-                            >
-                              {rAvatar ? (
-                                <Image
-                                  source={{
-                                    uri: rAvatar,
-                                  }}
-                                  style={{
-                                    width: 20,
-                                    height: 20,
-                                    borderRadius: 10,
-                                  }}
-                                />
-                              ) : (
-                                <View
-                                  style={{
-                                    width: 20,
-                                    height: 20,
-                                    borderRadius: 10,
-                                    backgroundColor:
-                                      "#E5E7EB",
-                                    alignItems:
-                                      "center",
-                                    justifyContent:
-                                      "center",
-                                  }}
-                                >
-                                  <Text
-                                    style={{
-                                      fontSize: 9,
-                                      fontWeight:
-                                        "700",
-                                      color:
-                                        "#6B7280",
-                                    }}
-                                  >
-                                    {getInitials(
-                                      rName
-                                    )}
-                                  </Text>
-                                </View>
-                              )}
-
+                        return (
+                          <View
+                            key={String(r.id)}
+                            style={{
+                              flexDirection: "row",
+                              gap: 8,
+                              marginBottom: 10,
+                            }}
+                          >
+                            {rAvatar ? (
+                              <Image
+                                source={{ uri: rAvatar }}
+                                style={{
+                                  width: 20,
+                                  height: 20,
+                                  borderRadius: 10,
+                                }}
+                              />
+                            ) : (
                               <View
                                 style={{
-                                  flex: 1,
+                                  width: 20,
+                                  height: 20,
+                                  borderRadius: 10,
+                                  backgroundColor: "#E5E7EB",
+                                  alignItems: "center",
+                                  justifyContent: "center",
                                 }}
                               >
-                                <View
-                                  style={{
-                                    flexDirection:
-                                      "row",
-                                    alignItems:
-                                      "center",
-                                  }}
-                                >
-                                  <Text
-                                    style={{
-                                      fontSize: 12,
-                                      fontWeight:
-                                        "600",
-                                      color:
-                                        theme
-                                          .colors
-                                          .text,
-                                      marginRight: 6,
-                                    }}
-                                    numberOfLines={
-                                      1
-                                    }
-                                  >
-                                    {rName}
-                                  </Text>
-                                  <Text
-                                    style={{
-                                      fontSize: 11,
-                                      color:
-                                        theme
-                                          .colors
-                                          .textLight,
-                                    }}
-                                  >
-                                    {timeAgo(
-                                      rCreated
-                                    )}
-                                  </Text>
-                                </View>
-
                                 <Text
                                   style={{
-                                    marginTop: 2,
-                                    fontSize: 12,
-                                    lineHeight: 17,
-                                    color:
-                                      theme
-                                        .colors
-                                        .textLight,
+                                    fontSize: 9,
+                                    fontWeight: "700",
+                                    color: "#6B7280",
                                   }}
                                 >
-                                  {r?.content ??
-                                    ""}
+                                  {getInitials(rName)}
                                 </Text>
                               </View>
-                            </View>
-                          );
-                        }
-                      )}
+                            )}
 
-                      {remaining >
-                        0 && (
+                            <View style={{ flex: 1 }}>
+                              <View
+                                style={{
+                                  flexDirection: "row",
+                                  alignItems: "center",
+                                }}
+                              >
+                                <Text
+                                  style={{
+                                    fontSize: 12,
+                                    fontWeight: "600",
+                                    color: theme.colors.text,
+                                    marginRight: 6,
+                                  }}
+                                  numberOfLines={1}
+                                >
+                                  {rName}
+                                </Text>
+                                <Text
+                                  style={{
+                                    fontSize: 11,
+                                    color: theme.colors.textLight,
+                                  }}
+                                >
+                                  {timeAgo(rCreated)}
+                                </Text>
+                              </View>
+
+                              <Text
+                                style={{
+                                  marginTop: 2,
+                                  fontSize: 12,
+                                  lineHeight: 17,
+                                  color: theme.colors.textLight,
+                                }}
+                              >
+                                {r?.content ?? ""}
+                              </Text>
+                            </View>
+                          </View>
+                        );
+                      })}
+
+                      {remaining > 0 && (
                         <TouchableOpacity
                           onPress={() =>
-                            loadMoreReplies(
-                              parentId
-                            )
+                            loadMoreReplies(parentId)
                           }
-                          activeOpacity={
-                            0.7
-                          }
+                          activeOpacity={0.7}
                           style={{
                             paddingVertical: 6,
                           }}
-                          disabled={
-                            rLoading
-                          }
+                          disabled={rLoading}
                         >
                           {rLoading ? (
                             <ActivityIndicator
-                              color={
-                                theme
-                                  .colors
-                                  .primary
-                              }
+                              color={theme.colors.primary}
                             />
                           ) : (
                             <Text
                               style={{
                                 fontSize: 12,
-                                color:
-                                  theme
-                                    .colors
-                                    .textLight,
+                                color: theme.colors.textLight,
                               }}
                             >
                               View{" "}
@@ -1034,8 +820,7 @@ const CommentsSheet = forwardRef<CommentsSheetHandle, Props>(
                                 REPLIES_PAGE_SIZE
                               )}{" "}
                               more repl
-                              {remaining ===
-                              1
+                              {remaining === 1
                                 ? "y"
                                 : "ies"}
                             </Text>
@@ -1054,82 +839,40 @@ const CommentsSheet = forwardRef<CommentsSheetHandle, Props>(
                     styles.replyComposer,
                     {
                       borderColor:
-                        theme
-                          .colors
-                          .borderColor ||
-                        "#e5e7eb",
+                        theme.colors.borderColor || "#e5e7eb",
                       backgroundColor:
-                        theme
-                          .colors
-                          .textWhite ||
-                        theme
-                          .colors
-                          .background,
+                        theme.colors.textWhite ||
+                        theme.colors.background,
                     },
                   ]}
                 >
                   <BottomSheetTextInput
-                    value={
-                      draftVal
-                    }
-                    onChangeText={(
-                      t
-                    ) =>
-                      setReplyDraft(
-                        (
-                          d
-                        ) => ({
-                          ...d,
-                          [parentId]:
-                            t,
-                        })
-                      )
+                    value={draftVal}
+                    onChangeText={(t) =>
+                      setReplyDraft((d) => ({
+                        ...d,
+                        [parentId]: t,
+                      }))
                     }
                     placeholder="Write a reply…"
-                    placeholderTextColor={
-                      theme
-                        .colors
-                        .textLight
-                    }
+                    placeholderTextColor={theme.colors.textLight}
                     style={[
                       styles.replyInput,
                       {
-                        color:
-                          theme
-                            .colors
-                            .text,
+                        color: theme.colors.text,
                       },
                     ]}
                     multiline
-                    blurOnSubmit={
-                      false
-                    }
+                    blurOnSubmit={false}
                     returnKeyType="default"
                     textAlignVertical="top"
-                    onFocus={() =>
-                      setIsComposing(
-                        true
-                      )
-                    }
-                    onBlur={() =>
-                      setIsComposing(
-                        false
-                      )
-                    }
+                    onFocus={() => setIsComposing(true)}
+                    onBlur={() => setIsComposing(false)}
                   />
                   <TouchableOpacity
-                    onPress={() =>
-                      handleSendReply(
-                        parentId
-                      )
-                    }
-                    disabled={
-                      !draftVal.trim() ||
-                      replyPosting
-                    }
-                    activeOpacity={
-                      0.7
-                    }
+                    onPress={() => handleSendReply(parentId)}
+                    disabled={!draftVal.trim() || replyPosting}
+                    activeOpacity={0.7}
                     style={{
                       paddingHorizontal: 6,
                       paddingVertical: 4,
@@ -1138,25 +881,15 @@ const CommentsSheet = forwardRef<CommentsSheetHandle, Props>(
                     {replyPosting ? (
                       <ActivityIndicator
                         size="small"
-                        color={
-                          theme
-                            .colors
-                            .primary
-                        }
+                        color={theme.colors.primary}
                       />
                     ) : (
                       <Text
                         style={{
-                          fontWeight:
-                            "700",
-                          color:
-                            draftVal.trim()
-                              ? theme
-                                  .colors
-                                  .primary
-                              : theme
-                                  .colors
-                                  .textLight,
+                          fontWeight: "700",
+                          color: draftVal.trim()
+                            ? theme.colors.primary
+                            : theme.colors.textLight,
                         }}
                       >
                         Send
@@ -1184,20 +917,12 @@ const CommentsSheet = forwardRef<CommentsSheetHandle, Props>(
             activeOpacity={0.8}
           >
             {loadingMore ? (
-              <ActivityIndicator
-                color={
-                  theme.colors
-                    .primary
-                }
-              />
+              <ActivityIndicator color={theme.colors.primary} />
             ) : (
               <Text
                 style={{
-                  color:
-                    theme.colors
-                      .primary,
-                  fontWeight:
-                    "700",
+                  color: theme.colors.primary,
+                  fontWeight: "700",
                 }}
               >
                 Load more comments
@@ -1207,9 +932,7 @@ const CommentsSheet = forwardRef<CommentsSheetHandle, Props>(
         )}
         <View
           style={{
-            height:
-              insets.bottom +
-              12,
+            height: insets.bottom + 12,
           }}
         />
       </View>
@@ -1225,17 +948,10 @@ const CommentsSheet = forwardRef<CommentsSheetHandle, Props>(
       >
         {loading ? (
           <>
-            <ActivityIndicator
-              color={
-                theme.colors
-                  .primary
-              }
-            />
+            <ActivityIndicator color={theme.colors.primary} />
             <Text
               style={{
-                color:
-                  theme.colors
-                    .textLight,
+                color: theme.colors.textLight,
                 marginTop: 6,
               }}
             >
@@ -1245,9 +961,7 @@ const CommentsSheet = forwardRef<CommentsSheetHandle, Props>(
         ) : (
           <Text
             style={{
-              color:
-                theme.colors
-                  .textLight,
+              color: theme.colors.textLight,
             }}
           >
             No comments yet.
@@ -1267,88 +981,54 @@ const CommentsSheet = forwardRef<CommentsSheetHandle, Props>(
         enableDynamicSizing={false}
         enablePanDownToClose
         enableOverDrag={false}
-        enableContentPanningGesture={
-          !isComposing
-        }
+        enableContentPanningGesture={!isComposing}
         keyboardBehavior="interactive"
         keyboardBlurBehavior="none"
         android_keyboardInputMode="adjustResize"
-        backdropComponent={
-          renderBackdrop
-        }
+        backdropComponent={renderBackdrop}
         topInset={insets.top + 20}
         handleIndicatorStyle={{
-          backgroundColor:
-            theme.colors
-              .primary,
+          backgroundColor: theme.colors.primary,
         }}
         backgroundStyle={{
-          backgroundColor:
-            theme.colors
-              .background,
+          backgroundColor: theme.colors.background,
           borderTopLeftRadius: 16,
           borderTopRightRadius: 16,
         }}
       >
         <Header
           title={title || "Comments"}
-          postId={
-            selectedPost?.id ??
-            null
-          }
+          postId={selectedPost?.id ?? null}
           value={newComment}
           onChange={setNewComment}
           onSend={handleAddComment}
           disabled={posting}
-          onFocusChange={
-            setIsComposing
-          }
+          onFocusChange={setIsComposing}
           colors={{
             text: theme.colors.text,
-            textLight:
-              theme.colors
-                .textLight,
-            textWhite:
-              theme.colors
-                .textWhite,
-            background:
-              theme.colors
-                .background,
-            borderColor:
-              theme.colors
-                .borderColor,
-            primary:
-              theme.colors
-                .primary,
+            textLight: theme.colors.textLight,
+            textWhite: theme.colors.textWhite,
+            background: theme.colors.background,
+            borderColor: theme.colors.borderColor,
+            primary: theme.colors.primary,
           }}
         />
 
         <BottomSheetFlatList
           data={comments}
-          keyExtractor={(c) =>
-            String(c.id)
-          }
+          keyExtractor={(c) => String(c.id)}
           renderItem={renderItem}
-          ListFooterComponent={
-            ListFooter
-          }
-          ListEmptyComponent={
-            ListEmpty
-          }
+          ListFooterComponent={ListFooter}
+          ListEmptyComponent={ListEmpty}
           showsVerticalScrollIndicator
           contentContainerStyle={{
             paddingTop: 8,
-            paddingBottom:
-              insets.bottom +
-              12,
+            paddingBottom: insets.bottom + 12,
           }}
           scrollIndicatorInsets={{
-            bottom:
-              insets.bottom,
+            bottom: insets.bottom,
           }}
-          removeClippedSubviews={
-            false
-          }
+          removeClippedSubviews={false}
           keyboardShouldPersistTaps="always"
           keyboardDismissMode="none"
           extraData={{
