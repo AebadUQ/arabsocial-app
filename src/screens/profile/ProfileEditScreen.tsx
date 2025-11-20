@@ -481,22 +481,24 @@ const ProfileEditScreen: React.FC = () => {
               />
 
               {/* Country (required) */}
-              <View ref={setFieldRef("country")}>
-                <BottomSheetSelect
-                  label="Country"
-                  labelColor={appTheme.colors.textLight}
-                  value={selectedCountry}
-                  onChange={(v) => {
-                    setSelectedCountry(v);
-                    setErrors((prev) => ({ ...prev, country: "" }));
-                  }}
-                  options={countries}
-                  placeholder="Select Country"
-                  sheetTitle="Select Country"
-                  fieldStyle={{ backgroundColor: "white" }}
-                  error={errors.country}
-                />
-              </View>
+            {/* Country (required) */}
+<View ref={setFieldRef("country")}>
+  <BottomSheetSelect
+    label="Country"
+    labelColor={appTheme.colors.textLight}
+    value={selectedCountry}
+    onChange={(v) => {
+      setSelectedCountry(v);                     // 🔥 main source of truth
+      setErrors((prev) => ({ ...prev, country: "" }));
+    }}
+    options={countries}                          // string[] is OK (normalize ho jayega)
+    searchable                                   // 👈 search on
+    placeholder="Select Country"
+    sheetTitle="Select Country"
+    fieldStyle={{ backgroundColor: "white" }}
+    error={errors.country}
+  />
+</View>
 
               {/* City / State (required – treating as city) */}
               {selectedCountry ? (

@@ -10,13 +10,13 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  TextInput,
 } from "react-native";
 import {
   BottomSheetModal,
   BottomSheetBackdrop,
   BottomSheetBackdropProps,
   BottomSheetFlatList,
+  BottomSheetTextInput,
 } from "@gorhom/bottom-sheet";
 import { useTheme } from "@/theme/ThemeContext";
 import { CaretDown, Check } from "phosphor-react-native";
@@ -60,6 +60,7 @@ const BottomSheetSelect: React.FC<Props> = ({
   const sheetRef = useRef<BottomSheetModal>(null);
   const [selected, setSelected] = useState<string | null>(value ?? null);
   const [search, setSearch] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
@@ -103,7 +104,7 @@ const BottomSheetSelect: React.FC<Props> = ({
     closeSheet();
   };
 
-  // ✅ 2 snapPoints like CommentsSheet → can expand from 40% to 80%
+  // same snapPoints as CommentsSheet
   const snapPoints = useMemo(() => ["40%", "80%"], []);
 
   const renderBackdrop = useCallback(
@@ -173,10 +174,12 @@ const BottomSheetSelect: React.FC<Props> = ({
 
       <BottomSheetModal
         ref={sheetRef}
-        index={0}                      // start at 40%
+        index={0}                        // 40% se start
         snapPoints={snapPoints}
-        enableDynamicSizing={false}    // ✅ fixed heights, no shrink on search/content
+        enableDynamicSizing={false}
         enablePanDownToClose
+        enableOverDrag={false}
+        enableContentPanningGesture={!isTyping} // typing pe drag lock
         backdropComponent={renderBackdrop}
         backgroundStyle={{
           backgroundColor: appTheme.colors.background,
@@ -187,9 +190,9 @@ const BottomSheetSelect: React.FC<Props> = ({
           backgroundColor: appTheme.colors.primary,
         }}
         topInset={insets.top + 20}
-        keyboardBehavior="extend"
-        keyboardBlurBehavior="restore"
-        android_keyboardInputMode="adjustPan"
+        keyboardBehavior="interactive"        // 👈 same as CommentsSheet
+        keyboardBlurBehavior="none"
+        android_keyboardInputMode="adjustResize"
       >
         <View style={{ paddingHorizontal: 16, flex: 1 }}>
           <Text
@@ -202,7 +205,7 @@ const BottomSheetSelect: React.FC<Props> = ({
           </Text>
 
           {searchable && (
-            <TextInput
+            <BottomSheetTextInput
               value={search}
               onChangeText={setSearch}
               placeholder="Search..."
@@ -215,6 +218,8 @@ const BottomSheetSelect: React.FC<Props> = ({
                   borderColor: appTheme.colors.borderColor,
                 },
               ]}
+              onFocus={() => setIsTyping(true)}
+              onBlur={() => setIsTyping(false)}
             />
           )}
 
@@ -223,6 +228,7 @@ const BottomSheetSelect: React.FC<Props> = ({
             keyExtractor={(item) => item.value}
             nestedScrollEnabled
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="always"
             ItemSeparatorComponent={() => (
               <View
                 style={{
