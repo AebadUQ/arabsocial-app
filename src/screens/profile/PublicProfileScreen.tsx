@@ -13,6 +13,8 @@ import { useTheme } from "@/theme/ThemeContext";
 import { Text } from "@/components";
 import Card from "@/components/Card";
 
+import ImageView from "react-native-image-viewing";   // ⭐ FULLSCREEN PREVIEW
+
 import {
   ArrowLeftIcon,
   FacebookLogoIcon,
@@ -33,48 +35,21 @@ import {
 
 import { getPublicUserProfile } from "@/api/auth";
 
-// ---------- helpers ----------
+// ======================================================
+// Helpers
+// ======================================================
+
 const safeValue = (value: any) =>
   value === null || value === undefined || value === "" ? "N/A" : value;
 
-// if visibility says false => hide, else show value or N/A
 function maybeShow(visible: boolean | undefined, value: any): string | null {
-  if (!visible) return null; // hide entire row
-  const v = safeValue(value);
-  return v;
+  if (!visible) return null;
+  return safeValue(value);
 }
 
-type PublicUser = {
-  id: number;
-  name: string | null;
-  email: string | null;
-  phone: string | null;
-  location: string | null;
-  state: string | null;
-  country: string | null;
-  marital_status: string | null;
-  interests: string[] | string | null;
-  profession: string | null;
-  social_links: Record<string, string> | null;
-  image: string | null;
-  img: string | null;
-  about_me: string | null;
-  nationality: string | null;
-  dob: string | null;
-  gender: string | null;
-  height: string | null;
-  education: string | null;
-  language_spoken: string[] | null;
-  religion: string | null;
-  age: string | number | null;
-  gallery: string[] | null;
-  username: string | null;
-  visibility_settings?: {
-    [key: string]: boolean;
-  };
-  firebase_id?: string | null;
-  roleId?: number;
-};
+// ======================================================
+// Screen
+// ======================================================
 
 const PublicProfileScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -83,8 +58,11 @@ const PublicProfileScreen: React.FC = () => {
 
   const userId = route.params?.userId;
 
-  const [data, setData] = useState<PublicUser | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  // ⭐ Avatar Preview State
+  const [avatarPreviewVisible, setAvatarPreviewVisible] = useState(false);
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -102,7 +80,10 @@ const PublicProfileScreen: React.FC = () => {
     fetchProfile();
   }, [fetchProfile]);
 
-  // safety fallbacks while loading or no data
+  // ------------------------------------------------------
+  // Loading / Error Screens
+  // ------------------------------------------------------
+
   if (loading) {
     return (
       <SafeAreaView
@@ -147,19 +128,19 @@ const PublicProfileScreen: React.FC = () => {
     );
   }
 
+  // ------------------------------------------------------
+  // Extract data
+  // ------------------------------------------------------
+
   const vs = data.visibility_settings || {};
+  const avatarUri = data.image || data.img || "https://i.pravatar.cc/200?img=12";
 
-  // avatar
-  const avatarUri =
-    data.image || data.img || "https://i.pravatar.cc/200?img=12";
-
-  // languages -> array of strings
   const languagesArr =
     Array.isArray(data.language_spoken) && data.language_spoken.length > 0
       ? data.language_spoken
       : [];
 
-  // prepare details WITH visibility rules
+  // visibility-based detail rows
   const detailRowsRaw = [
     {
       key: "email",
@@ -178,10 +159,8 @@ const PublicProfileScreen: React.FC = () => {
       icon: MapPinIcon,
       label: "State · City",
       val: maybeShow(
-        vs.state || vs.city || vs.location,
-        `${safeValue(data.state)} · ${safeValue(
-          data.location || data.country
-        )}`
+        vs.state || vs.city,
+        `${safeValue(data.state)} · ${safeValue(data.location || data.country)}`
       ),
     },
     {
@@ -231,68 +210,55 @@ const PublicProfileScreen: React.FC = () => {
     },
   ];
 
-  // filter out rows completely hidden
-  const detailRows = detailRowsRaw.filter((row) => row.val !== null);
+  const detailRows = detailRowsRaw.filter((r) => r.val !== null);
 
-  // about me visibility
-  const aboutVisible = vs.about_me;
   const aboutText =
-    aboutVisible && safeValue(data.about_me) !== "N/A"
-      ? data.about_me
+    vs.about_me && safeValue(data.about_me) !== "N/A" ? data.about_me : null;
+
+  const professionText =
+    vs.profession && safeValue(data.profession) !== "N/A"
+      ? data.profession
       : null;
 
-  // profession visibility
-  const professionText = vs.profession ? safeValue(data.profession) : null;
+  const usernameText =
+    vs.username && safeValue(data.username) !== "N/A"
+      ? data.username
+      : null;
 
-  // username visibility
-  const usernameText = vs.username ? safeValue(data.username) : null;
-
-  // dob/age visibility
-  const dobVisible = vs.dob;
   const dobText =
-    dobVisible &&
+    vs.dob &&
     (safeValue(data.dob) !== "N/A" || safeValue(data.age) !== "N/A")
       ? data.age
         ? `${data.age} yrs`
         : data.dob
       : null;
 
-  // socials
+  // Socials
   const socialsEntries =
     data.social_links && typeof data.social_links === "object"
       ? Object.entries(data.social_links).filter(([_, v]) => !!v)
       : [];
 
+  // ------------------------------------------------------
+  // UI RENDER
+  // ------------------------------------------------------
+
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
-      {/* 🔹 Top header same vibe as ProfileScreen */}
-      <View
-        style={[
-          styles.topBar,
-          { backgroundColor: theme.colors.background },
-        ]}
-      >
+      {/* Header */}
+      <View style={[styles.topBar, { backgroundColor: theme.colors.background }]}>
         <View style={styles.topBarLeft}>
-          <TouchableOpacity
-            accessibilityRole="button"
-            onPress={() => navigation.goBack()}
-            style={styles.backBtn}
-          >
-            <ArrowLeftIcon size={20} color={theme.colors.text} weight="bold" />
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <ArrowLeftIcon size={20} color={theme.colors.text} />
           </TouchableOpacity>
 
-          <Text
-            variant="body1"
-            color={theme.colors.text}
-            style={styles.topTitle}
-          >
+          <Text variant="body1" color={theme.colors.text}>
             Profile
           </Text>
         </View>
 
-        {/* Right side blank (no edit) */}
         <View style={{ width: 40, height: 40 }} />
       </View>
 
@@ -300,17 +266,35 @@ const PublicProfileScreen: React.FC = () => {
         contentContainerStyle={[styles.content, { paddingBottom: 24 }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Avatar + basic info */}
+        {/* Avatar */}
         <Card>
           <View style={styles.avatarCardContent}>
-            <View
-              style={[
-                styles.avatarBorder,
-                { borderColor: theme.colors.primaryLight },
-              ]}
+
+            {/* ⭐ FULLSCREEN PREVIEW ENABLED */}
+            <TouchableOpacity
+              activeOpacity={0.9}
+              onPress={() => setAvatarPreviewVisible(true)}
             >
-              <Image source={{ uri: avatarUri }} style={styles.avatar} />
-            </View>
+              <View
+                style={[
+                  styles.avatarBorder,
+                  { borderColor: theme.colors.primaryLight },
+                ]}
+              >
+                <Image source={{ uri: avatarUri }} style={styles.avatar} />
+              </View>
+            </TouchableOpacity>
+
+            {/* ⭐ Fullscreen Avatar Viewer */}
+            <ImageView
+              images={[{ uri: avatarUri }]}
+              visible={avatarPreviewVisible}
+              onRequestClose={() => setAvatarPreviewVisible(false)}
+              swipeToCloseEnabled={true}
+              doubleTapToZoomEnabled={true}
+              backgroundColor="#000"
+              animationType="slide"
+              presentationStyle="overFullScreen" imageIndex={0}            />
 
             <Text
               variant="h5"
@@ -320,64 +304,44 @@ const PublicProfileScreen: React.FC = () => {
               {safeValue(data.name)}
             </Text>
 
-            {/* username (agar visible ho) */}
             {usernameText && (
               <Text variant="caption" color={theme.colors.textLight}>
                 @{usernameText}
               </Text>
             )}
 
-            {/* profession (only if visible) */}
             {professionText && (
-              <Text
-                variant="caption"
-                color={theme.colors.textLight}
-                style={{ marginTop: 2 }}
-              >
+              <Text variant="caption" color={theme.colors.textLight}>
                 {professionText}
               </Text>
             )}
 
-            {/* dob / age */}
             {dobText && (
-              <Text
-                variant="caption"
-                color={theme.colors.textLight}
-                style={{ marginTop: 2 }}
-              >
+              <Text variant="caption" color={theme.colors.textLight}>
                 {dobText}
               </Text>
             )}
 
-            {/* Socials */}
+            {/* Social Links */}
             {socialsEntries.length > 0 && (
               <View style={styles.socialRow}>
-                {socialsEntries.map(([key, value], idx) => {
-                  let IconComp: any;
-                  switch (key) {
-                    case "facebook":
-                      IconComp = FacebookLogoIcon;
-                      break;
-                    case "twitter":
-                      IconComp = XLogoIcon;
-                      break;
-                    case "instagram":
-                      IconComp = InstagramLogoIcon;
-                      break;
-                    default:
-                      IconComp = ListDashesIcon;
-                  }
+                {socialsEntries.map(([key, value]) => {
+                  const IconComp =
+                    key === "facebook"
+                      ? FacebookLogoIcon
+                      : key === "twitter"
+                      ? XLogoIcon
+                      : key === "instagram"
+                      ? InstagramLogoIcon
+                      : ListDashesIcon;
 
                   return (
                     <TouchableOpacity
-                      key={idx}
+                      key={key}
                       style={[
                         styles.socialIconWrap,
                         { borderColor: theme.colors.primaryLight },
                       ]}
-                      onPress={() =>
-                        console.log("open social link:", key, value)
-                      }
                     >
                       <IconComp size={20} color={theme.colors.primary} />
                     </TouchableOpacity>
@@ -388,15 +352,11 @@ const PublicProfileScreen: React.FC = () => {
           </View>
         </Card>
 
-        {/* About me */}
+        {/* About */}
         {aboutText && (
           <Card>
             <View style={styles.sectionTextWrap}>
-              <Text
-                variant="body1"
-                color={theme.colors.text}
-                style={styles.sectionTitle}
-              >
+              <Text variant="body1" style={styles.sectionTitle}>
                 About me
               </Text>
               <Text variant="body1" color={theme.colors.textLight}>
@@ -410,18 +370,14 @@ const PublicProfileScreen: React.FC = () => {
         {detailRows.length > 0 && (
           <Card>
             <View style={styles.sectionHeaderRow}>
-              <Text
-                variant="body1"
-                color={theme.colors.text}
-                style={styles.sectionTitle}
-              >
+              <Text variant="body1" style={styles.sectionTitle}>
                 Personal Details
               </Text>
             </View>
 
             <View style={styles.detailsList}>
               {detailRows.map((row) => {
-                const IconHere = row.icon || ListDashesIcon;
+                const IconComp = row.icon;
                 return (
                   <View
                     style={[
@@ -436,18 +392,11 @@ const PublicProfileScreen: React.FC = () => {
                         { backgroundColor: theme.colors.primaryLight },
                       ]}
                     >
-                      <IconHere
-                        size={20}
-                        color={theme.colors.primary}
-                        weight="regular"
-                      />
+                      <IconComp size={20} color={theme.colors.primary} />
                     </View>
 
                     <View style={styles.detailTextWrap}>
-                      <Text
-                        variant="overline"
-                        color={theme.colors.textLight}
-                      >
+                      <Text variant="overline" color={theme.colors.textLight}>
                         {row.label}
                       </Text>
                       <Text variant="body1" color={theme.colors.text}>
@@ -465,15 +414,15 @@ const PublicProfileScreen: React.FC = () => {
   );
 };
 
-// ---------------------------
-// styles
-// ---------------------------
+// ======================================================
+// Styles
+// ======================================================
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
 
-  /* 🔹 Top bar styles (same vibe as ProfileScreen) */
   topBar: {
     flexDirection: "row",
     alignItems: "center",
@@ -485,73 +434,63 @@ const styles = StyleSheet.create({
   topBarLeft: {
     flexDirection: "row",
     alignItems: "center",
-    columnGap: 10,
+    gap: 10,
   },
   backBtn: {
     width: 40,
     height: 40,
-    borderRadius: 20,
     backgroundColor: "#fff",
-    alignItems: "center",
+    borderRadius: 20,
     justifyContent: "center",
+    alignItems: "center",
   },
-  topTitle: {},
 
   content: {
     paddingHorizontal: 20,
-    display: "flex",
     gap: 20,
   },
 
   retryBtn: {
     marginTop: 16,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+    padding: 10,
     borderRadius: 8,
   },
 
-  // avatar card
   avatarCardContent: {
-    justifyContent: "center",
     alignItems: "center",
   },
   avatarBorder: {
     padding: 4,
     borderWidth: 4,
-    borderRadius: 9999,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 8,
+    borderRadius: 100,
+    marginBottom: 10,
   },
   avatar: {
-    width: 100,
-    height: 100,
+    width: 110,
+    height: 110,
     borderRadius: 60,
-    resizeMode: "cover",
   },
   nameText: {
     textTransform: "capitalize",
     marginBottom: 2,
   },
 
-  // socials
   socialRow: {
     flexDirection: "row",
     justifyContent: "center",
-    columnGap: 8,
+    gap: 10,
     marginTop: 10,
   },
   socialIconWrap: {
     width: 40,
     height: 40,
     borderRadius: 20,
+    borderWidth: 1,
     backgroundColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 1,
   },
 
-  // sections
   sectionTextWrap: {
     flex: 1,
   },
@@ -569,10 +508,9 @@ const styles = StyleSheet.create({
     paddingTop: 10,
   },
 
-  // detail row (same pattern as ProfileScreen)
   row: {
     flexDirection: "row",
-    columnGap: 12,
+    gap: 12,
     alignItems: "center",
     paddingVertical: 10,
     borderBottomWidth: 0.5,
@@ -586,7 +524,6 @@ const styles = StyleSheet.create({
   },
   detailTextWrap: {
     flex: 1,
-    marginLeft: 4,
   },
 });
 

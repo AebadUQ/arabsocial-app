@@ -31,6 +31,7 @@ import {
 import { useAuth } from '@/context/Authcontext';
 import { updateUserDetailVisibility } from '@/api/auth';
 import Card from '@/components/Card';
+import ImageView from "react-native-image-viewing"; // ⭐ FULLSCREEN VIEWER
 
 // ---------------------------
 // Helpers & constants
@@ -64,7 +65,7 @@ const SOCIAL_ICON_MAP: Record<string, any> = {
 };
 
 // ---------------------------
-// Screen
+// Screen Component
 // ---------------------------
 
 const ProfileScreen: React.FC = () => {
@@ -74,6 +75,9 @@ const ProfileScreen: React.FC = () => {
 
   const avatarUri =
     user?.image || user?.img || 'https://i.pravatar.cc/200?img=12';
+
+  // ⭐ Avatar full-screen viewer state
+  const [avatarPreviewVisible, setAvatarPreviewVisible] = useState(false);
 
   const languages = useMemo(
     () =>
@@ -112,7 +116,6 @@ const ProfileScreen: React.FC = () => {
     value: boolean
   ) => {
     if (!field) return;
-
     try {
       await updateUserDetailVisibility({
         visibility_settings: { [field]: value },
@@ -128,26 +131,18 @@ const ProfileScreen: React.FC = () => {
     <SafeAreaView
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
-      {/* 🔹 Top header (like screenshot) */}
-      <View
-        style={[
-          styles.topBar,
-          { backgroundColor: theme.colors.background },
-        ]}
-      >
+      {/* Header */}
+      <View style={[styles.topBar, { backgroundColor: theme.colors.background }]}>
         <View style={styles.topBarLeft}>
           <TouchableOpacity
             accessibilityRole="button"
             onPress={() => navigation.goBack()}
-            style={[
-              styles.backBtn,
-              // { backgroundColor: '#fff', borderColor: theme.colors.borderColor },
-            ]}
+            style={styles.backBtn}
           >
             <ArrowLeftIcon size={20} color={theme.colors.text} weight="bold" />
           </TouchableOpacity>
 
-          <Text variant="body1" color={theme.colors.text} style={styles.topTitle}>
+          <Text variant="body1" color={theme.colors.text} >
             Profile
           </Text>
         </View>
@@ -155,12 +150,9 @@ const ProfileScreen: React.FC = () => {
         <TouchableOpacity
           accessibilityRole="button"
           onPress={onEditAbout}
-          style={[
-            styles.editBtn,
-            { backgroundColor: theme.colors.primaryLight },
-          ]}
+          style={[styles.editBtn, { backgroundColor: theme.colors.primaryLight }]}
         >
-          <NotePencilIcon size={16} color={theme.colors.primary} weight="regular" />
+          <NotePencilIcon size={16} color={theme.colors.primary} />
           <Text
             variant="caption"
             color={theme.colors.primary}
@@ -175,37 +167,51 @@ const ProfileScreen: React.FC = () => {
         contentContainerStyle={[styles.content, { paddingBottom: 24 }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Avatar + basic info */}
+        {/* Avatar + Basic Info */}
         <Card>
           <View style={styles.avatarCardContent}>
-            <View
-              style={[
-                styles.avatarBorder,
-                { borderColor: theme.colors.primaryLight },
-              ]}
+            
+            {/* ⭐ Tap avatar → Full screen preview */}
+            <TouchableOpacity
+              activeOpacity={0.9}
+              onPress={() => setAvatarPreviewVisible(true)}
             >
-              <Image source={{ uri: avatarUri }} style={styles.avatar} />
-            </View>
+              <View
+                style={[
+                  styles.avatarBorder,
+                  { borderColor: theme.colors.primaryLight },
+                ]}
+              >
+                <Image source={{ uri: avatarUri }} style={styles.avatar} />
+              </View>
+            </TouchableOpacity>
 
-            <Text
-              variant="h5"
-              style={styles.nameText}
-              color={theme.colors.text}
-            >
+            {/* ⭐ Fullscreen Viewer for Avatar */}
+            <ImageView
+              images={[{ uri: avatarUri }]}
+              visible={avatarPreviewVisible}
+              onRequestClose={() => setAvatarPreviewVisible(false)}
+              swipeToCloseEnabled={true}
+              doubleTapToZoomEnabled={true}
+              backgroundColor="#000"
+              animationType="slide"
+              presentationStyle="overFullScreen" imageIndex={0}            />
+
+            <Text variant="h5" style={styles.nameText} color={theme.colors.text}>
               {safeValue(user?.name)}
             </Text>
+
             <Text variant="caption" color={theme.colors.textLight}>
               {safeValue(user?.profession)}
             </Text>
 
-            {/* Socials */}
+            {/* Social Icons */}
             {user?.social_links && (
               <View style={styles.socialRow}>
                 {Object.entries(user.social_links)
                   .filter(([_, value]) => !!value)
                   .map(([key, value]) => {
-                    const iconKey = key as SocialKey;
-                    const IconComp = SOCIAL_ICON_MAP[iconKey] || ListDashesIcon;
+                    const IconComp = SOCIAL_ICON_MAP[key] || ListDashesIcon;
 
                     return (
                       <TouchableOpacity
@@ -214,9 +220,7 @@ const ProfileScreen: React.FC = () => {
                           styles.socialIconWrap,
                           { borderColor: theme.colors.primaryLight },
                         ]}
-                        onPress={() =>
-                          console.log('Clicked social:', iconKey, value)
-                        }
+                        onPress={() => console.log('Clicked social:', key, value)}
                       >
                         <IconComp size={20} color={theme.colors.primary} />
                       </TouchableOpacity>
@@ -227,51 +231,31 @@ const ProfileScreen: React.FC = () => {
           </View>
         </Card>
 
-        {/* About me */}
+        {/* About */}
         <Card>
           <View style={styles.sectionTextWrap}>
-            <Text
-              variant="body1"
-              color={theme.colors.text}
-              style={styles.sectionTitle}
-            >
+            <Text variant="body1" color={theme.colors.text} style={styles.sectionTitle}>
               About me
             </Text>
             <Text variant="body1" color={theme.colors.textLight}>
-              {safeValue(
-                user?.about_me === '—' ? null : user?.about_me
-              ) === 'N/A'
+              {safeValue(user?.about_me) === 'N/A'
                 ? 'No details provided.'
                 : user?.about_me}
             </Text>
           </View>
         </Card>
 
-        {/* Personal details */}
+        {/* Personal Details */}
         <Card>
           <View style={styles.sectionHeaderRow}>
-            <Text
-              variant="body1"
-              color={theme.colors.text}
-              style={styles.sectionTitle}
-            >
+            <Text variant="body1" color={theme.colors.text} style={styles.sectionTitle}>
               Personal Details
             </Text>
           </View>
 
           <View style={styles.detailsList}>
-            <DetailRow
-              Icon={EnvelopeSimpleIcon}
-              label="Email"
-              value={details.email}
-              show={false}
-            />
-            <DetailRow
-              Icon={PhoneIcon}
-              label="Phone"
-              value={details.phone}
-              show={false}
-            />
+            <DetailRow Icon={EnvelopeSimpleIcon} label="Email" value={details.email} show={false} />
+            <DetailRow Icon={PhoneIcon} label="Phone" value={details.phone} show={false} />
             <DetailRow
               Icon={MapPinIcon}
               label="State · City"
@@ -380,19 +364,9 @@ const DetailRow: React.FC<DetailRowProps> = ({
   };
 
   return (
-    <View
-      style={[
-        styles.row,
-        { borderBottomColor: theme.colors.borderColor },
-      ]}
-    >
-      <View
-        style={[
-          styles.detailIconWrap,
-          { backgroundColor: theme.colors.primaryLight },
-        ]}
-      >
-        <IconComp size={20} color={theme.colors.primary} weight="regular" />
+    <View style={[styles.row, { borderBottomColor: theme.colors.borderColor }]}>
+      <View style={[styles.detailIconWrap, { backgroundColor: theme.colors.primaryLight }]}>
+        <IconComp size={20} color={theme.colors.primary} />
       </View>
 
       <View style={styles.detailTextWrap}>
@@ -417,7 +391,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  /* 🔹 Top bar styles */
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -439,8 +412,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  topTitle: {
-  },
   editBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -455,11 +426,9 @@ const styles = StyleSheet.create({
 
   content: {
     paddingHorizontal: 20,
-    display:'flex',
-    gap:20
+    gap: 20,
   },
 
-  // avatar section
   avatarCardContent: {
     justifyContent: 'center',
     alignItems: 'center',
@@ -472,7 +441,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
-  
   avatar: {
     width: 100,
     height: 100,
@@ -484,7 +452,6 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
 
-  // socials
   socialRow: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -501,7 +468,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
 
-  // sections
   sectionTextWrap: {
     flex: 1,
   },
@@ -519,7 +485,6 @@ const styles = StyleSheet.create({
     paddingTop: 10,
   },
 
-  // detail row
   row: {
     flexDirection: 'row',
     columnGap: 12,

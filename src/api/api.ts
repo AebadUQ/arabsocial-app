@@ -51,6 +51,11 @@ export const setupInterceptors = (logout: () => void) => {
       return response;
     },
     (error) => {
+        console.log("📡 AXIOS ERROR RAW:", error);
+  console.log("📡 AXIOS ERROR CODE:", error.code);
+  console.log("📡 AXIOS ERROR MESSAGE:", error.message);
+  console.log("📡 AXIOS ERROR REQUEST:", error.request);
+  console.log("📡 AXIOS ERROR RESPONSE:", error.response);
       const status = error?.response?.status;
 
       // 🔐 401 → logout + message

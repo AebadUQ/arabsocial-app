@@ -1,4 +1,3 @@
-// app/components/home/PostCard.tsx
 import React, {
   memo,
   useEffect,
@@ -23,9 +22,10 @@ import {
   ChatCircle,
   ShareNetwork,
   Trash,
-  PencilSimple, // ✅ for Edit
+  PencilSimple,
 } from "phosphor-react-native";
 import { useNavigation } from "@react-navigation/native";
+import ImageView from "react-native-image-viewing"; // ✅ FULLSCREEN IMAGE VIEWER
 
 export type ApiPost = {
   id: number | string;
@@ -52,8 +52,8 @@ type Props = {
   currentUserId?: number | string | null;
   onOpenComments?: (post: ApiPost) => void;
   onToggleLike?: () => void;
-  onDeletePost?: () => void; // ✅ now no id param here
-  onEditPost?: () => void;   // ✅ for edit
+  onDeletePost?: () => void;
+  onEditPost?: () => void;
 };
 
 const AVATAR = 40;
@@ -98,7 +98,6 @@ const getEmailHandle = (email?: string | null): string | null => {
   return `@${clean}`;
 };
 
-// -------- Time formatter (for "2h ago" etc.) --------
 const formatPostTime = (createdAt: string) => {
   const created = new Date(createdAt);
   const now = new Date();
@@ -130,13 +129,15 @@ const PostCard: React.FC<Props> = ({
   const { theme } = useTheme();
   const navigation = useNavigation<any>();
 
-  // see-more/less state
   const [measured, setMeasured] = useState(false);
   const [showSeeMore, setShowSeeMore] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // 3-dot menu
   const [menuVisible, setMenuVisible] = useState(false);
+
+  // ⭐ IMAGE VIEWER STATES
+  const [imagePreviewVisible, setImagePreviewVisible] = useState(false);
+  const [imagePreviewIndex, setImagePreviewIndex] = useState(0);
 
   const emailHandle = useMemo(
     () => getEmailHandle(post.author?.email),
@@ -148,7 +149,6 @@ const PostCard: React.FC<Props> = ({
     [post.created_at]
   );
 
-  // reset UI toggles when post changes
   useEffect(() => {
     setMeasured(false);
     setShowSeeMore(false);
@@ -159,9 +159,7 @@ const PostCard: React.FC<Props> = ({
   const liked = post.isLikedByMe;
   const likeCount = post.likes_count;
 
-  const handleLikePress = () => {
-    onToggleLike?.();
-  };
+  const handleLikePress = () => onToggleLike?.();
 
   const handleShare = () => {
     const msg = `${post.author?.name || "User"}: ${post.content || ""}`;
@@ -197,8 +195,6 @@ const PostCard: React.FC<Props> = ({
     onEditPost?.();
   };
 
-  console.log("post image_url", post.image_url);
-
   return (
     <View style={[styles.card, { shadowColor: "#000" }]}>
       {/* Header */}
@@ -216,14 +212,9 @@ const PostCard: React.FC<Props> = ({
           </TouchableOpacity>
 
           <View style={{ flex: 1 }}>
-            {/* 🔥 Name + handle (left) | Time (right) */}
             <View style={styles.nameRow}>
               <View style={styles.nameHandleWrap}>
-                <Text
-                  variant="body1"
-                  style={styles.userName}
-                  numberOfLines={1}
-                >
+                <Text variant="body1" style={styles.userName} numberOfLines={1}>
                   {post.author?.name || "Unknown"}
                 </Text>
 
@@ -238,16 +229,11 @@ const PostCard: React.FC<Props> = ({
                 )}
               </View>
 
-              <Text
-                variant="overline"
-                style={styles.postTime}
-                numberOfLines={1}
-              >
+              <Text variant="overline" style={styles.postTime} numberOfLines={1}>
                 {timeLabel}
               </Text>
             </View>
 
-            {/* Location (only left) */}
             <Text
               variant="overline"
               style={styles.userLocation}
@@ -273,18 +259,13 @@ const PostCard: React.FC<Props> = ({
 
             {menuVisible && (
               <View style={styles.menuContainer}>
-                {/* Edit */}
-                <TouchableOpacity
-                  style={styles.menuItem}
-                  onPress={handleEditPress}
-                >
+                <TouchableOpacity style={styles.menuItem} onPress={handleEditPress}>
                   <PencilSimple size={16} color={theme.colors.text} />
                   <Text variant="caption" style={styles.menuItemText}>
                     Edit
                   </Text>
                 </TouchableOpacity>
 
-                {/* divider */}
                 <View
                   style={{
                     height: StyleSheet.hairlineWidth,
@@ -293,11 +274,7 @@ const PostCard: React.FC<Props> = ({
                   }}
                 />
 
-                {/* Delete */}
-                <TouchableOpacity
-                  style={styles.menuItem}
-                  onPress={handleDeletePress}
-                >
+                <TouchableOpacity style={styles.menuItem} onPress={handleDeletePress}>
                   <Trash size={16} color="#DC2626" />
                   <Text
                     variant="caption"
@@ -315,7 +292,6 @@ const PostCard: React.FC<Props> = ({
       {/* Content */}
       {!!post.content && (
         <View style={{ marginTop: 4 }}>
-          {/* hidden measure text */}
           {!measured && (
             <Text
               variant="body2"
@@ -329,7 +305,6 @@ const PostCard: React.FC<Props> = ({
             </Text>
           )}
 
-          {/* visible text */}
           <Text
             variant="body2"
             style={styles.contentText}
@@ -347,10 +322,7 @@ const PostCard: React.FC<Props> = ({
             >
               <Text
                 variant="caption"
-                style={[
-                  styles.seeMoreText,
-                  { color: theme.colors.primary },
-                ]}
+                style={[styles.seeMoreText, { color: theme.colors.primary }]}
               >
                 See more
               </Text>
@@ -365,10 +337,7 @@ const PostCard: React.FC<Props> = ({
             >
               <Text
                 variant="caption"
-                style={[
-                  styles.seeMoreText,
-                  { color: theme.colors.primary },
-                ]}
+                style={[styles.seeMoreText, { color: theme.colors.primary }]}
               >
                 See less
               </Text>
@@ -377,13 +346,34 @@ const PostCard: React.FC<Props> = ({
         </View>
       )}
 
-      {/* Image */}
+      {/* ⭐ FULLSCREEN IMAGE PREVIEW */}
       {!!post.image_url && (
-        <Image
-          source={{ uri: post.image_url }}
-          style={styles.image}
-          resizeMode="cover"
-        />
+        <>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={() => {
+              setImagePreviewIndex(0);
+              setImagePreviewVisible(true);
+            }}
+          >
+            <Image
+              source={{ uri: post.image_url }}
+              style={styles.image}
+              resizeMode="cover"
+            />
+          </TouchableOpacity>
+
+          <ImageView
+            images={[{ uri: post.image_url }]}
+            imageIndex={imagePreviewIndex}
+            visible={imagePreviewVisible}
+            onRequestClose={() => setImagePreviewVisible(false)}
+            swipeToCloseEnabled={true}
+            doubleTapToZoomEnabled={true}
+            animationType="slide"
+            backgroundColor="#000"
+          />
+        </>
       )}
 
       {/* Actions */}
@@ -402,9 +392,7 @@ const PostCard: React.FC<Props> = ({
             variant="caption"
             style={[
               styles.actionLabel,
-              liked && {
-                color: theme.colors.primary,
-              },
+              liked && { color: theme.colors.primary },
             ]}
           >
             Like
@@ -420,9 +408,7 @@ const PostCard: React.FC<Props> = ({
           <ChatCircle size={18} color="#5F6367" />
           <Text variant="caption" style={styles.actionLabel}>
             Comment
-            {post.comments_count > 0
-              ? `· ${post.comments_count}`
-              : ""}
+            {post.comments_count > 0 ? `· ${post.comments_count}` : ""}
           </Text>
         </TouchableOpacity>
 
