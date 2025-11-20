@@ -6,12 +6,12 @@ import {
   Image,
   TouchableOpacity,
   ActivityIndicator,
-  Text as RNText,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useTheme } from "@/theme/ThemeContext";
 import { Text } from "@/components";
+import Card from "@/components/Card";
 
 import {
   ArrowLeftIcon,
@@ -31,17 +31,14 @@ import {
   ListDashesIcon,
 } from "phosphor-react-native";
 
-import { getPublicUserProfile } from "@/api/auth"; // <- update this import path to wherever you put getPublicUserProfile
+import { getPublicUserProfile } from "@/api/auth";
 
 // ---------- helpers ----------
 const safeValue = (value: any) =>
   value === null || value === undefined || value === "" ? "N/A" : value;
 
 // if visibility says false => hide, else show value or N/A
-function maybeShow(
-  visible: boolean | undefined,
-  value: any
-): string | null {
+function maybeShow(visible: boolean | undefined, value: any): string | null {
   if (!visible) return null; // hide entire row
   const v = safeValue(value);
   return v;
@@ -111,7 +108,11 @@ const PublicProfileScreen: React.FC = () => {
       <SafeAreaView
         style={[
           styles.container,
-          { backgroundColor: theme.colors.background, alignItems: "center", justifyContent: "center" },
+          {
+            backgroundColor: theme.colors.background,
+            alignItems: "center",
+            justifyContent: "center",
+          },
         ]}
       >
         <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -124,7 +125,11 @@ const PublicProfileScreen: React.FC = () => {
       <SafeAreaView
         style={[
           styles.container,
-          { backgroundColor: theme.colors.background, alignItems: "center", justifyContent: "center" },
+          {
+            backgroundColor: theme.colors.background,
+            alignItems: "center",
+            justifyContent: "center",
+          },
         ]}
       >
         <Text variant="body1" color={theme.colors.text}>
@@ -148,48 +153,36 @@ const PublicProfileScreen: React.FC = () => {
   const avatarUri =
     data.image || data.img || "https://i.pravatar.cc/200?img=12";
 
-  // interests -> could be array or string or null
-  const interestsArr =
-    Array.isArray(data.interests) && data.interests.length > 0
-      ? data.interests
-      : typeof data.interests === "string" && data.interests?.trim() !== ""
-      ? [data.interests]
-      : [];
-
   // languages -> array of strings
   const languagesArr =
     Array.isArray(data.language_spoken) && data.language_spoken.length > 0
       ? data.language_spoken
       : [];
 
-  // gallery
-  const gallery = Array.isArray(data.gallery) ? data.gallery : [];
-  const hasGallery = vs.gallery && gallery.length > 0;
-  const MAX_PREVIEW = 3;
-  const preview = hasGallery ? gallery.slice(0, MAX_PREVIEW) : [];
-
   // prepare details WITH visibility rules
-  // If vs.<field> = true -> show value
-  // If false/undefined -> hide whole row (return null and we won't render)
   const detailRowsRaw = [
     {
       key: "email",
       icon: EnvelopeSimpleIcon,
       label: "Email",
-      val: maybeShow(true, data.email), // email isn't in sample visibility, so default to hidden? your call.
-      // if you only want to show when vs.email === true, change to maybeShow(vs.email, data.email)
+      val: maybeShow(vs.email, data.email),
     },
     {
       key: "phone",
       icon: PhoneIcon,
       label: "Phone",
-      val: maybeShow(true, data.phone),
+      val: maybeShow(vs.phone, data.phone),
     },
     {
       key: "city_state",
       icon: MapPinIcon,
       label: "State · City",
-      val: maybeShow(true, `${safeValue(data.state)} · ${safeValue(data.location || data.country)}`),
+      val: maybeShow(
+        vs.state || vs.city || vs.location,
+        `${safeValue(data.state)} · ${safeValue(
+          data.location || data.country
+        )}`
+      ),
     },
     {
       key: "nationality",
@@ -251,21 +244,17 @@ const PublicProfileScreen: React.FC = () => {
   // profession visibility
   const professionText = vs.profession ? safeValue(data.profession) : null;
 
-  // interests visibility
-  const interestsVisible = vs.interests;
-  const showInterests =
-    interestsVisible && interestsArr.length > 0
-      ? interestsArr.join(", ")
-      : null;
-
   // username visibility
   const usernameText = vs.username ? safeValue(data.username) : null;
 
   // dob/age visibility
   const dobVisible = vs.dob;
   const dobText =
-    dobVisible && (safeValue(data.dob) !== "N/A" || safeValue(data.age) !== "N/A")
-      ? (data.age ? `${data.age} yrs` : data.dob)
+    dobVisible &&
+    (safeValue(data.dob) !== "N/A" || safeValue(data.age) !== "N/A")
+      ? data.age
+        ? `${data.age} yrs`
+        : data.dob
       : null;
 
   // socials
@@ -278,79 +267,130 @@ const PublicProfileScreen: React.FC = () => {
     <SafeAreaView
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
-      {/* header back */}
-      <View style={styles.overlayRow}>
-        <TouchableOpacity
-          accessibilityRole="button"
-          onPress={() => navigation.goBack()}
-          style={styles.circleBtn}
-        >
-          <ArrowLeftIcon size={22} color="#fff" weight="bold" />
-        </TouchableOpacity>
-        {/* public profile is read-only, no edit pencil */}
-        <View style={{ width: 44, height: 44 }} />
-      </View>
+      {/* 🔹 Top header same vibe as ProfileScreen */}
+      <View
+        style={[
+          styles.topBar,
+          { backgroundColor: theme.colors.background },
+        ]}
+      >
+        <View style={styles.topBarLeft}>
+          <TouchableOpacity
+            accessibilityRole="button"
+            onPress={() => navigation.goBack()}
+            style={styles.backBtn}
+          >
+            <ArrowLeftIcon size={20} color={theme.colors.text} weight="bold" />
+          </TouchableOpacity>
 
-      <ScrollView contentContainerStyle={styles.content}>
-        {/* Avatar + Name */}
-        <View style={styles.avatarWrap}>
-          <Image source={{ uri: avatarUri }} style={styles.avatar} />
-
-          <Text variant="h5">{safeValue(data.name)}</Text>
-
-          {/* profession (only if visible) */}
-          {professionText ? (
-            <Text variant="caption" color={theme.colors.textLight}>
-              {professionText}
-            </Text>
-          ) : null}
-
+          <Text
+            variant="body1"
+            color={theme.colors.text}
+            style={styles.topTitle}
+          >
+            Profile
+          </Text>
         </View>
 
-        {/* Social Icons */}
-        {socialsEntries.length > 0 && (
-          <View style={styles.socialRow}>
-            {socialsEntries.map(([key, value], idx) => {
-              // choose proper icon
-              let IconComp: any;
-              switch (key) {
-                case "facebook":
-                  IconComp = FacebookLogoIcon;
-                  break;
-                case "twitter":
-                  IconComp = XLogoIcon;
-                  break;
-                case "instagram":
-                  IconComp = InstagramLogoIcon;
-                  break;
-                default:
-                  IconComp = ListDashesIcon;
-              }
+        {/* Right side blank (no edit) */}
+        <View style={{ width: 40, height: 40 }} />
+      </View>
 
-              return (
-                <TouchableOpacity
-                  key={idx}
-                  style={{ marginRight: 12 }}
-                  onPress={() => {
-                    console.log("open social link:", key, value);
-                    // you can Linking.openURL(value) if it's a URL
-                  }}
-                >
-                  <IconComp size={20} color={theme.colors.text} />
-                </TouchableOpacity>
-              );
-            })}
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingBottom: 24 }]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Avatar + basic info */}
+        <Card>
+          <View style={styles.avatarCardContent}>
+            <View
+              style={[
+                styles.avatarBorder,
+                { borderColor: theme.colors.primaryLight },
+              ]}
+            >
+              <Image source={{ uri: avatarUri }} style={styles.avatar} />
+            </View>
+
+            <Text
+              variant="h5"
+              style={styles.nameText}
+              color={theme.colors.text}
+            >
+              {safeValue(data.name)}
+            </Text>
+
+            {/* username (agar visible ho) */}
+            {usernameText && (
+              <Text variant="caption" color={theme.colors.textLight}>
+                @{usernameText}
+              </Text>
+            )}
+
+            {/* profession (only if visible) */}
+            {professionText && (
+              <Text
+                variant="caption"
+                color={theme.colors.textLight}
+                style={{ marginTop: 2 }}
+              >
+                {professionText}
+              </Text>
+            )}
+
+            {/* dob / age */}
+            {dobText && (
+              <Text
+                variant="caption"
+                color={theme.colors.textLight}
+                style={{ marginTop: 2 }}
+              >
+                {dobText}
+              </Text>
+            )}
+
+            {/* Socials */}
+            {socialsEntries.length > 0 && (
+              <View style={styles.socialRow}>
+                {socialsEntries.map(([key, value], idx) => {
+                  let IconComp: any;
+                  switch (key) {
+                    case "facebook":
+                      IconComp = FacebookLogoIcon;
+                      break;
+                    case "twitter":
+                      IconComp = XLogoIcon;
+                      break;
+                    case "instagram":
+                      IconComp = InstagramLogoIcon;
+                      break;
+                    default:
+                      IconComp = ListDashesIcon;
+                  }
+
+                  return (
+                    <TouchableOpacity
+                      key={idx}
+                      style={[
+                        styles.socialIconWrap,
+                        { borderColor: theme.colors.primaryLight },
+                      ]}
+                      onPress={() =>
+                        console.log("open social link:", key, value)
+                      }
+                    >
+                      <IconComp size={20} color={theme.colors.primary} />
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
           </View>
-        )}
+        </Card>
 
-        {/* About me (respect visibility) */}
+        {/* About me */}
         {aboutText && (
-          <View
-            style={[
-              styles.sectionRow,
-              { borderBottomColor: theme.colors.borderColor },
-            ]}
-          >
+          <Card>
             <View style={styles.sectionTextWrap}>
               <Text
                 variant="body1"
@@ -363,77 +403,19 @@ const PublicProfileScreen: React.FC = () => {
                 {aboutText}
               </Text>
             </View>
-          </View>
+          </Card>
         )}
 
-        {/* Interests (respect visibility) */}
-        {showInterests && (
-          <View
-            style={[
-              styles.sectionRow,
-              { borderBottomColor: theme.colors.borderColor },
-            ]}
-          >
-            <View style={styles.sectionTextWrap}>
-              <Text
-                variant="body1"
-                color={theme.colors.text}
-                style={styles.sectionTitle}
-              >
-                Interests
-              </Text>
-              <Text variant="body1" color={theme.colors.textLight}>
-                {showInterests}
-              </Text>
-            </View>
-          </View>
-        )}
-
-        {/* Gallery (respect vs.gallery) */}
-        <View style={styles.galleryHeader}>
-          <Text
-            variant="body1"
-            color={theme.colors.text}
-            style={styles.sectionTitle}
-          >
-            Gallery
-          </Text>
-          {hasGallery && gallery.length > MAX_PREVIEW && (
-            <TouchableOpacity
-              onPress={() => console.log("View all gallery")}
-              accessibilityRole="button"
-            >
-              <Text variant="caption" color={theme.colors.primary}>
-                View all ({gallery.length})
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        <View style={styles.galleryRow}>
-          {hasGallery ? (
-            preview.map((uri, idx) => (
-              <Image key={idx} source={{ uri }} style={styles.thumb} />
-            ))
-          ) : (
-            <RNText
-              style={[styles.noImageText, { color: theme.colors.textLight }]}
-            >
-              No image in gallery
-            </RNText>
-          )}
-        </View>
-
-        {/* Personal details section */}
+        {/* Personal details */}
         {detailRows.length > 0 && (
-          <>
-            <View style={styles.sectionRowTightNoLine}>
+          <Card>
+            <View style={styles.sectionHeaderRow}>
               <Text
                 variant="body1"
                 color={theme.colors.text}
                 style={styles.sectionTitle}
               >
-                Personal details
+                Personal Details
               </Text>
             </View>
 
@@ -441,18 +423,34 @@ const PublicProfileScreen: React.FC = () => {
               {detailRows.map((row) => {
                 const IconHere = row.icon || ListDashesIcon;
                 return (
-                  <View style={styles.detailRow} key={row.key}>
-                    <IconHere
-                      size={20}
-                      color={theme.colors.primaryDark}
-                      weight="regular"
-                    />
-                    <View style={{ flex: 1, marginLeft: 8 }}>
-                      <Text variant="overline">{row.label}</Text>
+                  <View
+                    style={[
+                      styles.row,
+                      { borderBottomColor: theme.colors.borderColor },
+                    ]}
+                    key={row.key}
+                  >
+                    <View
+                      style={[
+                        styles.detailIconWrap,
+                        { backgroundColor: theme.colors.primaryLight },
+                      ]}
+                    >
+                      <IconHere
+                        size={20}
+                        color={theme.colors.primary}
+                        weight="regular"
+                      />
+                    </View>
+
+                    <View style={styles.detailTextWrap}>
                       <Text
-                        variant="body1"
-                        color={theme.colors.primaryDark}
+                        variant="overline"
+                        color={theme.colors.textLight}
                       >
+                        {row.label}
+                      </Text>
+                      <Text variant="body1" color={theme.colors.text}>
                         {row.val}
                       </Text>
                     </View>
@@ -460,7 +458,7 @@ const PublicProfileScreen: React.FC = () => {
                 );
               })}
             </View>
-          </>
+          </Card>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -470,31 +468,41 @@ const PublicProfileScreen: React.FC = () => {
 // ---------------------------
 // styles
 // ---------------------------
-const TILE = 100;
-const RADIUS = 10;
-
 const styles = StyleSheet.create({
-  container: { flex: 1, position: "relative" },
-  content: { padding: 20, paddingTop: 40 },
-
-  overlayRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    padding: 10,
+  container: {
+    flex: 1,
   },
-  circleBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "rgba(0,0,0,0.35)",
+
+  /* 🔹 Top bar styles (same vibe as ProfileScreen) */
+  topBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 10,
+  },
+  topBarLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    columnGap: 10,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 3,
-    elevation: 3,
   },
+  topTitle: {},
+
+  content: {
+    paddingHorizontal: 20,
+    display: "flex",
+    gap: 20,
+  },
+
   retryBtn: {
     marginTop: 16,
     paddingVertical: 10,
@@ -502,82 +510,83 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
 
-  avatarWrap: {
+  // avatar card
+  avatarCardContent: {
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 12,
   },
-  avatar: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    resizeMode: "cover",
-    backgroundColor: "#e9e9e9",
+  avatarBorder: {
+    padding: 4,
+    borderWidth: 4,
+    borderRadius: 9999,
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 8,
   },
+  avatar: {
+    width: 100,
+    height: 100,
+    borderRadius: 60,
+    resizeMode: "cover",
+  },
+  nameText: {
+    textTransform: "capitalize",
+    marginBottom: 2,
+  },
 
+  // socials
   socialRow: {
     flexDirection: "row",
     justifyContent: "center",
-    gap: 12,
-    marginTop: 6,
-    marginBottom: 14,
+    columnGap: 8,
+    marginTop: 10,
   },
-
-  sectionRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    alignItems: "flex-start",
-  },
-
-  sectionRowTightNoLine: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: 8,
+  socialIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#fff",
+    justifyContent: "center",
     alignItems: "center",
-    marginTop: 16,
+    borderWidth: 1,
   },
 
-  sectionTextWrap: { flex: 1, paddingRight: 8 },
-  sectionTitle: { fontWeight: "600", marginBottom: 4 },
-
-  galleryHeader: {
-    marginTop: 14,
-    marginBottom: 6,
+  // sections
+  sectionTextWrap: {
+    flex: 1,
+  },
+  sectionTitle: {
+    marginBottom: 4,
+    fontWeight: "600",
+  },
+  sectionHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "baseline",
-  },
-
-  galleryRow: {
-    flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    minHeight: TILE,
-  },
-
-  thumb: {
-    width: TILE,
-    height: TILE,
-    borderRadius: RADIUS,
-    backgroundColor: "#e9e9e9",
-  },
-
-  noImageText: {
-    fontSize: 16,
-    fontStyle: "italic",
   },
 
   detailsList: {
     paddingTop: 10,
   },
-  detailRow: {
+
+  // detail row (same pattern as ProfileScreen)
+  row: {
     flexDirection: "row",
-    gap: 12,
+    columnGap: 12,
     alignItems: "center",
     paddingVertical: 10,
+    borderBottomWidth: 0.5,
+  },
+  detailIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  detailTextWrap: {
+    flex: 1,
+    marginLeft: 4,
   },
 });
 

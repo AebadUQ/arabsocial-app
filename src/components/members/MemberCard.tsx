@@ -22,6 +22,7 @@ export type Person = {
   requestId: string;
   status: "pending" | "accepted" | "rejected" | string;
   reqOwner?: boolean;
+  image?: string | null; // 👈 yahan add kia
 };
 
 type MemberCardProps = {
@@ -82,18 +83,12 @@ const MemberCard: React.FC<MemberCardProps> = ({
       return;
     }
 
-    // if (btnLabel === "Connected" && onPendingAction) {
-
-    //   onPendingAction(item.requestId, "rejected");
-    //   return;
-    // }
-     if (btnLabel === "Connected" && onToggle) {
-            onToggle(item.id);
-
+    if (btnLabel === "Connected" && onToggle) {
+      onToggle(item.id);
       return;
     }
-    onToggle(item.id);
 
+    onToggle(item.id);
   };
 
   const handleCardPress = () => {
@@ -101,6 +96,11 @@ const MemberCard: React.FC<MemberCardProps> = ({
   };
 
   const isGradient = btnLabel === "Connect" || btnLabel === "Accept";
+
+  // 👇 yahan item.image map kia
+  const profileSource = item.image
+    ? { uri: item.image }
+    : require("@/assets/images/user.jpg");
 
   return (
     <TouchableOpacity
@@ -110,7 +110,7 @@ const MemberCard: React.FC<MemberCardProps> = ({
     >
       {/* Top image */}
       <Image
-        source={require("@/assets/images/user.jpg")}
+        source={profileSource}
         style={styles.userImage}
         resizeMode="cover"
       />
@@ -137,7 +137,10 @@ const MemberCard: React.FC<MemberCardProps> = ({
           <View style={styles.actionsRow}>
             {/* Accept */}
             <TouchableOpacity
-              style={[styles.roundBtn, { backgroundColor:theme.colors.primaryShade }]}
+              style={[
+                styles.roundBtn,
+                { backgroundColor: theme.colors.primaryShade },
+              ]}
               onPress={(e) => {
                 e.stopPropagation?.();
                 onPendingAction?.(item.requestId, "accepted");
@@ -148,7 +151,10 @@ const MemberCard: React.FC<MemberCardProps> = ({
 
             {/* Reject */}
             <TouchableOpacity
-              style={[styles.roundBtn, { backgroundColor: theme.colors.errorLight }]}
+              style={[
+                styles.roundBtn,
+                { backgroundColor: theme.colors.errorLight },
+              ]}
               onPress={(e) => {
                 e.stopPropagation?.();
                 onPendingAction?.(item.requestId, "rejected");
@@ -173,14 +179,14 @@ const MemberCard: React.FC<MemberCardProps> = ({
               end={{ x: 1, y: 0.5 }}
               style={styles.mainBtnGradient}
             >
-              <View style={{paddingVertical:12}}>
+              <View style={{ paddingVertical: 12 }}>
                 <Text
-                variant="caption"
-                color="#fff"
-                style={styles.btnText}
-              >
-                {btnLabel}
-              </Text>
+                  variant="caption"
+                  color="#fff"
+                  style={styles.btnText}
+                >
+                  {btnLabel}
+                </Text>
               </View>
             </LinearGradient>
           </TouchableOpacity>
@@ -194,7 +200,12 @@ const MemberCard: React.FC<MemberCardProps> = ({
             }}
             style={styles.mainBtnWrapper}
           >
-            <View style={[styles.mainBtnSolid, { backgroundColor: theme.colors.primaryLight }]}>
+            <View
+              style={[
+                styles.mainBtnSolid,
+                { backgroundColor: theme.colors.primaryLight },
+              ]}
+            >
               <Text
                 variant="caption"
                 color={theme.colors.primary}
@@ -219,7 +230,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     backgroundColor: "#fff",
     borderWidth: 0.25,
-    borderColor:theme.colors.primary
+    borderColor: theme.colors.primary,
   },
   userImage: {
     width: "100%",
@@ -233,7 +244,7 @@ const styles = StyleSheet.create({
   name: {
     marginBottom: 4,
     textAlign: "center",
-    textTransform:'capitalize'
+    textTransform: "capitalize",
   },
   sub: {
     marginBottom: 4,
@@ -255,19 +266,18 @@ const styles = StyleSheet.create({
   },
   mainBtnWrapper: {
     marginTop: 8,
-    width: "100%", // full width of card
+    width: "100%",
   },
   mainBtnGradient: {
     width: "100%",
-       borderRadius: 9999,
+    borderRadius: 9999,
     alignItems: "center",
     justifyContent: "center",
-    
   },
   mainBtnSolid: {
     width: "100%",
     borderRadius: 999,
-    paddingVertical:12,
+    paddingVertical: 12,
     alignItems: "center",
     justifyContent: "center",
   },

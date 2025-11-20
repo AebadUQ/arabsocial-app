@@ -577,6 +577,7 @@ const HomeScreen: React.FC = ({ navigation }: any) => {
                 onToggleLike={() => handleToggleLike(item.id)}
                 onDeletePost={() => handleDeletePost(item.id)}
                 onEditPost={() => startEditPost(item)} // ✅ edit handler
+                
               />
             ))}
 
