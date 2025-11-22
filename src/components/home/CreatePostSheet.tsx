@@ -45,7 +45,6 @@ type Props = {
   userLocation?: string;
   userAvatarUri?: string | null;
 
-  // ✅ edit mode support
   mode?: "create" | "edit";
   existingImageUrl?: string | null;
 };
@@ -70,40 +69,33 @@ const PostComposerSheet = forwardRef<ComposerSheetHandle, Props>(
   ) => {
     const { theme: ctxTheme } = useTheme();
     const insets = useSafeAreaInsets();
+
     const bottomSheetModalRef = useRef<BottomSheetModal>(null);
     const inputRef = useRef<TextInput | null>(null);
-
-    const [isComposing, setIsComposing] = useState(false);
 
     const snapPoints = useMemo(() => ["40%", "80%"], []);
     const isEditing = mode === "edit";
 
     const previewUri = pickedImage?.uri || existingImageUrl || null;
+    const hasContent = newPost.trim().length > 0 || !!previewUri;
 
-    const hasContent =
-      newPost.trim().length > 0 || !!previewUri;
+    // ⭐ Smoothest: exact animation-end detection (opens keyboard perfectly)
+    const handleSheetAnimate = useCallback((fromIndex: number, toIndex: number) => {
+      if (toIndex === 1) {
+        // 80% height = fully open sheet
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            inputRef.current?.focus();
+          }, 20);
+        });
+      }
+    }, []);
 
+    // Ref handle for parent (open/close)
     useImperativeHandle(ref, () => ({
       open: () => bottomSheetModalRef.current?.present(),
       close: () => bottomSheetModalRef.current?.dismiss(),
     }));
-
-    const handleSend = () => {
-      if (posting) return;
-      onSend();
-    };
-
-    const renderBackdrop = useCallback(
-      (backdropProps: any) => (
-        <BottomSheetBackdrop
-          {...backdropProps}
-          appearsOnIndex={0}
-          disappearsOnIndex={-1}
-          pressBehavior="close"
-        />
-      ),
-      []
-    );
 
     const initials = userName
       .split(" ")
@@ -115,18 +107,24 @@ const PostComposerSheet = forwardRef<ComposerSheetHandle, Props>(
     return (
       <BottomSheetModal
         ref={bottomSheetModalRef}
-        index={1} // 80%
+        index={1}
         snapPoints={snapPoints}
+        onAnimate={handleSheetAnimate}          // ⭐ KEY ADDITION
         enableDynamicSizing={false}
         enablePanDownToClose
-        enableOverDrag={false}
-        enableContentPanningGesture={!isComposing}
         keyboardBehavior="interactive"
-        keyboardBlurBehavior="none"
         android_keyboardInputMode="adjustResize"
-        backdropComponent={renderBackdrop}
+        enableOverDrag={false}
         topInset={insets.top + 20}
         handleIndicatorStyle={{ backgroundColor: "#CCC" }}
+        backdropComponent={(props) => (
+          <BottomSheetBackdrop
+            {...props}
+            appearsOnIndex={0}
+            disappearsOnIndex={-1}
+            pressBehavior="close"
+          />
+        )}
         backgroundStyle={{
           backgroundColor: ctxTheme.colors.background,
           borderTopLeftRadius: 16,
@@ -140,12 +138,10 @@ const PostComposerSheet = forwardRef<ComposerSheetHandle, Props>(
               {isEditing ? "Edit Post" : "Create Post"}
             </Text>
 
-            {/* Gradient Post/Update button */}
             <TouchableOpacity
               activeOpacity={0.85}
-              onPress={handleSend}
+              onPress={onSend}
               disabled={!hasContent || posting}
-              style={{ marginLeft: 8 }}
             >
               <LinearGradient
                 colors={
@@ -171,9 +167,9 @@ const PostComposerSheet = forwardRef<ComposerSheetHandle, Props>(
             </TouchableOpacity>
           </View>
 
-          {/* Card container */}
+          {/* Card */}
           <View style={styles.card}>
-            {/* User row */}
+            {/* User Row */}
             <View style={styles.userRow}>
               {userAvatarUri ? (
                 <Image source={{ uri: userAvatarUri }} style={styles.avatar} />
@@ -192,20 +188,18 @@ const PostComposerSheet = forwardRef<ComposerSheetHandle, Props>(
                 <Text style={[styles.userName, { color: ctxTheme.colors.text }]}>
                   {userName}
                 </Text>
-                {userLocation ? (
+
+                {!!userLocation && (
                   <Text
-                    style={[
-                      styles.userLocation,
-                      { color: ctxTheme.colors.textLight },
-                    ]}
+                    style={[styles.userLocation, { color: ctxTheme.colors.textLight }]}
                   >
                     {userLocation}
                   </Text>
-                ) : null}
+                )}
               </View>
             </View>
 
-            {/* Text input */}
+            {/* Text Input */}
             <TextInput
               ref={inputRef}
               style={[styles.mainInput, { color: ctxTheme.colors.text }]}
@@ -214,14 +208,12 @@ const PostComposerSheet = forwardRef<ComposerSheetHandle, Props>(
               multiline
               value={newPost}
               onChangeText={onChangeText}
-              onFocus={() => setIsComposing(true)}
-              onBlur={() => setIsComposing(false)}
               textAlignVertical="top"
             />
 
-            {/* Tools row */}
+            {/* Tools */}
             <View style={styles.toolsRow}>
-              <View style={styles.toolsLeft} />
+              <View style={{ flex: 1 }} />
               <TouchableOpacity
                 style={[
                   styles.addImageBtn,
@@ -234,13 +226,10 @@ const PostComposerSheet = forwardRef<ComposerSheetHandle, Props>(
               </TouchableOpacity>
             </View>
 
-            {/* Image preview (existing or new) */}
-            {previewUri ? (
+            {/* Image Preview */}
+            {previewUri && (
               <View style={styles.imageWrap}>
-                <Image
-                  source={{ uri: previewUri }}
-                  style={styles.previewImage}
-                />
+                <Image source={{ uri: previewUri }} style={styles.previewImage} />
                 <TouchableOpacity
                   style={styles.removeBadge}
                   onPress={onRemoveImage}
@@ -249,7 +238,7 @@ const PostComposerSheet = forwardRef<ComposerSheetHandle, Props>(
                   <XCircle color="#fff" size={18} />
                 </TouchableOpacity>
               </View>
-            ) : null}
+            )}
           </View>
         </BottomSheetView>
       </BottomSheetModal>
@@ -330,11 +319,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 10,
-  },
-  toolsLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
   },
   addImageBtn: {
     width: 28,

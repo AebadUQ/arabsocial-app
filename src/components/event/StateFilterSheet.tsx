@@ -29,7 +29,7 @@ type Props = {
 const StateFilterSheet: React.FC<Props> = ({
   visible,
   onClose,
-  initialCountryName = "United Arab Emirates",
+  initialCountryName = "United States", // DEFAULT COUNTRY UPDATED
   initialCities = [],
   onApply,
 }) => {
@@ -38,8 +38,8 @@ const StateFilterSheet: React.FC<Props> = ({
   const [countryOpen, setCountryOpen] = useState(false);
   const [cityOpen, setCityOpen] = useState(false);
 
-  const countryAnim = useRef(new Animated.Value(0)).current; // animation value for country
-  const cityAnim = useRef(new Animated.Value(0)).current; // animation value for city
+  const countryAnim = useRef(new Animated.Value(0)).current;
+  const cityAnim = useRef(new Animated.Value(0)).current;
 
   const allCountries = useMemo(() => Country.getAllCountries(), []);
   const mappedCountries = useMemo(
@@ -51,14 +51,21 @@ const StateFilterSheet: React.FC<Props> = ({
     [allCountries]
   );
 
-  const initialCountry = mappedCountries.find(
-    (c) => c.name === initialCountryName
-  );
+  // ---------- FIXED MATCH LOGIC ----------
+  const initialCountry =
+    mappedCountries.find(
+      (c) => c.name.toLowerCase() === initialCountryName.toLowerCase()
+    ) ||
+    mappedCountries.find((c) =>
+      c.name.toLowerCase().includes(initialCountryName.toLowerCase())
+    ) ||
+    mappedCountries.find((c) => c.code === "US") ||
+    null;
 
   const [selectedCountry, setSelectedCountry] = useState<{
     code: string;
     name: string;
-  } | null>(initialCountry || null);
+  } | null>(initialCountry);
 
   const [selectedCountryName, setSelectedCountryName] = useState<string>(
     initialCountry?.name || ""
@@ -69,16 +76,16 @@ const StateFilterSheet: React.FC<Props> = ({
 
   const countryCities = useMemo(() => {
     if (!selectedCountry?.code) return [];
-    const cities = City.getCitiesOfCountry(selectedCountry.code) ?? [];
-    return cities.map((c) => c.name);
+    return (City.getCitiesOfCountry(selectedCountry.code) ?? []).map(
+      (c) => c.name
+    );
   }, [selectedCountry]);
 
   const filteredCountries = useMemo(() => {
     const q = countryQuery.toLowerCase().trim();
     if (!q) return mappedCountries;
     return mappedCountries.filter(
-      (c) =>
-        c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)
+      (c) => c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)
     );
   }, [countryQuery, mappedCountries]);
 
@@ -90,39 +97,35 @@ const StateFilterSheet: React.FC<Props> = ({
 
   const toggleCity = (name: string) =>
     setSelected((prev) =>
-      prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]
+      prev.includes(name)
+        ? prev.filter((n) => n !== name)
+        : [...prev, name]
     );
 
   const allShownSelected =
-    filteredCities.length > 0 && filteredCities.every((c) => selected.includes(c));
+    filteredCities.length > 0 &&
+    filteredCities.every((c) => selected.includes(c));
 
   const toggleAllShown = () => {
     if (allShownSelected) {
-      setSelected((prev) => prev.filter((c) => !filteredCities.includes(c)));
+      setSelected((prev) =>
+        prev.filter((c) => !filteredCities.includes(c))
+      );
     } else {
       setSelected((prev) => Array.from(new Set([...prev, ...filteredCities])));
     }
   };
 
   const handleSelectCountry = (country: { code: string; name: string }) => {
-    if (selectedCountry?.code === country.code) {
-      setSelectedCountry(null);
-      setSelectedCountryName("");
-      setSelected([]);
-      setCityQuery("");
-      setCityOpen(false);
-      setCountryOpen(false);
-    } else {
-      setSelectedCountry(country);
-      setSelectedCountryName(country.name);
-      setSelected([]);
-      setCityQuery("");
-      setCityOpen(true);
-      setCountryOpen(false);
-    }
+    setSelectedCountry(country);
+    setSelectedCountryName(country.name);
+    setSelected([]);
+    setCityQuery("");
+    setCityOpen(true);
+    setCountryOpen(false);
   };
 
-  // Animate dropdowns when toggled
+  // ---------- ANIMATIONS ----------
   useEffect(() => {
     Animated.timing(countryAnim, {
       toValue: countryOpen ? 1 : 0,
@@ -143,8 +146,9 @@ const StateFilterSheet: React.FC<Props> = ({
 
   const countryHeight = countryAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, 300], // max height
+    outputRange: [0, 300],
   });
+
   const cityHeight = cityAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [0, 320],
@@ -153,7 +157,7 @@ const StateFilterSheet: React.FC<Props> = ({
   return (
     <CustomBottomSheet visible={visible} onClose={onClose}>
       <View style={styles.wrap}>
-        {/* Country Selector */}
+        {/* ---------- COUNTRY SELECTOR ---------- */}
         {!countryOpen && (
           <TouchableOpacity
             activeOpacity={0.85}
@@ -161,23 +165,36 @@ const StateFilterSheet: React.FC<Props> = ({
               setCountryOpen(true);
               setCityOpen(false);
             }}
-            style={[styles.headerRow, { borderColor: theme.colors.borderColor }]}
+            style={[
+              styles.headerRow,
+              { borderColor: theme.colors.borderColor },
+            ]}
           >
-            <Text variant="body1">{selectedCountryName || "Select Country"}</Text>
+            <Text variant="body1">
+              {selectedCountryName || "Select Country"}
+            </Text>
             <CaretDownIcon size={18} color={theme.colors.text} />
           </TouchableOpacity>
         )}
 
-        {/** Animated Country Dropdown **/}
         <Animated.View
           style={[
             styles.dropdown,
-            { borderColor: theme.colors.borderColor, height: countryHeight, overflow: "hidden" },
+            {
+              borderColor: theme.colors.borderColor,
+              height: countryHeight,
+              overflow: "hidden",
+            },
           ]}
         >
           {countryOpen && (
             <>
-              <View style={[styles.searchRow, { borderColor: theme.colors.borderColor }]}>
+              <View
+                style={[
+                  styles.searchRow,
+                  { borderColor: theme.colors.borderColor },
+                ]}
+              >
                 <TextInput
                   value={countryQuery}
                   onChangeText={setCountryQuery}
@@ -185,10 +202,13 @@ const StateFilterSheet: React.FC<Props> = ({
                   placeholderTextColor={theme.colors.textLight}
                   style={[styles.searchInput, { color: theme.colors.text }]}
                 />
-                <MagnifyingGlassIcon size={18} color={theme.colors.textLight} />
+                <MagnifyingGlassIcon
+                  size={18}
+                  color={theme.colors.textLight}
+                />
               </View>
+
               <ScrollView
-                style={{ flex: 1 }}
                 keyboardShouldPersistTaps="handled"
                 contentContainerStyle={{ paddingVertical: 6 }}
               >
@@ -206,16 +226,19 @@ const StateFilterSheet: React.FC<Props> = ({
                           styles.checkbox,
                           {
                             borderColor: theme.colors.borderColor,
-                            backgroundColor: active ? theme.colors.primary : "transparent",
+                            backgroundColor: active
+                              ? theme.colors.primary
+                              : "transparent",
                           },
                         ]}
                       >
-                        {active && <CheckIcon size={14} color="#fff" weight="bold" />}
+                        {active && <CheckIcon size={14} color="#fff" />}
                       </View>
                       <Text
-                        variant="body1"
                         style={{
-                          color: active ? theme.colors.primary : theme.colors.text,
+                          color: active
+                            ? theme.colors.primaryDark
+                            : theme.colors.text,
                           fontWeight: active ? "600" : "400",
                         }}
                       >
@@ -229,7 +252,7 @@ const StateFilterSheet: React.FC<Props> = ({
           )}
         </Animated.View>
 
-        {/* City Selector */}
+        {/* ---------- CITY SELECTOR ---------- */}
         {!cityOpen && (
           <TouchableOpacity
             activeOpacity={0.85}
@@ -237,25 +260,38 @@ const StateFilterSheet: React.FC<Props> = ({
               setCityOpen(true);
               setCountryOpen(false);
             }}
-            style={[styles.headerRow, { borderColor: theme.colors.borderColor }]}
+            style={[
+              styles.headerRow,
+              { borderColor: theme.colors.borderColor },
+            ]}
           >
             <Text style={{ color: theme.colors.text, fontWeight: "600" }}>
-              {selected.length > 0 ? `${selected.length} selected` : "Select Cities"}
+              {selected.length > 0
+                ? `${selected.length} selected`
+                : "Select Cities"}
             </Text>
             <CaretDownIcon size={18} color={theme.colors.text} />
           </TouchableOpacity>
         )}
 
-        {/** Animated City Dropdown **/}
         <Animated.View
           style={[
             styles.dropdown,
-            { borderColor: theme.colors.borderColor, height: cityHeight, overflow: "hidden" },
+            {
+              borderColor: theme.colors.borderColor,
+              height: cityHeight,
+              overflow: "hidden",
+            },
           ]}
         >
           {cityOpen && (
             <>
-              <View style={[styles.searchRow, { borderColor: theme.colors.borderColor }]}>
+              <View
+                style={[
+                  styles.searchRow,
+                  { borderColor: theme.colors.borderColor },
+                ]}
+              >
                 <TextInput
                   value={cityQuery}
                   onChangeText={setCityQuery}
@@ -263,27 +299,38 @@ const StateFilterSheet: React.FC<Props> = ({
                   placeholderTextColor={theme.colors.textLight}
                   style={[styles.searchInput, { color: theme.colors.text }]}
                 />
-                <MagnifyingGlassIcon size={18} color={theme.colors.textLight} />
+                <MagnifyingGlassIcon
+                  size={18}
+                  color={theme.colors.textLight}
+                />
               </View>
 
-              <TouchableOpacity onPress={toggleAllShown} style={styles.selectAllRow} activeOpacity={0.8}>
+              <TouchableOpacity
+                onPress={toggleAllShown}
+                style={styles.selectAllRow}
+                activeOpacity={0.8}
+              >
                 <View
                   style={[
                     styles.checkbox,
                     {
                       borderColor: theme.colors.borderColor,
-                      backgroundColor: allShownSelected ? theme.colors.primary : "transparent",
+                      backgroundColor: allShownSelected
+                        ? theme.colors.primary
+                        : "transparent",
                     },
                   ]}
                 >
-                  {allShownSelected && <CheckIcon size={14} color="#fff" weight="bold" />}
+                  {allShownSelected && (
+                    <CheckIcon size={14} color="#fff" />
+                  )}
                 </View>
-                <Text style={{ color: theme.colors.textLight }}>Select all</Text>
-                <Text style={{ color: theme.colors.textLight }}> ({filteredCities.length})</Text>
+                <Text style={{ color: theme.colors.textLight }}>
+                  Select all ({filteredCities.length})
+                </Text>
               </TouchableOpacity>
 
               <ScrollView
-                style={{ flex: 1 }}
                 contentContainerStyle={{ paddingBottom: 8 }}
                 keyboardShouldPersistTaps="handled"
               >
@@ -301,15 +348,22 @@ const StateFilterSheet: React.FC<Props> = ({
                           styles.checkbox,
                           {
                             borderColor: theme.colors.borderColor,
-                            backgroundColor: checked ? theme.colors.primary : "transparent",
+                            backgroundColor: checked
+                              ? theme.colors.primary
+                              : "transparent",
                           },
                         ]}
                       >
-                        {checked && <CheckIcon size={14} color="#fff" weight="bold" />}
+                        {checked && (
+                          <CheckIcon size={14} color="#fff" />
+                        )}
                       </View>
                       <Text
-                        variant="body1"
-                        style={{ color: checked ? theme.colors.primaryDark : theme.colors.textLight }}
+                        style={{
+                          color: checked
+                            ? theme.colors.primaryDark
+                            : theme.colors.textLight,
+                        }}
                       >
                         {c}
                       </Text>
@@ -321,14 +375,17 @@ const StateFilterSheet: React.FC<Props> = ({
           )}
         </Animated.View>
 
-        {/* Footer */}
+        {/* ---------- FOOTER ---------- */}
         <View style={styles.footer}>
           <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
             <Text style={{ color: theme.colors.text }}>Cancel</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.applyBtn, { backgroundColor: theme.colors.primary }]}
+            style={[
+              styles.applyBtn,
+              { backgroundColor: theme.colors.primary },
+            ]}
             onPress={() =>
               onApply({
                 countryName: selectedCountryName,
@@ -336,7 +393,9 @@ const StateFilterSheet: React.FC<Props> = ({
               })
             }
           >
-            <Text style={{ color: "#fff", fontWeight: "700" }}>Apply</Text>
+            <Text style={{ color: "#fff", fontWeight: "700" }}>
+              Apply
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -358,7 +417,6 @@ const styles = StyleSheet.create({
   },
   dropdown: {
     borderRadius: 8,
-    overflow: "hidden",
     backgroundColor: "white",
   },
   searchRow: {
