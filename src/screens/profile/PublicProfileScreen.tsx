@@ -30,6 +30,7 @@ import {
   GraduationCapIcon,
   TranslateIcon,
   ListDashesIcon,
+  UserIcon,
 } from "phosphor-react-native";
 
 import { getPublicUserProfile } from "@/api/auth";
@@ -173,7 +174,19 @@ const PublicProfileScreen: React.FC = () => {
       key: "email",
       icon: EnvelopeSimpleIcon,
       label: "Email",
-      val: maybeShow(vs.email, data.email),
+      val:  data.email,
+    },
+     {
+      key: "name",
+      icon: UserIcon,
+      label: "Name",
+      val: data.name,
+    },
+    {
+      key: "phone",
+      icon: PhoneIcon,
+      label: "Phone",
+      val: data.phone,
     },
     {
       key: "phone",

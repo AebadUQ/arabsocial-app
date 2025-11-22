@@ -84,14 +84,14 @@ const CustomBottomSheet = ({ state, descriptors, navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    height: 80,
+    height: 90,
     borderTopWidth: 1,
     borderTopColor: '#FBFBFB',
     backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'space-around',
     paddingHorizontal: 10,
-    paddingBottom:10,
+    paddingBottom:20,
     
   },
   tabWrapper: {

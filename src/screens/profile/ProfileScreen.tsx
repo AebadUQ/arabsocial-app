@@ -27,6 +27,7 @@ import {
   TranslateIcon,
   XLogoIcon,
   ListDashesIcon,
+  UserIcon,
 } from 'phosphor-react-native';
 import { useAuth } from '@/context/Authcontext';
 import { updateUserDetailVisibility } from '@/api/auth';
@@ -90,6 +91,8 @@ const ProfileScreen: React.FC = () => {
   const details = useMemo(
     () => ({
       email: safeValue(user?.email),
+            name: safeValue(user?.name),
+
       phone: safeValue(user?.phone),
       state: safeValue(user?.state),
       city: safeValue(user?.location || user?.city),
@@ -255,6 +258,8 @@ const ProfileScreen: React.FC = () => {
 
           <View style={styles.detailsList}>
             <DetailRow Icon={EnvelopeSimpleIcon} label="Email" value={details.email} show={false} />
+                        <DetailRow Icon={UserIcon} label="Name" value={details.name} show={false} />
+
             <DetailRow Icon={PhoneIcon} label="Phone" value={details.phone} show={false} />
             <DetailRow
               Icon={MapPinIcon}
