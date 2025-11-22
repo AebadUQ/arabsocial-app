@@ -11,7 +11,7 @@ export type FeaturedBiz = {
   id: string | number;
   name: string;
   categories?: string[];         
-  // business_logo?: string | null; // cover image (reserved for future use)
+  business_logo?: string | null; // cover image (reserved for future use)
   promo_code?: string | null;
   open_positions?: number | null;
   is_featured?: boolean | null;
@@ -43,7 +43,8 @@ export default function FeaturedBusinessCard({ item, onPress }: Props) {
       <View style={styles.imageWrap}>
         {/* Static event image for now */}
         <Image
-          source={require("@/assets/images/event1.jpg")}
+          source={item?.business_logo}
+
           style={styles.image}
           resizeMode="cover"
         />

@@ -1,3 +1,4 @@
+import { Asset } from 'react-native-image-picker';
 import api from './api';
 export const createBusiness = async (data: any) => {
   const response = await api.post('/business/create', data);
@@ -90,3 +91,23 @@ export const updateJob=async (
     const response = await api.patch(`/business/edit-job/${id}`,data);
     return response.data
 }
+export const uploadBusinessImage = async (image: Asset) => {
+  const formData = new FormData();
+
+  formData.append("file", {
+    // @ts-ignore
+    uri: image.uri,
+    name: image.fileName || `business-${Date.now()}.jpg`,
+    type: image.type || "image/jpeg",
+  });
+
+  const response = await api.post("/upload/image/business", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
+  // backend se aa raha:
+  // { "url": "https://storage.googleapis.com/..." }
+  return response.data as { url: string };
+};

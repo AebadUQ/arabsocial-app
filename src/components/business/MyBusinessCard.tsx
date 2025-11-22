@@ -14,11 +14,12 @@ export type MyBiz = {
   id: string | number;
   name: string;
   categories?: string[];
-  // business_logo?: string | null; // reserved for future use
   city?: string | null;
   country?: string | null;
   open_positions?: number | null;
+  business_logo?:any;
   Job?: any[];
+  approved?: "pending" | "approved" | "rejected" | string; // <-- ADDED
 };
 
 type Props = {
@@ -29,19 +30,19 @@ type Props = {
 
 const CARD_WIDTH = 310;
 
-export default function MyBusinessCard({
-  item,
-  onPressCard,
-  onPressManage,
-}: Props) {
+export default function MyBusinessCard({ item, onPressCard, onPressManage }: Props) {
   const { theme } = useTheme();
   const nav = useNavigation<any>();
 
   const category = (item.categories?.[0] || "").toUpperCase();
   const location = [item.city, item.country].filter(Boolean).join(", ");
+
   const openCount = item.Job?.length ?? 0;
   const jobsLabel =
     openCount === 1 ? "1 Open Position" : `${openCount} Open Positions`;
+
+  // ----- NEW: PENDING APPROVAL -----
+  const isPending = item.approved === "pending";
 
   const handleManage = () =>
     onPressManage
@@ -67,7 +68,7 @@ export default function MyBusinessCard({
     >
       {/* Top row */}
       <View style={styles.row}>
-        {/* Static image */}
+        {/* Logo Image */}
         <View
           style={[
             styles.logoWrap,
@@ -75,17 +76,28 @@ export default function MyBusinessCard({
           ]}
         >
           <Image
-            source={require("@/assets/images/event1.jpg")}
+                        source={{ uri: item?.business_logo! }}
+
             style={styles.logo}
             resizeMode="cover"
           />
         </View>
 
-        {/* Text block */}
+        {/* Text Block */}
         <View style={{ flex: 1, marginLeft: 12 }}>
-          <Text style={{ fontWeight: "700" }} numberOfLines={1}>
-            {item.name}
-          </Text>
+          {/* Title Row with Pending Tag */}
+          <View style={styles.titleRow}>
+            <Text style={{ fontWeight: "700", flex: 1 }} numberOfLines={1}>
+              {item.name}
+            </Text>
+
+            {/* ----- SHOW PENDING BADGE ----- */}
+            {isPending && (
+              <View style={styles.statusTag}>
+                <Text style={styles.statusText}>pending approval</Text>
+              </View>
+            )}
+          </View>
 
           {!!category && (
             <Text
@@ -98,7 +110,7 @@ export default function MyBusinessCard({
             </Text>
           )}
 
-          {/* Location below category */}
+          {/* Location */}
           <View style={styles.locRow}>
             <MapPinIcon
               size={14}
@@ -115,31 +127,23 @@ export default function MyBusinessCard({
           </View>
         </View>
 
-        {/* Open positions on right */}
+        {/* Jobs Pill */}
         {openCount > 0 && (
-          <View
-            style={[
-              styles.pill,
-              { backgroundColor: "rgba(27,173,122,0.15)" },
-            ]}
-          >
+          <View style={[styles.pill, { backgroundColor: "rgba(27,173,122,0.15)" }]}>
             <BriefcaseIcon
               size={14}
               weight="fill"
               color="#1BAD7A"
               style={{ marginRight: 6 }}
             />
-            <Text
-              style={[styles.pillText, { color: "#1BAD7A" }]}
-              numberOfLines={1}
-            >
+            <Text style={[styles.pillText, { color: "#1BAD7A" }]} numberOfLines={1}>
               {jobsLabel}
             </Text>
           </View>
         )}
       </View>
 
-      {/* Manage button */}
+      {/* Manage Button */}
       <TouchableOpacity
         activeOpacity={0.9}
         style={[
@@ -157,10 +161,7 @@ export default function MyBusinessCard({
           color={theme.colors.primary}
           style={{ marginRight: 8 }}
         />
-        <Text
-          variant="body1"
-          color={theme.colors.primary}
-        >
+        <Text variant="body1" color={theme.colors.primary}>
           Manage Business
         </Text>
       </TouchableOpacity>
@@ -184,6 +185,21 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "flex-start",
+  },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  statusTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,193,7,0.12)",
+  },
+  statusText: {
+    fontSize: 10.5,
+    fontWeight: "600",
+    color: "#B8860B",
   },
   logoWrap: {
     width: 62,

@@ -14,7 +14,7 @@ export type ApiBusiness = {
   id: string | number;
   name: string;
   categories?: string[];
-  // business_logo?: string | null | undefined; // reserved for future (dynamic logo)
+  business_logo?: string | null | undefined;
   about_me?: string | null;
   city?: string | null;
   country?: string | null;
@@ -22,7 +22,7 @@ export type ApiBusiness = {
   promo_code?: string | null;
   discount?: string | null;
   open_positions?: number | null;
-  Job?: any[]; // jobs array from API
+  Job?: any[];
 };
 
 const CARD_RADIUS = 12;
@@ -50,27 +50,24 @@ export default function BusinessCard({ item }: { item: ApiBusiness }) {
       activeOpacity={0.9}
       onPress={handlePress}
     >
-      {/* Top image */}
-      <View style={styles.cardImgWrap}>
-        <Image
-          source={require("@/assets/images/event1.jpg")}
-          style={styles.cardImg}
-          resizeMode="cover"
-        />
-        {/*
-        // Future: restore dynamic business_logo
-        // const logoUri = item.business_logo || "";
-        // {logoUri ? (
-        //   <Image source={{ uri: logoUri }} style={styles.cardImg} resizeMode="cover" />
-        // ) : (
-        //   <View
-        //     style={[
-        //       styles.cardImg,
-        //       { backgroundColor: (theme.colors as any)?.darkGray || "rgba(0,0,0,0.06)" },
-        //     ]}
-        //   />
-        // )}
-        */}
+      {/* Image OR background fallback */}
+      <View
+        style={[
+          styles.cardImgWrap,
+          {
+            backgroundColor: item?.business_logo
+              ? "transparent"
+              : theme.colors.primaryLight,
+          },
+        ]}
+      >
+        {item?.business_logo ? (
+          <Image
+            source={{ uri: item.business_logo }}
+            style={styles.cardImg}
+            resizeMode="cover"
+          />
+        ) : null}
       </View>
 
       {/* Body */}
@@ -132,7 +129,7 @@ export default function BusinessCard({ item }: { item: ApiBusiness }) {
             alignItems: "center",
           }}
         >
-          {/* Location with mapping-style fallback */}
+          {/* Location */}
           <View style={styles.locationRow}>
             <MapPinIcon
               size={14}
@@ -159,7 +156,6 @@ export default function BusinessCard({ item }: { item: ApiBusiness }) {
             )}
           </View>
 
-          {/* Jobs pill only if there are jobs */}
           {jobsCount > 0 && (
             <View style={styles.jobsChip}>
               <BriefcaseIcon
@@ -169,7 +165,7 @@ export default function BusinessCard({ item }: { item: ApiBusiness }) {
               />
               <Text
                 style={[styles.pillText, { color: "#1BAD7A" }]}
-              numberOfLines={1}
+                numberOfLines={1}
               >
                 {jobsLabel}
               </Text>
@@ -194,6 +190,8 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 160,
     overflow: "hidden",
+    justifyContent: "center",
+    alignItems: "center",
   },
   cardImg: {
     width: "100%",
@@ -233,7 +231,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     minWidth: 40,
   },
-   pillText: {
+  pillText: {
     fontSize: 10,
     fontWeight: "700",
   },

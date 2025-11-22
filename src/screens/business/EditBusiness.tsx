@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
+// screens/Business/EditBusinessScreen.tsx
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   StyleSheet,
@@ -7,43 +8,38 @@ import {
   Image,
   Alert,
   ActivityIndicator,
+  NativeSyntheticEvent,
+  LayoutChangeEvent,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { launchImageLibrary } from "react-native-image-picker";
 import { Country, State } from "country-state-city";
+import LinearGradient from "react-native-linear-gradient";
+
+// Components
 import { Text } from "@/components";
 import InputField from "@/components/Input";
 import BottomSheetSelect from "@/components/BottomSheetSelect";
+import Card from "@/components/Card";
 import { useTheme } from "@/theme/ThemeContext";
+
+// Icons
 import {
   ArrowLeft as ArrowLeftIcon,
-  BriefcaseIcon,
-  ImageSquare as ImageSquareIcon,
+  UploadSimple as UploadSimpleIcon,
 } from "phosphor-react-native";
-import { getBusinessDetail, updateBusiness } from "@/api/business";
 
-type RouteParams = { businessId: string | number };
+// API
+import { getBusinessDetail, updateBusiness, uploadBusinessImage } from "@/api/business";
 
-type FormState = {
-  name: string;
-  about_me: string;
-  phone: string;
-  email: string;
-  address: string;
-  country: string;
-  city: string;
-  website_link: string;
-  business_type: "online" | "physical" | "hybrid" | "";
-  category: string;
-  fb_link: string;
-  insta_link: string;
-  discount: string;
-  promo_code: string;
-  logoUri: string; // URL or local URI
-};
-
+// -----------------------------------------------
+// CATEGORY OPTIONS
+// -----------------------------------------------
 const CATEGORY_OPTIONS = [
   "technology",
   "health",
@@ -57,18 +53,26 @@ const CATEGORY_OPTIONS = [
   "music",
   "business",
   "others",
-] as const;
+];
 
+// -----------------------------------------------
+// SCREEN START
+// -----------------------------------------------
 const EditBusinessScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const { businessId } = route.params as RouteParams;
+  const { businessId } = route.params;
+  const queryClient = useQueryClient();
+
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
 
-  const [form, setForm] = useState<FormState>({
-    name: "",
-    about_me: "",
+  // --------------------------------------------------
+  // FORM
+  // --------------------------------------------------
+  const [form, setForm] = useState({
+    business_name: "",
+    about: "",
     phone: "",
     email: "",
     address: "",
@@ -81,13 +85,44 @@ const EditBusinessScreen: React.FC = () => {
     insta_link: "",
     discount: "",
     promo_code: "",
-    logoUri: "",
+    bannerUri: "",
   });
 
-  const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
-    setForm((f) => ({ ...f, [key]: value }));
+  const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
 
-  // Countries / Cities
+  // --------------------------------------------------
+  // ERRORS
+  // --------------------------------------------------
+  const [errors, setErrors] = useState<any>({});
+
+  // --------------------------------------------------
+  // SCROLL TO FIELD
+  // --------------------------------------------------
+  const scrollRef = useRef<ScrollView | null>(null);
+  const [fieldPositions, setFieldPositions] = useState<Record<string, number>>(
+    {}
+  );
+
+  const handleFieldLayout =
+    (name: string) =>
+    (e: NativeSyntheticEvent<LayoutChangeEvent["nativeEvent"]>) => {
+      const { y } = e.nativeEvent.layout;
+      setFieldPositions((prev) => ({ ...prev, [name]: y }));
+    };
+
+  const scrollToField = (name: string) => {
+    const y = fieldPositions[name];
+    if (y != null && scrollRef.current) {
+      scrollRef.current.scrollTo({
+        y: Math.max(y - 20, 0),
+        animated: true,
+      });
+    }
+  };
+
+  // --------------------------------------------------
+  // COUNTRY / CITY
+  // --------------------------------------------------
   const allCountries = useMemo(() => Country.getAllCountries(), []);
   const [countries, setCountries] = useState<string[]>([]);
   const [cities, setCities] = useState<string[]>([]);
@@ -96,60 +131,47 @@ const EditBusinessScreen: React.FC = () => {
     setCountries(allCountries.map((c) => c.name));
   }, [allCountries]);
 
-  const setCountryAndCities = (countryName: string, cityName?: string) => {
-    const c = allCountries.find((x) => x.name === countryName);
-    const nextCities = State.getStatesOfCountry(c?.isoCode || "").map((s) => s.name);
-    setCities(nextCities);
-    setForm((f) => ({
-      ...f,
-      country: countryName || "",
-      city: cityName && nextCities.includes(cityName) ? cityName : "",
-    }));
-  };
-
   useEffect(() => {
-    if (!form.country) {
+    if (form.country) {
+      const c = allCountries.find((x) => x.name === form.country);
+      const nextCities = State.getStatesOfCountry(c?.isoCode || "").map(
+        (s) => s.name
+      );
+      setCities(nextCities);
+
+      if (form.city && !nextCities.includes(form.city)) {
+        set("city", "");
+      }
+    } else {
       setCities([]);
-      return;
+      set("city", "");
     }
-    const c = allCountries.find((x) => x.name === form.country);
-    const next = State.getStatesOfCountry(c?.isoCode || "").map((s) => s.name);
-    setCities(next);
-    if (form.city && !next.includes(form.city)) set("city", "");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.country]);
 
-  // Fetch existing business details
-  const {
-    data,
-    isPending: isDetailPending,
-    isError,
-  } = useQuery({
+  // --------------------------------------------------
+  // FETCH BUSINESS DETAILS
+  // --------------------------------------------------
+  const { data, isPending, isError } = useQuery({
     queryKey: ["businessDetail", businessId],
     queryFn: () => getBusinessDetail(businessId),
   });
 
-  // Prefill form once details arrive
   useEffect(() => {
     if (!data) return;
-    const detail = data || {};
 
-    const categoryFromArray: string =
+    const detail = data;
+
+    const categoryFromArray =
       Array.isArray(detail.categories) && detail.categories.length
-        ? String(detail.categories[0])
-        : (detail.category || "");
+        ? detail.categories[0]
+        : detail.category || "";
 
     const logo =
-      detail.business_logo ||
-      detail.logo ||
-      detail.img ||
-      detail.image ||
-      "";
+      detail.business_logo || detail.logo || detail.img || detail.image || "";
 
-    setForm((f) => ({
-      ...f,
-      name: detail.name || "",
-      about_me: detail.about_me || detail.description || "",
+    setForm({
+      business_name: detail.name || "",
+      about: detail.about_me || detail.description || "",
       phone: detail.phone || "",
       email: detail.email || "",
       address: detail.address || detail.location || "",
@@ -162,15 +184,25 @@ const EditBusinessScreen: React.FC = () => {
       insta_link: detail.insta_link || detail.instagram || "",
       discount: detail.discount || "",
       promo_code: detail.promo_code || "",
-      logoUri: logo || "",
-    }));
+      bannerUri: logo || "",
+    });
 
-    if (detail.country) setCountryAndCities(detail.country, detail.city);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Load city options for saved country
+    if (detail.country) {
+      const c = allCountries.find((x) => x.name === detail.country);
+      const nextCities = State.getStatesOfCountry(c?.isoCode || "").map(
+        (s) => s.name
+      );
+      setCities(nextCities);
+    }
   }, [data]);
 
-  // Image Picker
-  const pickLogo = async () => {
+  // --------------------------------------------------
+  // IMAGE PICKER
+  // --------------------------------------------------
+  const [bannerUploading, setBannerUploading] = useState(false);
+
+  const pickBanner = async () => {
     try {
       const res = await launchImageLibrary({
         mediaType: "photo",
@@ -178,154 +210,263 @@ const EditBusinessScreen: React.FC = () => {
         maxHeight: 1400,
         selectionLimit: 1,
       });
+
       if (res.didCancel) return;
+
       const asset = res.assets?.[0];
-      if (!asset?.uri) return Alert.alert("No image", "Please select a valid image.");
-      set("logoUri", asset.uri);
-    } catch {
-      Alert.alert("Error", "Unable to open image picker.");
+      if (!asset?.uri) return;
+
+      set("bannerUri", asset.uri);
+      setBannerUploading(true);
+
+      const { url } = await uploadBusinessImage(asset);
+      set("bannerUri", url);
+    } catch (e) {
+      Alert.alert("Error", "Failed to upload image");
+    } finally {
+      setBannerUploading(false);
     }
   };
 
-  // Update mutation (v5 flags)
+  // --------------------------------------------------
+  // SUBMIT
+  // --------------------------------------------------
   const mutation = useMutation({
     mutationFn: (payload: any) => updateBusiness(businessId, payload),
     onSuccess: () => {
-      Alert.alert("Success", "Business updated successfully!");
+      // Alert.alert("Success", "Business updated!");
+
+          queryClient.invalidateQueries({ queryKey: ["myBusinesses"] });
+    queryClient.invalidateQueries({ queryKey: ["approvedBusinesses"] });
+
       navigation.goBack();
     },
     onError: (err: any) => {
-      Alert.alert("Error", err?.message || "Something went wrong");
+      // Alert.alert("Error", err?.message || "Something went wrong");
     },
   });
 
   const onSubmit = () => {
-    if (!form.name.trim()) return Alert.alert("Missing", "Please enter business name.");
-    if (!form.business_type) return Alert.alert("Missing", "Please select a business type.");
-    if (!form.category) return Alert.alert("Missing", "Please select a category.");
-    if (!form.address.trim()) return Alert.alert("Missing", "Please enter address.");
-    if (!form.country) return Alert.alert("Missing", "Please select country.");
-    if (!form.city) return Alert.alert("Missing", "Please select city.");
+    const e: any = {};
+
+    // REQUIRED FIELDS
+    if (!form.business_name.trim())
+      e.business_name = "Business name required";
+    if (!form.category) e.category = "Category required";
+    if (!form.business_type) e.business_type = "Business type required";
+    if (!form.country) e.country = "Country required";
+    if (!form.city) e.city = "City required";
+    if (!form.email.trim()) e.email = "Email required";
+
+    setErrors(e);
+
+    if (Object.keys(e).length > 0) {
+      const order = [
+        "business_name",
+        "category",
+        "business_type",
+        "country",
+        "city",
+        "email",
+      ];
+
+      const first = order.find((x) => e[x]);
+      if (first) scrollToField(first);
+      return;
+    }
 
     const payload = {
-      name: form.name,
-      about_me: form.about_me,
+      name: form.business_name,
+      about_me: form.about,
       phone: form.phone,
       email: form.email,
       address: form.address,
       country: form.country,
       city: form.city,
-      categories: form.category ? [form.category] : [],
+      categories: [form.category],
       website_link: form.website_link,
       business_type: form.business_type,
       fb_link: form.fb_link,
       insta_link: form.insta_link,
       discount: form.discount,
-      business_logo: form.logoUri,
+      business_logo: form.bannerUri,
       promo_code: form.promo_code || undefined,
     };
 
-    mutation.mutate(payload as any);
+    mutation.mutate(payload);
   };
 
-  const isBusy = isDetailPending || mutation.isPending;
+  // --------------------------------------------------
+  // RENDER
+  // --------------------------------------------------
+  if (isPending) {
+    return (
+      <SafeAreaView style={styles.centered}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+      </SafeAreaView>
+    );
+  }
+
+  if (isError) {
+    return (
+      <SafeAreaView style={styles.centered}>
+        <Text>Failed to load business details</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: theme.colors.background }]}>
-      {/* Top Bar */}
-    <View style={styles.topBar}>
-  {/* Left: back + title */}
-  <View style={styles.leftWrap}>
-    <TouchableOpacity style={styles.navBtn} onPress={() => navigation.goBack()}>
-      <ArrowLeftIcon size={20} weight="bold" color="#fff" />
-    </TouchableOpacity>
-    <Text
-      variant="body1"
-      color={theme.colors.text}
-      style={styles.title}
-      numberOfLines={1}
+    <SafeAreaView
+      style={[styles.safe, { backgroundColor: theme.colors.background }]}
     >
-      Edit Business
-    </Text>
-  </View>
-
-  {/* Right: Post a Job */}
+      {/* TOP BAR */}
+    <View style={styles.topBar}>
+  {/* Back Button */}
   <TouchableOpacity
-    style={styles.ctaBtn}
+    style={styles.navBtn}
+    onPress={() => navigation.goBack()}
+  >
+    <ArrowLeftIcon size={22} color={theme.colors.text} />
+  </TouchableOpacity>
+
+  {/* Center Title */}
+  <Text
+    variant="body1"
+    color={theme.colors.text}
+    style={{ fontWeight: "600" }}
+  >
+    Edit Business
+  </Text>
+
+  {/* Post a Job Button */}
+  <TouchableOpacity
+    style={[
+      styles.jobBtn,
+      { backgroundColor: theme.colors.primaryLight }
+    ]}
     onPress={() => navigation.navigate("PostJob", { businessId })}
     activeOpacity={0.9}
   >
-    <BriefcaseIcon size={16} weight="fill" color="#fff" />
-    <Text style={styles.ctaText}>Post a Job</Text>
+    <Text
+      style={{ color: theme.colors.primary, fontWeight: "700", fontSize: 12 }}
+    >
+      Post a Job
+    </Text>
   </TouchableOpacity>
 </View>
 
-      {isDetailPending ? (
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-          <ActivityIndicator />
-        </View>
-      ) : isError ? (
-        <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24 }}>
-          <Text>Failed to load business details.</Text>
-        </View>
-      ) : (
-        <ScrollView
-          contentContainerStyle={[styles.content, { paddingBottom: (insets.bottom || 16) + 84 }]}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Business Logo */}
-          <Text style={styles.sectionLabel}>Business Image / Logo</Text>
-          <TouchableOpacity
-            activeOpacity={0.9}
-            style={[styles.uploadBox, { borderColor: theme.colors.borderColor, backgroundColor: "transparent" }]}
-            onPress={pickLogo}
-          >
-            {form.logoUri ? (
-              <>
-                <Image source={{ uri: form.logoUri }} style={styles.bannerImg} />
-                <View style={styles.changeHintWrap}>
-                  <Text style={styles.changeHintText}>Tap to change</Text>
+      {/* SCROLL */}
+      <ScrollView
+        ref={scrollRef}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: (insets.bottom || 16) + 60 },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* IMAGE UPLOAD */}
+        <View onLayout={handleFieldLayout("banner")}>
+          <Card style={{ padding: form.bannerUri ? 0 : 20 }}>
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={[styles.uploadBox]}
+              onPress={pickBanner}
+            >
+              {form.bannerUri ? (
+                <>
+                  <Image
+                    source={{ uri: form.bannerUri }}
+                    style={styles.bannerImg}
+                  />
+
+                  {bannerUploading && (
+                    <View style={styles.bannerOverlay}>
+                      <ActivityIndicator color="#fff" />
+                      <Text style={styles.bannerOverlayText}>Uploading...</Text>
+                    </View>
+                  )}
+
+                  <View style={styles.changeHintWrap}>
+                    <Text style={styles.changeHintText}>Tap to change</Text>
+                  </View>
+                </>
+              ) : (
+                <View style={styles.uploadInner}>
+                  <View
+                    style={{
+                      backgroundColor: theme.colors.primaryShade,
+                      padding: 10,
+                      borderRadius: 20,
+                    }}
+                  >
+                    <UploadSimpleIcon
+                      size={24}
+                      color={theme.colors.primary}
+                    />
+                  </View>
+                  <Text variant="body1" color={theme.colors.textLight}>
+                    Upload business image
+                  </Text>
                 </View>
-              </>
-            ) : (
-              <View style={styles.uploadInner}>
-                <ImageSquareIcon size={80} color={theme.colors.textLight} />
-                <Text variant="body1" color={theme.colors.textLight}>Upload business logo</Text>
-              </View>
-            )}
-          </TouchableOpacity>
+              )}
+            </TouchableOpacity>
+          </Card>
+        </View>
 
-          {/* Basic Info */}
+        {/* BUSINESS NAME */}
+        <View
+          style={styles.fieldGap}
+          onLayout={handleFieldLayout("business_name")}
+        >
           <InputField
-            placeholder="Business name"
-            value={form.name}
-            onChangeText={(t) => set("name", t)}
-            containerStyle={styles.fieldGap}
+            label="Business Name"
+            labelColor={theme.colors.text}
+            value={form.business_name}
+            placeholder="Enter business name"
+            onChangeText={(t) => {
+              set("business_name", t);
+              setErrors((p: any) => ({ ...p, business_name: "" }));
+            }}
+            error={errors.business_name}
           />
-          <InputField
-            placeholder="Description (about us)"
-            value={form.about_me}
-            onChangeText={(t) => set("about_me", t)}
-            multiline
-            numberOfLines={4}
-            style={{ textAlignVertical: "top" }}
-            containerStyle={styles.fieldGap}
-          />
+        </View>
 
-          {/* Category */}
+        {/* CATEGORY */}
+        <View
+          style={styles.fieldGap}
+          onLayout={handleFieldLayout("category")}
+        >
           <BottomSheetSelect
+            label="Category"
+            labelColor={theme.colors.text}
             value={form.category}
-            onChange={(v) => set("category", v as any)}
-            options={CATEGORY_OPTIONS.map((c) => ({ label: c.charAt(0).toUpperCase() + c.slice(1), value: c }))}
+            onChange={(v) => {
+              set("category", v);
+              setErrors((p: any) => ({ ...p, category: "" }));
+            }}
+            options={CATEGORY_OPTIONS.map((c) => ({
+              label: c.charAt(0).toUpperCase() + c.slice(1),
+              value: c,
+            }))}
             placeholder="Select Category"
             sheetTitle="Select Category"
-            containerStyle={styles.fieldGap}
+            error={errors.category}
           />
+        </View>
 
-          {/* Business Type */}
+        {/* BUSINESS TYPE */}
+        <View
+          style={styles.fieldGap}
+          onLayout={handleFieldLayout("business_type")}
+        >
           <BottomSheetSelect
+            label="Business Type"
+            labelColor={theme.colors.text}
             value={form.business_type}
-            onChange={(v) => set("business_type", v as any)}
+            onChange={(v) => {
+              set("business_type", v);
+              setErrors((p: any) => ({ ...p, business_type: "" }));
+            }}
             options={[
               { label: "Online", value: "online" },
               { label: "Physical", value: "physical" },
@@ -333,127 +474,247 @@ const EditBusinessScreen: React.FC = () => {
             ]}
             placeholder="Select Business Type"
             sheetTitle="Select Business Type"
-            containerStyle={styles.fieldGap}
+            error={errors.business_type}
           />
+        </View>
 
-          {/* Address */}
-          <InputField
-            placeholder="Address"
-            value={form.address}
-            onChangeText={(t) => set("address", t)}
-            containerStyle={styles.fieldGap}
-          />
-
-          {/* Country */}
+        {/* COUNTRY */}
+        <View
+          style={styles.fieldGap}
+          onLayout={handleFieldLayout("country")}
+        >
           <BottomSheetSelect
+            label="Country"
+            labelColor={theme.colors.text}
             searchable
             value={form.country}
-            onChange={(v) => setCountryAndCities(String(v))}
+            onChange={(v) => {
+              set("country", v);
+              set("city", "");
+              setErrors((p: any) => ({ ...p, country: "" }));
+            }}
             options={countries.map((c) => ({ label: c, value: c }))}
             placeholder="Select Country"
             sheetTitle="Select Country"
-            containerStyle={styles.fieldGap}
+            error={errors.country}
           />
+        </View>
 
-          {/* City */}
-          {form.country ? (
+        {/* CITY */}
+        {!!form.country && (
+          <View
+            style={styles.fieldGap}
+            onLayout={handleFieldLayout("city")}
+          >
             <BottomSheetSelect
+              label="City"
+              labelColor={theme.colors.text}
               value={form.city}
-              onChange={(v) => set("city", v as any)}
-              options={cities.map((s) => ({ label: s, value: s }))}
+              onChange={(v) => {
+                set("city", v);
+                setErrors((p: any) => ({ ...p, city: "" }));
+              }}
+              options={cities.map((c) => ({ label: c, value: c }))}
               placeholder="Select City"
               sheetTitle="Select City"
-              containerStyle={styles.fieldGap}
+              error={errors.city}
             />
-          ) : null}
-
-          {/* Contacts / Links */}
-          <InputField
-            placeholder="Website URL"
-            value={form.website_link}
-            onChangeText={(t) => set("website_link", t)}
-            containerStyle={styles.fieldGap}
-            autoCapitalize="none"
-          />
-          <InputField
-            placeholder="Phone"
-            value={form.phone}
-            onChangeText={(t) => set("phone", t)}
-            containerStyle={styles.fieldGap}
-            keyboardType="phone-pad"
-          />
-          <InputField
-            placeholder="Email"
-            value={form.email}
-            onChangeText={(t) => set("email", t)}
-            containerStyle={styles.fieldGap}
-            autoCapitalize="none"
-            keyboardType="email-address"
-          />
-          <InputField
-            placeholder="Facebook link"
-            value={form.fb_link}
-            onChangeText={(t) => set("fb_link", t)}
-            containerStyle={styles.fieldGap}
-            autoCapitalize="none"
-          />
-          <InputField
-            placeholder="Instagram link"
-            value={form.insta_link}
-            onChangeText={(t) => set("insta_link", t)}
-            containerStyle={styles.fieldGap}
-            autoCapitalize="none"
-          />
-          <InputField
-            placeholder="Discount (e.g. Intro offer 20% off)"
-            value={form.discount}
-            onChangeText={(t) => set("discount", t)}
-            containerStyle={styles.fieldGap}
-          />
-          <InputField
-            placeholder="Promo code (optional)"
-            value={form.promo_code}
-            onChangeText={(t) => set("promo_code", t)}
-            containerStyle={styles.fieldGap}
-            autoCapitalize="characters"
-          />
-        </ScrollView>
-      )}
-
-      {/* Submit */}
-      <TouchableOpacity
-        style={[styles.submitBtn, isBusy && { opacity: 0.7 }]}
-        onPress={onSubmit}
-        disabled={isBusy}
-      >
-        {mutation.isPending ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={{ color: "#fff", fontWeight: "600" }}>Save Changes</Text>
+          </View>
         )}
-      </TouchableOpacity>
+
+        {/* ADDRESS */}
+        <View
+          style={styles.fieldGap}
+          onLayout={handleFieldLayout("address")}
+        >
+          <InputField
+            label="Address"
+            labelColor={theme.colors.text}
+            value={form.address}
+            placeholder="Business address"
+            onChangeText={(t) => set("address", t)}
+          />
+        </View>
+
+        {/* EMAIL */}
+        <View
+          style={styles.fieldGap}
+          onLayout={handleFieldLayout("email")}
+        >
+          <InputField
+            label="Email"
+            labelColor={theme.colors.text}
+            value={form.email}
+            placeholder="Business email"
+            onChangeText={(t) => {
+              set("email", t);
+              setErrors((p: any) => ({ ...p, email: "" }));
+            }}
+            error={errors.email}
+          />
+        </View>
+
+        {/* OPTIONAL FIELDS BELOW */}
+        <InputField
+          label="About Business"
+          labelColor={theme.colors.text}
+          value={form.about}
+          onChangeText={(t) => set("about", t)}
+          placeholder="Describe your business"
+          multiline
+          containerStyle={styles.fieldGap}
+        />
+
+        <InputField
+          label="Phone"
+          labelColor={theme.colors.text}
+          value={form.phone}
+          onChangeText={(t) => set("phone", t)}
+          placeholder="Phone number"
+          keyboardType="phone-pad"
+          containerStyle={styles.fieldGap}
+        />
+
+        <InputField
+          label="Website Link"
+          labelColor={theme.colors.text}
+          value={form.website_link}
+          onChangeText={(t) => set("website_link", t)}
+          placeholder="http://..."
+          containerStyle={styles.fieldGap}
+        />
+
+        <InputField
+          label="Facebook Link"
+          labelColor={theme.colors.text}
+          value={form.fb_link}
+          onChangeText={(t) => set("fb_link", t)}
+          placeholder="Facebook URL"
+          containerStyle={styles.fieldGap}
+        />
+
+        <InputField
+          label="Instagram Link"
+          labelColor={theme.colors.text}
+          value={form.insta_link}
+          onChangeText={(t) => set("insta_link", t)}
+          placeholder="Instagram URL"
+          containerStyle={styles.fieldGap}
+        />
+
+        <InputField
+          label="Discount"
+          labelColor={theme.colors.text}
+          value={form.discount}
+          onChangeText={(t) => set("discount", t)}
+          placeholder="Example: 20% Off"
+          containerStyle={styles.fieldGap}
+        />
+
+        <InputField
+          label="Promo Code"
+          labelColor={theme.colors.text}
+          value={form.promo_code}
+          onChangeText={(t) => set("promo_code", t)}
+          placeholder="ABC123"
+          containerStyle={styles.fieldGap}
+        />
+      </ScrollView>
+
+      {/* STICKY SAVE BUTTON */}
+      <View
+        style={[
+          styles.submitWrap,
+          { paddingBottom: insets.bottom || 16 },
+        ]}
+      >
+        <View style={styles.submitShadow}>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={onSubmit}
+            disabled={bannerUploading}
+          >
+            <LinearGradient
+              colors={["#1BAD7A", "#008F5C"]}
+              style={styles.submitBtn}
+            >
+              {mutation.isPending || bannerUploading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={{ color: "#fff", fontWeight: "700" }}>
+                  Save Changes
+                </Text>
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      </View>
     </SafeAreaView>
   );
 };
 
+// --------------------------------------------------
+// STYLES (Copied from Event Edit Screen)
+// --------------------------------------------------
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  
-  
+  centered: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  topBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  navBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   content: { padding: 16 },
-  sectionLabel: { marginBottom: 8, fontWeight: "600" },
   fieldGap: { marginTop: 16 },
+
+  // Upload Box (Same as Event UI)
   uploadBox: {
-    height: 160,
-    borderWidth: 1.5,
-    borderStyle: "dashed",
+    height: 180,
+    borderWidth: 0.5,
+    borderRadius: 12,
+    borderColor: "#1BAD7A",
+    backgroundColor: "rgba(27,173,122,0.08)",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  uploadInner: { alignItems: "center", justifyContent: "center", gap: 8 },
+  bannerImg: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 12,
+    resizeMode: "cover",
+  },
+
+  bannerOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.4)",
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 20,
   },
-  uploadInner: { alignItems: "center", justifyContent: "center", gap: 8 },
-  bannerImg: { width: "100%", height: "100%", borderRadius: 12, resizeMode: "cover" },
+
+  bannerOverlayText: {
+    color: "#fff",
+    marginTop: 6,
+    fontSize: 12,
+    fontWeight: "500",
+  },
+
   changeHintWrap: {
     position: "absolute",
     bottom: 6,
@@ -463,53 +724,44 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 6,
   },
-  changeHintText: { color: "#fff", fontSize: 12 },
+  changeHintText: {
+    color: "#fff",
+    fontSize: 12,
+  },
+
+  submitWrap: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: -20,
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 24,
+    paddingTop: 10,
+  },
+
+  submitShadow: {
+    width: "100%",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 14,
+    elevation: 8,
+  },
+
   submitBtn: {
-    backgroundColor: "#1BAD7A",
+    height: 56,
+    borderRadius: 999,
     alignItems: "center",
     justifyContent: "center",
-    height: 54,
-    borderRadius: 12,
-    marginHorizontal: 16,
-    marginBottom: 20,
+    width: "100%",
   },
-  topBar: {
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "space-between",
-  paddingHorizontal: 16,
-  paddingVertical: 12,
-},
-
-leftWrap: {
-  flexDirection: "row",
-  alignItems: "center",
-  gap: 10,
-  flexShrink: 1, // keep title from pushing CTA
-},
-
-navBtn: {
-  width: 40,
-  height: 40,
-  borderRadius: 20,
+  jobBtn: {
+  height: 34,
+  paddingHorizontal: 12,
+  borderRadius: 999,
   alignItems: "center",
   justifyContent: "center",
-  backgroundColor: "#1BAD7A",
 },
-
-title: { fontWeight: "700", maxWidth: 180 }, // tweak width if needed
-
-ctaBtn: {
-  flexDirection: "row",
-  alignItems: "center",
-  gap: 8,
-  paddingHorizontal: 14,
-  height: 40,
-  borderRadius: 999,
-  backgroundColor: "#1BAD7A",
-},
-
-ctaText: { color: "#fff", fontWeight: "700" },
 
 });
 

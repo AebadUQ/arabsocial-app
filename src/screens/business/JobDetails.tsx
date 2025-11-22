@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   View,
   StyleSheet,
@@ -31,12 +31,11 @@ type JobBusiness = {
   country?: string | null;
   city?: string | null;
   address?: string | null;
-  categories?: string[] | null;
   email?: string | null;
   phone?: string | null;
 };
 
-type PostedBy = {
+type Commenter = {
   id: number | string;
   name?: string | null;
   image?: string | null;
@@ -52,11 +51,9 @@ type JobDetail = {
   location?: string | null;
   description?: string | null;
   application_link?: string | null;
-  status?: string | null;
   created_at?: string | null;
-  updated_at?: string | null;
   business?: JobBusiness | null;
-  posted_by?: PostedBy | null;
+  posted_by?: Commenter | null;
 };
 
 /* ----------------------------- Utils ----------------------------- */
@@ -70,20 +67,13 @@ const timeAgo = (iso?: string | null) => {
   const now = Date.now();
   const diff = Math.max(0, now - then);
 
-  const minute = 60 * 1000;
+  const minute = 60000;
   const hour = 60 * minute;
   const day = 24 * hour;
 
-  if (diff < hour) {
-    const m = Math.round(diff / minute);
-    return m <= 1 ? "Posted 1 min ago" : `Posted ${m} mins ago`;
-  }
-  if (diff < day) {
-    const h = Math.round(diff / hour);
-    return h <= 1 ? "Posted 1 hour ago" : `Posted ${h} hours ago`;
-  }
-  const d = Math.round(diff / day);
-  return d <= 1 ? "Posted yesterday" : `Posted ${d} days ago`;
+  if (diff < hour) return `Posted ${Math.round(diff / minute)} mins ago`;
+  if (diff < day) return `Posted ${Math.round(diff / hour)} hours ago`;
+  return `Posted ${Math.round(diff / day)} days ago`;
 };
 
 const openExternal = (url?: string | null) => {
@@ -92,11 +82,12 @@ const openExternal = (url?: string | null) => {
   if (!/^https?:\/\//i.test(u)) u = "https://" + u;
   Linking.openURL(u).catch(() => {});
 };
+
 const sendEmail = (e?: string | null) => e && Linking.openURL(`mailto:${e}`).catch(() => {});
 const callPhone = (p?: string | null) => p && Linking.openURL(`tel:${p}`).catch(() => {});
-const openMaps = (q?: string | null) => {
-  if (!q) return;
-  const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
+const openMaps = (loc?: string | null) => {
+  if (!loc) return;
+  const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc)}`;
   Linking.openURL(url).catch(() => {});
 };
 
@@ -108,26 +99,18 @@ const JobDetailScreen: React.FC = () => {
   const route = useRoute<any>();
   const { user } = useAuth();
 
-  const jobId: number | string | undefined = route?.params?.jobId;
+  const jobId = route.params?.jobId;
 
   const [job, setJob] = useState<JobDetail | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const fetchJob = useCallback(async () => {
-    if (!jobId) {
-      setError("Missing job id");
-      setLoading(false);
-      return;
-    }
     try {
       setLoading(true);
-      setError(null);
       const data = await getJobDetails(jobId);
-      setJob(data as JobDetail);
-    } catch (e: any) {
-      console.error("❌ Failed to fetch job:", e);
-      setError("Could not load job");
+      setJob(data);
+    } catch {
+      setJob(null);
     } finally {
       setLoading(false);
     }
@@ -137,147 +120,107 @@ const JobDetailScreen: React.FC = () => {
     fetchJob();
   }, [fetchJob]);
 
-
-  const title = job?.title ?? "Job";
-  const employer = job?.business?.name ?? "";
-  const location =
-    job?.location ??
-    (job?.business?.city && job?.business?.country
-      ? `${job.business.city}, ${job.business.country}`
-      : job?.business?.city ?? job?.business?.country ?? "");
-
-  const postedLabel = timeAgo(job?.created_at);
-
-  /* ----------------------- Loading / Error states ---------------------- */
+  /* ---------------------------- Loading & Error ---------------------------- */
   if (loading) {
     return (
-      <SafeAreaView
-        style={[
-          styles.container,
-          { backgroundColor: theme.colors.background, alignItems: "center", justifyContent: "center" },
-        ]}
-      >
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+      <SafeAreaView style={[styles.centered]}>
+        <ActivityIndicator size="large" color="#1BAD7A" />
       </SafeAreaView>
     );
   }
 
-  if (!job || error) {
+  if (!job) {
     return (
-      <SafeAreaView
-        style={[
-          styles.container,
-          { backgroundColor: theme.colors.background, alignItems: "center", justifyContent: "center" },
-        ]}
-      >
-        <Text variant="body1" color={theme.colors.text}>
-          {error ?? "Job not found."}
-        </Text>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={[styles.retryBtn, { backgroundColor: theme.colors.primary }]}
-        >
-          <Text variant="caption" color="#fff">Go Back</Text>
-        </TouchableOpacity>
+      <SafeAreaView style={[styles.centered]}>
+        <Text>Job not found.</Text>
       </SafeAreaView>
     );
   }
+
+  /* ------------------------------- Extracted ------------------------------- */
+  const { title, description, job_type, created_at, application_link } = job;
+
+  const employer = job.business?.name ?? "";
+  const location =
+    job.location ??
+    (job.business?.city && job.business?.country
+      ? `${job.business.city}, ${job.business.country}`
+      : job.business?.city ?? job.business?.country ?? "");
+
+  const postedLabel = timeAgo(created_at);
 
   /* ------------------------------- UI --------------------------------- */
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      {/* Top bar: back + title + conditional edit */}
+    <SafeAreaView style={[styles.container]}>
+      {/* ---------------------------- TOP BAR ---------------------------- */}
       <View style={styles.topBar}>
-        <TouchableOpacity
-          style={[styles.topBtn, { backgroundColor: "rgba(0,0,0,0.06)" }]}
-          onPress={() => navigation.goBack()}
-          accessibilityRole="button"
-        >
-          <ArrowLeft size={18} color={theme.colors.text} weight="bold" />
+        <TouchableOpacity style={styles.topBtn} onPress={() => navigation.goBack()}>
+          <ArrowLeft size={18} color="#000" weight="bold" />
         </TouchableOpacity>
 
-        <Text variant="body1" style={{ fontWeight: "800", color: theme.colors.text }} numberOfLines={1}>
-          Job Detail  
-          {/* {user.id == job.postedById ? 's':'a'} */}
-        </Text>
+        <Text style={styles.topTitle}>Job Detail</Text>
 
-        {user?.id == job?.postedById  ? (
+        {user?.id == job.postedById ? (
           <TouchableOpacity
-            style={[styles.topBtn, { backgroundColor: theme.colors.primary }]}
+            style={[styles.topBtn, { backgroundColor: "#1BAD7A" }]}
             onPress={() => navigation.navigate("EditJob", { jobId: job.id })}
-            accessibilityRole="button"
-            accessibilityLabel="Edit Job"
           >
             <PencilSimple size={16} color="#fff" />
           </TouchableOpacity>
         ) : (
-          <View style={[styles.topBtn, { opacity: 0 }]} /> // spacer
+          <View style={[styles.topBtn, { opacity: 0 }]} />
         )}
       </View>
 
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 96 }]} showsVerticalScrollIndicator={false}>
-        {/* ===== Big Detail Card ===== */}
-        <View style={[styles.card, styles.shadowSm, { borderColor: theme.colors.primaryLight }]}>
-          {/* Title */}
-          <Text variant="h5" style={[styles.title, { color: theme.colors.text }]}>{title}</Text>
+      {/* ---------------------------- CONTENT ---------------------------- */}
+      <ScrollView
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 110 }]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Main Card */}
+        <View style={styles.card}>
+          <Text style={styles.jobTitle}>{title}</Text>
 
-          {/* Description */}
-          {!!job.description && (
-            <Text variant="body2" style={[styles.desc, { color: theme.colors.textLight ?? theme.colors.text }]}>
-              {job.description}
-            </Text>
-          )}
+          {!!description && <Text style={styles.desc}>{description}</Text>}
 
-          {/* Chips: job type (filled) + posted (outlined) */}
-          <View style={styles.chipsRow}>
-            {!!job.job_type && (
-              <View style={[styles.chipFilled, { backgroundColor: theme.colors.primaryLight }]}>
-                <Text variant="overline" style={{ color: theme.colors.primaryDark }}>
-                  {humanize(job.job_type)}
-                </Text>
+          <View style={styles.chipRow}>
+            {!!job_type && (
+              <View style={styles.chipFilled}>
+                <Text style={styles.chipFilledText}>{humanize(job_type)}</Text>
               </View>
             )}
+
             {!!postedLabel && (
-              <View style={[styles.chipOutlined, { borderColor: "rgba(0,0,0,0.12)" }]}>
-                <Text variant="overline" style={{ color: "rgba(0,0,0,0.55)" }}>
-                  {postedLabel}
-                </Text>
+              <View style={styles.chipOutline}>
+                <Text style={styles.chipOutlineText}>{postedLabel}</Text>
               </View>
             )}
           </View>
 
-          {/* Divider */}
-          <View style={[styles.divider, { backgroundColor: theme.colors.primaryLight, opacity: 0.5 }]} />
-
-          {/* Employer */}
           {!!employer && (
             <View style={styles.infoRow}>
-              <View style={[styles.iconCircle, { backgroundColor: theme.colors.primaryLight }]}>
-                <Buildings size={18} color={theme.colors.primary} />
+              <View style={styles.iconCircle}>
+                <Buildings size={18} color="#1BAD7A" />
               </View>
-              <View style={styles.infoTextWrap}>
-                <Text variant="overline" style={{ opacity: 0.7 }}>Employer</Text>
-                <Text variant="body1" style={{ color: theme.colors.text }}>{employer}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.label}>Employer</Text>
+                <Text style={styles.value}>{employer}</Text>
               </View>
             </View>
           )}
 
-          {/* Location */}
           {!!location && (
             <TouchableOpacity
               activeOpacity={0.85}
               onPress={() => openMaps(location)}
               style={styles.infoRow}
             >
-              <View style={[styles.iconCircle, { backgroundColor: theme.colors.primaryLight }]}>
-                <MapPin size={18} color={theme.colors.primary} />
+              <View style={styles.iconCircle}>
+                <MapPin size={18} color="#1BAD7A" />
               </View>
-              <View style={styles.infoTextWrap}>
-                <Text variant="overline" style={{ opacity: 0.7 }}>Location</Text>
-                <Text
-                  variant="body1"
-                  style={{ color: theme.colors.text, textDecorationLine: "underline" }}
-                >
+              <View style={{ flex: 1 }}>
+                <Text style={styles.label}>Location</Text>
+                <Text style={[styles.value, { textDecorationLine: "underline" }]}>
                   {location}
                 </Text>
               </View>
@@ -285,71 +228,58 @@ const JobDetailScreen: React.FC = () => {
           )}
         </View>
 
-        {/* ===== Contact Information Card ===== */}
+        {/* Contact Card */}
         {(job.business?.email || job.business?.phone) && (
-          <View style={[styles.card, styles.shadowSm, { borderColor: theme.colors.primaryLight }]}>
-            <Text variant="overline" style={[styles.contactTitle, { color: theme.colors.text }]}>
-              Contact Information
-            </Text>
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Contact Information</Text>
 
             {!!job.business?.email && (
               <TouchableOpacity
-                activeOpacity={0.9}
+                style={styles.contactRow}
                 onPress={() => sendEmail(job.business?.email)}
-                style={[styles.contactRow, { backgroundColor: theme.colors.primaryLight }]}
               >
                 <View style={styles.contactIcon}>
-                  <EnvelopeSimple size={18} color={theme.colors.primaryDark} />
+                  <EnvelopeSimple size={18} color="#1BAD7A" />
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text variant="overline" style={{ opacity: 0.7 }}>Email</Text>
-                  <Text variant="body1" style={{ color: theme.colors.text }}>
-                    {job.business?.email}
-                  </Text>
-                </View>
+                <Text style={styles.contactText}>{job.business?.email}</Text>
               </TouchableOpacity>
             )}
 
             {!!job.business?.phone && (
               <TouchableOpacity
-                activeOpacity={0.9}
+                style={styles.contactRow}
                 onPress={() => callPhone(job.business?.phone)}
-                style={[styles.contactRow, { backgroundColor: theme.colors.primaryLight }]}
               >
                 <View style={styles.contactIcon}>
-                  <Phone size={18} color={theme.colors.primaryDark} />
+                  <Phone size={18} color="#1BAD7A" />
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text variant="overline" style={{ opacity: 0.7 }}>Phone</Text>
-                  <Text variant="body1" style={{ color: theme.colors.text }}>
-                    {job.business?.phone}
-                  </Text>
-                </View>
+                <Text style={styles.contactText}>{job.business?.phone}</Text>
               </TouchableOpacity>
             )}
           </View>
         )}
       </ScrollView>
 
-      {/* Sticky Apply CTA */}
-      <View style={[styles.ctaWrap, { paddingBottom: Math.max(insets.bottom, 8) }]}>
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={() => openExternal(job.application_link)}
-          disabled={!job.application_link}
-          style={styles.ctaShadow}
-        >
-          <LinearGradient
-            colors={job.application_link ? ["#1BAD7A", "#008F5C"] : ["#9CA3AF", "#9CA3AF"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.ctaBtn}
+      {/* ---------------------------- APPLY NOW BUTTON ---------------------------- */}
+      <View style={[styles.ctaContainer, { paddingBottom: Math.max(insets.bottom) }]}>
+        <View style={styles.applyShadow}>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            disabled={!application_link}
+            onPress={() => openExternal(application_link)}
           >
-            <Text style={{ color: "#fff", fontWeight: "700" }}>
-              {job.application_link ? "Apply Now" : "No Application Link"}
-            </Text>
-          </LinearGradient>
-        </TouchableOpacity>
+            <LinearGradient
+              colors={
+                application_link ? ["#1BAD7A", "#008F5C"] : ["#9CA3AF", "#9CA3AF"]
+              }
+              style={styles.applyBtn}
+            >
+              <Text style={styles.applyText}>
+                {application_link ? "Apply Now" : "No Application Link"}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -357,61 +287,101 @@ const JobDetailScreen: React.FC = () => {
 
 /* ------------------------------ Styles ----------------------------- */
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: { paddingHorizontal: 12, paddingTop: 8 },
+  container: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
 
-  // Top bar
+  centered: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fff",
+  },
+
+  /* TOP BAR */
   topBar: {
-    paddingHorizontal: 12,
-    paddingTop: 8,
-    paddingBottom: 6,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
   topBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(0,0,0,0.06)",
     alignItems: "center",
     justifyContent: "center",
   },
+  topTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#000",
+  },
 
-  /* Big white rounded cards */
+  /* CONTENT */
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+  },
+
   card: {
     backgroundColor: "#fff",
     borderRadius: 18,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    padding: 18,
     marginBottom: 16,
-  },
-  shadowSm: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "#E5E7EB",
     shadowColor: "#000",
     shadowOpacity: 0.06,
     shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
     elevation: 3,
   },
 
-  title: { fontSize: 22, fontWeight: "800", marginBottom: 10 },
-  desc: { lineHeight: 22, marginBottom: 12 },
+  jobTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    marginBottom: 10,
+    color: "#000",
+  },
 
-  chipsRow: {
+  desc: {
+    fontSize: 14,
+    lineHeight: 22,
+    marginBottom: 12,
+    color: "#444",
+  },
+
+  chipRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
     gap: 8,
     marginBottom: 14,
   },
-  chipFilled: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
-  chipOutlined: {
-    borderRadius: 999,
+  chipFilled: {
+    backgroundColor: "rgba(27,173,122,0.15)",
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderWidth: 1,
+    borderRadius: 999,
   },
-
-  divider: { height: 1, width: "100%", marginVertical: 12 },
+  chipFilledText: {
+    color: "#1BAD7A",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  chipOutline: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  chipOutlineText: {
+    fontSize: 12,
+    color: "#777",
+  },
 
   infoRow: {
     flexDirection: "row",
@@ -423,18 +393,33 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
+    backgroundColor: "rgba(27,173,122,0.15)",
     alignItems: "center",
     justifyContent: "center",
   },
-  infoTextWrap: { flex: 1 },
+  label: {
+    fontSize: 11,
+    opacity: 0.7,
+  },
+  value: {
+    fontSize: 15,
+    fontWeight: "500",
+    color: "#000",
+  },
 
-  contactTitle: { fontSize: 18, marginBottom: 12 },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    marginBottom: 12,
+    color: "#000",
+  },
+
   contactRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    backgroundColor: "rgba(27,173,122,0.1)",
+    padding: 12,
     borderRadius: 14,
     marginBottom: 10,
   },
@@ -442,29 +427,48 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
+    backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.65)",
+  },
+  contactText: {
+    fontSize: 15,
+    color: "#000",
+    flex: 1,
   },
 
-  retryBtn: {
-    marginTop: 16,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+  /* APPLY BUTTON */
+  ctaContainer: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: -20,
+    backgroundColor: "white",
+    paddingHorizontal: 20,
+    paddingTop: 10,
   },
 
-  /* CTA */
-  ctaWrap: { position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 10 },
-  ctaShadow: {
+  applyShadow: {
     width: "100%",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
-    elevation: 6,
+    shadowOpacity: 0.12,
+    shadowRadius: 14,
+    elevation: 8,
   },
-  ctaBtn: { height: 56, alignItems: "center", justifyContent: "center", width: "100%" },
+
+  applyBtn: {
+    height: 56,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+  },
+  applyText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 16,
+  },
 });
 
 export default JobDetailScreen;
