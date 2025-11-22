@@ -12,8 +12,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { useTheme } from "@/theme/ThemeContext";
 import { Text } from "@/components";
 import Card from "@/components/Card";
-
-import ImageView from "react-native-image-viewing";   // ⭐ FULLSCREEN PREVIEW
+import ImageView from "react-native-image-viewing";
 
 import {
   ArrowLeftIcon,
@@ -34,10 +33,12 @@ import {
 } from "phosphor-react-native";
 
 import { getPublicUserProfile } from "@/api/auth";
+import { showSnack } from "@/components/common/CustomSnackbar";
+import { toggleBlockUser } from "@/api/members";
 
-// ======================================================
+// ----------------------------------------------------------------------
 // Helpers
-// ======================================================
+// ----------------------------------------------------------------------
 
 const safeValue = (value: any) =>
   value === null || value === undefined || value === "" ? "N/A" : value;
@@ -47,9 +48,9 @@ function maybeShow(visible: boolean | undefined, value: any): string | null {
   return safeValue(value);
 }
 
-// ======================================================
+// ----------------------------------------------------------------------
 // Screen
-// ======================================================
+// ----------------------------------------------------------------------
 
 const PublicProfileScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -61,14 +62,21 @@ const PublicProfileScreen: React.FC = () => {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // ⭐ Avatar Preview State
+  // ⭐ Avatar preview
   const [avatarPreviewVisible, setAvatarPreviewVisible] = useState(false);
+
+  // ⭐ Block state
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [loadingBlock, setLoadingBlock] = useState(false);
 
   const fetchProfile = useCallback(async () => {
     try {
       setLoading(true);
       const res = await getPublicUserProfile(Number(userId));
       setData(res);
+
+      // Backend initially returns: isBlockedByMe
+      setIsBlocked(res?.isBlockedByMe ?? false);
     } catch (err) {
       console.error("Failed to load public profile", err);
     } finally {
@@ -80,42 +88,62 @@ const PublicProfileScreen: React.FC = () => {
     fetchProfile();
   }, [fetchProfile]);
 
-  // ------------------------------------------------------
-  // Loading / Error Screens
-  // ------------------------------------------------------
+  // ----------------------------------------------------------------------
+  // ⭐ UPDATED BLOCK / UNBLOCK HANDLER BASED ON YOUR RESPONSE
+  // ----------------------------------------------------------------------
+
+  const onBlockPress = async () => {
+    try {
+      setLoadingBlock(true);
+
+      // API returns nested "data" object
+      const res = await toggleBlockUser(Number(userId));
+
+      // New correct value:
+      const newState = res?.data?.isBlocked ?? false;
+
+      setIsBlocked(newState);
+
+      showSnack(
+        res?.data?.message ||
+          (newState ? "User blocked successfully" : "User unblocked successfully"),
+        "success"
+      );
+    } catch (err) {
+      console.log("Block user error:", err);
+      showSnack("Failed to update block status", "error");
+    } finally {
+      setLoadingBlock(false);
+    }
+  };
+
+  // ----------------------------------------------------------------------
+  // Loading UI
+  // ----------------------------------------------------------------------
 
   if (loading) {
     return (
       <SafeAreaView
-        style={[
-          styles.container,
-          {
-            backgroundColor: theme.colors.background,
-            alignItems: "center",
-            justifyContent: "center",
-          },
-        ]}
+        style={[styles.container, { alignItems: "center", justifyContent: "center" }]}
       >
         <ActivityIndicator size="large" color={theme.colors.primary} />
       </SafeAreaView>
     );
   }
 
+  // ----------------------------------------------------------------------
+  // Error UI
+  // ----------------------------------------------------------------------
+
   if (!data) {
     return (
       <SafeAreaView
-        style={[
-          styles.container,
-          {
-            backgroundColor: theme.colors.background,
-            alignItems: "center",
-            justifyContent: "center",
-          },
-        ]}
+        style={[styles.container, { alignItems: "center", justifyContent: "center" }]}
       >
         <Text variant="body1" color={theme.colors.text}>
           Failed to load profile.
         </Text>
+
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={[styles.retryBtn, { backgroundColor: theme.colors.primary }]}
@@ -128,9 +156,9 @@ const PublicProfileScreen: React.FC = () => {
     );
   }
 
-  // ------------------------------------------------------
+  // ----------------------------------------------------------------------
   // Extract data
-  // ------------------------------------------------------
+  // ----------------------------------------------------------------------
 
   const vs = data.visibility_settings || {};
   const avatarUri = data.image || data.img || "https://i.pravatar.cc/200?img=12";
@@ -140,7 +168,6 @@ const PublicProfileScreen: React.FC = () => {
       ? data.language_spoken
       : [];
 
-  // visibility-based detail rows
   const detailRowsRaw = [
     {
       key: "email",
@@ -160,7 +187,9 @@ const PublicProfileScreen: React.FC = () => {
       label: "State · City",
       val: maybeShow(
         vs.state || vs.city,
-        `${safeValue(data.state)} · ${safeValue(data.location || data.country)}`
+        `${safeValue(data.state)} · ${safeValue(
+          data.location || data.country
+        )}`
       ),
     },
     {
@@ -233,22 +262,21 @@ const PublicProfileScreen: React.FC = () => {
         : data.dob
       : null;
 
-  // Socials
   const socialsEntries =
     data.social_links && typeof data.social_links === "object"
       ? Object.entries(data.social_links).filter(([_, v]) => !!v)
       : [];
 
-  // ------------------------------------------------------
-  // UI RENDER
-  // ------------------------------------------------------
+  // ----------------------------------------------------------------------
+  // UI
+  // ----------------------------------------------------------------------
 
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
       {/* Header */}
-      <View style={[styles.topBar, { backgroundColor: theme.colors.background }]}>
+      <View style={[styles.topBar]}>
         <View style={styles.topBarLeft}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <ArrowLeftIcon size={20} color={theme.colors.text} />
@@ -262,15 +290,10 @@ const PublicProfileScreen: React.FC = () => {
         <View style={{ width: 40, height: 40 }} />
       </View>
 
-      <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: 24 }]}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 24 }]}>
         {/* Avatar */}
         <Card>
           <View style={styles.avatarCardContent}>
-
-            {/* ⭐ FULLSCREEN PREVIEW ENABLED */}
             <TouchableOpacity
               activeOpacity={0.9}
               onPress={() => setAvatarPreviewVisible(true)}
@@ -285,22 +308,19 @@ const PublicProfileScreen: React.FC = () => {
               </View>
             </TouchableOpacity>
 
-            {/* ⭐ Fullscreen Avatar Viewer */}
             <ImageView
               images={[{ uri: avatarUri }]}
               visible={avatarPreviewVisible}
               onRequestClose={() => setAvatarPreviewVisible(false)}
-              swipeToCloseEnabled={true}
-              doubleTapToZoomEnabled={true}
-              backgroundColor="#000"
+              swipeToCloseEnabled
+              doubleTapToZoomEnabled
               animationType="slide"
-              presentationStyle="overFullScreen" imageIndex={0}            />
+              presentationStyle="overFullScreen"
+              backgroundColor="#000"
+              imageIndex={0}
+            />
 
-            <Text
-              variant="h5"
-              style={styles.nameText}
-              color={theme.colors.text}
-            >
+            <Text variant="h5" style={styles.nameText}>
               {safeValue(data.name)}
             </Text>
 
@@ -322,10 +342,10 @@ const PublicProfileScreen: React.FC = () => {
               </Text>
             )}
 
-            {/* Social Links */}
+            {/* Social Icons */}
             {socialsEntries.length > 0 && (
               <View style={styles.socialRow}>
-                {socialsEntries.map(([key, value]) => {
+                {socialsEntries.map(([key]) => {
                   const IconComp =
                     key === "facebook"
                       ? FacebookLogoIcon
@@ -336,15 +356,9 @@ const PublicProfileScreen: React.FC = () => {
                       : ListDashesIcon;
 
                   return (
-                    <TouchableOpacity
-                      key={key}
-                      style={[
-                        styles.socialIconWrap,
-                        { borderColor: theme.colors.primaryLight },
-                      ]}
-                    >
+                    <View key={key} style={styles.socialIconWrap}>
                       <IconComp size={20} color={theme.colors.primary} />
-                    </TouchableOpacity>
+                    </View>
                   );
                 })}
               </View>
@@ -366,7 +380,7 @@ const PublicProfileScreen: React.FC = () => {
           </Card>
         )}
 
-        {/* Personal details */}
+        {/* Details */}
         {detailRows.length > 0 && (
           <Card>
             <View style={styles.sectionHeaderRow}>
@@ -380,11 +394,11 @@ const PublicProfileScreen: React.FC = () => {
                 const IconComp = row.icon;
                 return (
                   <View
+                    key={row.key}
                     style={[
                       styles.row,
                       { borderBottomColor: theme.colors.borderColor },
                     ]}
-                    key={row.key}
                   >
                     <View
                       style={[
@@ -409,19 +423,43 @@ const PublicProfileScreen: React.FC = () => {
             </View>
           </Card>
         )}
+
+        {/* ⭐ BLOCK BUTTON */}
+        <View style={{ marginTop: 10 }}>
+          <TouchableOpacity
+            onPress={onBlockPress}
+            disabled={loadingBlock}
+            style={[
+              styles.blockBtn,
+              { backgroundColor: theme.colors.errorLight },
+            ]}
+          >
+            {loadingBlock ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text
+                variant="body1"
+                style={{
+                  color: theme.colors.error,
+                  fontWeight: "600",
+                }}
+              >
+                {isBlocked ? "Blocked" : "Block User"}
+              </Text>
+            )}
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 };
 
-// ======================================================
+// ----------------------------------------------------------------------
 // Styles
-// ======================================================
+// ----------------------------------------------------------------------
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
 
   topBar: {
     flexDirection: "row",
@@ -431,18 +469,20 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 10,
   },
+
   topBarLeft: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
   },
+
   backBtn: {
     width: 40,
     height: 40,
     backgroundColor: "#fff",
     borderRadius: 20,
-    justifyContent: "center",
     alignItems: "center",
+    justifyContent: "center",
   },
 
   content: {
@@ -456,20 +496,17 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
 
-  avatarCardContent: {
-    alignItems: "center",
-  },
+  avatarCardContent: { alignItems: "center" },
+
   avatarBorder: {
     padding: 4,
     borderWidth: 4,
     borderRadius: 100,
     marginBottom: 10,
   },
-  avatar: {
-    width: 110,
-    height: 110,
-    borderRadius: 60,
-  },
+
+  avatar: { width: 110, height: 110, borderRadius: 60 },
+
   nameText: {
     textTransform: "capitalize",
     marginBottom: 2,
@@ -481,32 +518,28 @@ const styles = StyleSheet.create({
     gap: 10,
     marginTop: 10,
   },
+
   socialIconWrap: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    borderWidth: 1,
     backgroundColor: "#fff",
+    borderWidth: 1,
     justifyContent: "center",
     alignItems: "center",
   },
 
-  sectionTextWrap: {
-    flex: 1,
-  },
-  sectionTitle: {
-    marginBottom: 4,
-    fontWeight: "600",
-  },
+  sectionTextWrap: { flex: 1 },
+
+  sectionTitle: { marginBottom: 4, fontWeight: "600" },
+
   sectionHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
 
-  detailsList: {
-    paddingTop: 10,
-  },
+  detailsList: { paddingTop: 10 },
 
   row: {
     flexDirection: "row",
@@ -515,6 +548,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderBottomWidth: 0.5,
   },
+
   detailIconWrap: {
     width: 40,
     height: 40,
@@ -522,8 +556,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  detailTextWrap: {
-    flex: 1,
+
+  detailTextWrap: { flex: 1 },
+
+  blockBtn: {
+    width: "100%",
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "flex-start",
+    justifyContent: "center",
+    paddingHorizontal: 20,
+    marginBottom: 20,
   },
 });
 

@@ -73,3 +73,9 @@ export const sendConnectionRequest = async (receiverId: number) => {
   });
   return response.data;
 };
+// ✅ Block / Unblock user (toggle)
+export const toggleBlockUser = async (userId: number) => {
+  const response = await api.post(`/users/block-toggle/${userId}`);
+  console.log("toggleBlockUser response", response.data);
+  return response.data;
+};
