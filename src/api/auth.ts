@@ -57,3 +57,20 @@ export const uploadProfileImage = async (image: Asset) => {
   // { "url": "https://storage.googleapis.com/..." }
   return response.data as { url: string };
 };
+export const verifyOtp = async (data: { email: string; otp: string }) => {
+  const response = await api.post('/users/verify-otp', data);
+  return response.data;
+};
+export const forgotPassword = async (email: string) => {
+  const response = await api.post('/users/forgot-password', { email });
+  return response.data;
+};
+export const resetPassword = async (data: {
+  email: string;
+  otp: string;
+  newPassword: string;
+  confirmPassword: string;
+}) => {
+  const response = await api.post('/users/reset-password', data);
+  return response.data;
+};

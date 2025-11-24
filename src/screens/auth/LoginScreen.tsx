@@ -2,13 +2,13 @@
 import React, { useState } from 'react';  
 import { View, StyleSheet, TouchableOpacity, StatusBar, Image, Text as RNText, Alert } from 'react-native';  
 import { SafeAreaView } from 'react-native-safe-area-context';  
-import { useTheme } from '../theme/ThemeContext';  // adjust path  
-import { Text, Button } from '../components';  
+import { useTheme } from '@/theme/ThemeContext';
+import { Text, Button} from '@/components';
 import InputField from '@/components/Input';  
 import { useNavigation } from '@react-navigation/native';  
-import AuthLogo from '../assets/images/authlogo.svg';  // adjust path  
+import AuthLogo from '@/assets/images/authlogo.svg';
 import { useAuth } from '@/context/Authcontext';  // adjust path  
-import { LoginPayload } from '../api/types';  // adjust path  
+import { LoginPayload } from '@/api/types';  // adjust path  
 
 const LoginScreen: React.FC = () => {  
   const navigation = useNavigation<any>();  
@@ -57,7 +57,7 @@ navigation.reset({
     <>  
       <StatusBar barStyle="light-content" backgroundColor={theme.colors.primaryDark} />  
       <View style={[styles.outerContainer, { backgroundColor: theme.colors.primaryDark }]}>  
-        <Image source={require('../assets/images/vector-2.png')} style={styles.vectorBackground} resizeMode="cover" />  
+        <Image source={require('../../assets/images/vector-2.png')} style={styles.vectorBackground} resizeMode="cover" />  
         <SafeAreaView style={styles.safeArea}>  
           <View style={styles.inner}>  
             <View style={styles.logoContainer}>  
@@ -91,7 +91,7 @@ navigation.reset({
               />  
             </View>  
 
-            <TouchableOpacity style={styles.forgotPasswordContainer}>  
+            <TouchableOpacity style={styles.forgotPasswordContainer} onPress={()=>navigation.navigate('ForgotPassword')}>  
               <Text variant="body2" color={theme.colors.textWhite} textAlign="right" style={styles.forgotPasswordText}>Forgot password?</Text>  
             </TouchableOpacity>  
 
@@ -110,7 +110,7 @@ navigation.reset({
             </View>  
 
             <TouchableOpacity style={styles.googleButton} onPress={() => console.log('Continue with Google')}>  
-              <Image source={require('../assets/icons/google-logo.png')} style={styles.googleLogo} resizeMode="contain" />  
+              <Image source={require('../../assets/icons/google-logo.png')} style={styles.googleLogo} resizeMode="contain" />  
             </TouchableOpacity>  
 
             <View style={styles.signUpWrapper}>  

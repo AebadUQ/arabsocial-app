@@ -15,8 +15,9 @@ import { useTheme } from "@/theme/ThemeContext";
 import { useAuth } from "@/context/Authcontext";
 
 import GetStartedScreen from "@/screens/GetStarted";
-import LoginScreen from "@/screens/LoginScreen";
-import RegisterScreen from "@/screens/RegisterScreen";
+import LoginScreen from "@/screens/auth/LoginScreen";
+import RegisterScreen from "@/screens/auth/RegisterScreen";
+import OTPScreen from "@/screens/auth/OTPScreen";
 
 import HomeScreen from "@/screens/HomeScreen";
 import EventScreen from "@/screens/events/EventScreen";
@@ -49,6 +50,9 @@ import { theme as appTheme } from "@/theme/theme";
 import { Image, Text, TouchableOpacity, View } from "react-native";
 import LinearGradient from "react-native-linear-gradient";
 import EditEventScreen from "@/screens/events/EditEvent";
+import ForgotPasswordScreen from "@/screens/auth/ForgotPasswordScreen";
+import VerifyOtpScreen from "@/screens/auth/OTPForgotPass";
+import ResetPasswordScreen from "@/screens/auth/ResetPasswordScreen";
 
 /* ---------------------------------
  * Assets
@@ -83,6 +87,11 @@ export type AuthStackParamList = {
   GetStarted: undefined;
   Login: undefined;
   Register: undefined;
+OTP: { email: string };
+ForgotPassword: undefined;
+
+  VerifyOtp: { email: string };
+  ResetPassword: { email: string };
 };
 
 // Events tab stack
@@ -388,6 +397,11 @@ const AuthStackNav = () => (
     <AuthStackNavStack.Screen name="GetStarted" component={GetStartedScreen} />
     <AuthStackNavStack.Screen name="Login" component={LoginScreen} />
     <AuthStackNavStack.Screen name="Register" component={RegisterScreen} />
+    <AuthStackNavStack.Screen name="OTP" component={OTPScreen} />
+<AuthStackNavStack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+    <AuthStackNavStack.Screen name="VerifyOtp" component={VerifyOtpScreen} />
+    <AuthStackNavStack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+
   </AuthStackNavStack.Navigator>
 );
 

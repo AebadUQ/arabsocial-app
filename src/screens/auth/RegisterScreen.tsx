@@ -9,16 +9,16 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useTheme } from '../theme/ThemeContext';
-import { Text, Button } from '../components';
-import InputField from '../components/Input';
+import { useTheme } from '@/theme/ThemeContext';
+import { Text, Button} from '@/components';
 import PhoneInput from 'react-native-phone-number-input';
 import { useNavigation } from '@react-navigation/native';
-import AuthLogo from '../assets/images/authlogo.svg';
+import AuthLogo from '@/assets/images/authlogo.svg';
 import { useMutation } from '@tanstack/react-query';
-import { registerUser } from '../api/auth';
+import { registerUser } from '@/api/auth';
 import { RegisterPayload } from '@/api/types';
 import { theme } from '@/theme/theme';
+import InputField from '@/components/Input';
 
 const RegisterScreen: React.FC = () => {
   const { theme } = useTheme();
@@ -37,9 +37,12 @@ const RegisterScreen: React.FC = () => {
     mutationFn: (user: RegisterPayload) => registerUser(user),
     onSuccess: (data) => {
       console.log('✅ Registration successful:', data);
+      //@ts-ignore
+navigation.navigate('OTP', { email });
+
       // Alert.alert('Success', 'Account created successfully!');
       // @ts-ignore
-      navigation.navigate('Login');
+      // navigation.navigate('Login');
     },
     onError: (error) => {
       console.error('❌ Registration failed:', error);
@@ -106,7 +109,7 @@ const RegisterScreen: React.FC = () => {
         style={[styles.container, { backgroundColor: theme.colors.primaryDark }]}
       >
         <Image
-          source={require('../assets/images/vector-2.png')}
+          source={require('../../assets/images/vector-2.png')}
           style={styles.vectorBackground}
           resizeMode="cover"
         />
