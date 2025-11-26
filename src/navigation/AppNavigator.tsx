@@ -24,7 +24,7 @@ import EventScreen from "@/screens/events/EventScreen";
 import MembersScreen from "@/screens/members/MembersScreen";
 import BusinessScreen from "@/screens/business/BusinessScreen";
 import BusinessDetailScreen from "@/screens/business/BusinessDetail";
-import GroupsScreen from "@/screens/GroupScreen";
+import GroupsScreen from "@/screens/chat/ChatScreen";
 import SettingsScreen from "@/screens/SettingsScreen";
 import NotificationsScreen from "@/screens/NotificationScreen";
 import EventDetailScreen from "@/screens/events/EventDetail";
@@ -53,6 +53,10 @@ import EditEventScreen from "@/screens/events/EditEvent";
 import ForgotPasswordScreen from "@/screens/auth/ForgotPasswordScreen";
 import VerifyOtpScreen from "@/screens/auth/OTPForgotPass";
 import ResetPasswordScreen from "@/screens/auth/ResetPasswordScreen";
+
+
+import ChatScreen from "@/screens/chat/ChatScreen";
+import ChatDetailScreen from "@/screens/chat/ChatDetail";
 
 /* ---------------------------------
  * Assets
@@ -124,6 +128,11 @@ export type BusinessStackParamList = {
 export type GroupsStackParamList = {
   Groups: undefined;
   GroupDetail: { id?: string } | undefined;
+
+  Chat: undefined;
+
+  ChatDetail: { roomId?: string } | undefined;
+
 };
 
 // Settings tab stack
@@ -219,6 +228,9 @@ const BusinessStackNav = () => (
  * --------------------------------- */
 const GroupsStackNav = () => (
   <GroupsStack.Navigator screenOptions={defaultNoHeader}>
+    <GroupsStack.Screen name="Chat" component={ChatScreen} />
+    <GroupsStack.Screen name="ChatDetail" component={ChatDetailScreen} />
+
     <GroupsStack.Screen name="Groups" component={GroupsScreen} />
     <GroupsStack.Screen name="GroupDetail" component={GroupDetailScreen} />
   </GroupsStack.Navigator>

@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, FlatList, Image, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useTheme } from '../theme/ThemeContext';
+import { useTheme } from '../../theme/ThemeContext';
 import Chip from '@/components/common/Chip';
 import ChatCard from '@/components/chat/ChatCard';
 import GroupCard from '@/components/chat/GroupCard';
@@ -42,7 +42,7 @@ const dummyGroups = [
   },
 ];
 
-const GroupScreen = () => {
+const ChatScreen = () => {
   const { theme } = useTheme();
   const navigation = useNavigation<any>()
   const [selectedFilter, setSelectedFilter] = useState('chats');
@@ -52,18 +52,6 @@ const GroupScreen = () => {
     setGroups(prev => prev.map(g => (g.id === id ? { ...g, joined } : g)));
   };
 
-  // --- render user avatar (horizontal frequent list) ---
-  const renderUser = ({ item }: any) => (
-    <TouchableOpacity style={styles.userItem} activeOpacity={0.8}>
-      <View style={styles.avatarContainer}>
-        <Image source={{ uri: item.image }} style={styles.userAvatar} />
-        {item.online && <View style={styles.onlineDot} />}
-      </View>
-      <Text numberOfLines={1} style={[styles.userName, { color: theme.colors.text }]}>
-        {item.name.split(' ')[0]}
-      </Text>
-    </TouchableOpacity>
-  );
 
   // --- render chat list item ---
   const renderChat = ({ item }: any) => (
@@ -110,20 +98,7 @@ const GroupScreen = () => {
       {/* Chats Section */}
       {selectedFilter === 'chats' && (
         <View style={styles.chatSection}>
-          <View style={styles.headerSection}>
-            <Text variant="h5" style={[styles.headerTitle, { color: theme.colors.text }]}>
-              Frequent Conversations
-            </Text>
-
-            <FlatList
-              data={groups}
-              horizontal
-              keyExtractor={item => item.id.toString()}
-              renderItem={renderUser}
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.horizontalListContent}
-            />
-          </View>
+          
 
           <FlatList
             data={groups}
@@ -225,4 +200,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default GroupScreen;
+export default ChatScreen;

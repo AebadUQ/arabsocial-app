@@ -6,7 +6,7 @@ import HomeScreen from '../screens/HomeScreen';
 import EventScreen from '../screens/events/EventScreen';
 import MembersScreen from '../screens/members/MembersScreen'
 import BusinessScreen from '../screens/business/BusinessScreen';
-import GroupScreen from '../screens/GroupScreen'
+import GroupScreen from '../screens/chat/ChatScreen'
 import ProfileScreen from '../screens/profile/ProfileScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 

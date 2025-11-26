@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState } from "react";
 import {
   View,
   StyleSheet,
@@ -8,84 +8,176 @@ import {
   KeyboardAvoidingView,
   Platform,
   StatusBar,
-} from 'react-native';
-import { Text } from '@/components';
-import LinearGradient from 'react-native-linear-gradient';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import { CaretLeft } from 'phosphor-react-native';
-import { useTheme } from '@/theme/ThemeContext';
-
-const GRADIENT = ['#166152', '#004334'];
-const HEADER_HEIGHT = 56;
-const INPUT_BAR_APPROX = 64; // input height + padding
+} from "react-native";
+import { Text } from "@/components";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useNavigation, useRoute } from "@react-navigation/native";
+import { CaretLeft, PaperPlaneTilt } from "phosphor-react-native";
+import { useTheme } from "@/theme/ThemeContext";
 
 const ChatDetailScreen = () => {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
+
   const route = useRoute() as any;
   const chat = route.params?.chat ?? {};
-  const title = chat?.name ?? 'Chat';
+  const title = chat?.name ?? "Chat";
 
   const [messages, setMessages] = useState([
-    { id: '1', text: 'Hey, raincheck on that event??', time: '3:30 PM', sender: 'other' },
-    { id: '2', text: 'Okay, no problem!', time: '3:31 PM', sender: 'me' },
-    { id: '3', text: 'Sounds good! What about next week?', time: '3:32 PM', sender: 'other' },
-    { id: '4', text: 'Let’s reschedule for Friday.', time: '3:33 PM', sender: 'me' },
-    { id: '5', text: 'Can we push it to the weekend?', time: '3:34 PM', sender: 'other' },
-    { id: '6', text: 'Sure, how about Saturday?', time: '3:35 PM', sender: 'me' },
-    { id: '7', text: 'Looking forward to it! Sunday works too.', time: '3:36 PM', sender: 'other' },
-    { id: '8', text: 'Perfect, see you then!', time: '3:37 PM', sender: 'me' },
-    { id: '9', text: 'Any updates for our meet next week?', time: '3:38 PM', sender: 'other' },
-    { id: '10', text: 'Still confirming with the team — will update soon!', time: '3:39 PM', sender: 'me' },
-    { id: '11', text: 'Cool, I’ll keep my weekend free then.', time: '3:40 PM', sender: 'other' },
-    { id: '12', text: 'By the way, did you check the new place downtown?', time: '3:41 PM', sender: 'other' },
-    { id: '13', text: 'Not yet, but I heard it’s really good!', time: '3:42 PM', sender: 'me' },
-    { id: '14', text: 'Yeah, we can try it after our meetup.', time: '3:43 PM', sender: 'other' },
-    { id: '15', text: 'Perfect plan 🙌', time: '3:44 PM', sender: 'me' },
+    {
+      id: "1",
+      sender: "other",
+      user: "Ahmed Hassan",
+      initials: "AH",
+      text: "Welcome everyone to the group! Feel free to share your thoughts and ideas.",
+      time: "10:30 AM",
+    },
+    {
+      id: "2",
+      sender: "other",
+      user: "Fatima Al-Rashid",
+      initials: "FA",
+      text: "Thanks for creating this group! Excited to be here.",
+      time: "10:45 AM",
+    },
+    {
+      id: "3",
+      sender: "me",
+      text: "Looking forward to great discussions!",
+      time: "11:20 AM",
+    },
+    {
+      id: "4",
+      sender: "other",
+      user: "Omar Khalil",
+      initials: "OK",
+      text: "This is exactly what I was looking for. Great initiative!",
+      time: "11:35 AM",
+    },
+    {
+      id: "5",
+      sender: "other",
+      user: "Fatima Al-Rashid",
+      initials: "FA",
+      text: "I have some ideas to share later today.",
+      time: "2:15 PM",
+    },
+    {
+      id: "6",
+      sender: "me",
+      text: "Can’t wait to hear them!",
+      time: "2:20 PM",
+    },
   ]);
 
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const listRef = useRef<FlatList>(null);
 
-  const scrollToEnd = () => {
-    // slight delay lets layout settle before scrolling
+  const scrollToBottom = () => {
     requestAnimationFrame(() => {
       listRef.current?.scrollToEnd({ animated: true });
     });
   };
 
-  const handleSend = () => {
+  const sendMessage = () => {
     if (!input.trim()) return;
+
     setMessages((prev) => [
       ...prev,
-      { id: Date.now().toString(), text: input.trim(), time: 'Now', sender: 'me' },
+      {
+        id: Date.now().toString(),
+        sender: "me",
+        text: input.trim(),
+        time: "Now",
+      },
     ]);
-    setInput('');
-    scrollToEnd();
+
+    setInput("");
+    scrollToBottom();
   };
 
   const renderMessage = ({ item }: any) => {
-    const isMe = item.sender === 'me';
+    const isMe = item.sender === "me";
+
     return (
       <View
         style={[
-          styles.messageContainer,
-          isMe ? styles.myMessageContainer : styles.otherMessageContainer,
+          styles.messageRow,
+          { justifyContent: isMe ? "flex-end" : "flex-start" },
         ]}
       >
-        <View
-          style={[
-            styles.bubble,
-            isMe ? styles.myBubble : styles.otherBubble,
-            { backgroundColor: isMe ? theme.colors.primaryDark : theme.colors.chatDark },
-          ]}
-        >
-          <Text variant="body1" color={theme.colors.textWhite}>
-            {item.text}
-          </Text>
-          <Text variant="overline" style={styles.time}>
+        {!isMe && (
+          <View
+            style={[
+              styles.avatar,
+              {
+                backgroundColor: theme.colors.primaryLight,
+                borderColor: theme.colors.primary,
+              },
+            ]}
+          >
+            <Text
+              style={{
+                color: theme.colors.primary,
+                fontWeight: "700",
+              }}
+            >
+              {item.initials}
+            </Text>
+          </View>
+        )}
+
+        <View style={{ maxWidth: "78%" }}>
+          {!isMe && (
+            <Text
+              style={{
+                color: theme.colors.textLight,
+                fontSize: 12,
+                fontWeight: "600",
+                marginBottom: 2,
+              }}
+            >
+              {item.user}
+            </Text>
+          )}
+
+          {/* ❌ reply removed */}
+          {false && <></>}
+
+          <View
+            style={[
+              styles.bubble,
+              isMe
+                ? {
+                    backgroundColor: theme.colors.primary,
+                  }
+                : {
+                    backgroundColor: theme.colors.primaryLight,
+                    borderWidth: 0.25,
+                    borderColor: theme.colors.primary,
+                  },
+            ]}
+          >
+            <Text
+              style={{
+                color: isMe
+                  ? theme.colors.textWhite
+                  : theme.colors.text,
+              }}
+            >
+              {item.text}
+            </Text>
+          </View>
+
+          <Text
+            style={{
+              color: theme.colors.textLight,
+              fontSize: 11,
+              marginTop: 4,
+              marginLeft: 4, // ✅ always left aligned
+            }}
+          >
             {item.time}
           </Text>
         </View>
@@ -94,72 +186,62 @@ const ChatDetailScreen = () => {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <StatusBar translucent barStyle="light-content" backgroundColor="transparent" />
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: theme.colors.background },
+      ]}
+    >
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" />
 
-      <LinearGradient
-        colors={GRADIENT}
-        style={[styles.headerWrap, { height: insets.top + HEADER_HEIGHT }]}
+      {/* HEADER */}
+      <View
+        style={[
+          styles.header,
+          { paddingTop: insets.top + 10, backgroundColor: "#fff" },
+        ]}
       >
-        <View style={[styles.headerRow, { marginTop: insets.top }]}>
-          <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.7} style={styles.backBtn}>
-            <CaretLeft size={24} color="#fff" />
-          </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
+          <CaretLeft size={24} color="#000" />
+        </TouchableOpacity>
 
-          <View style={styles.userInfo}>
-            <View style={styles.avatarWrap}>
-              <View style={styles.avatarCircle}>
-                <Text style={styles.avatarInitial}>{title?.charAt(0) ?? 'U'}</Text>
-              </View>
-            </View>
-
-            <View style={styles.userText}>
-              <Text style={styles.userName}>{title}</Text>
-              <View style={styles.statusRow}>
-                <View style={styles.dotOnline} />
-                <Text style={styles.userStatus}>Online</Text>
-              </View>
-            </View>
-          </View>
-
-          <View style={{ width: 40 }} />
+        <View>
+          <Text style={styles.headerTitle}>California Photography Enthusiasts</Text>
+          <Text style={styles.headerSub}>📸 1243 members</Text>
         </View>
-      </LinearGradient>
+
+        <View style={{ width: 35 }} />
+      </View>
 
       <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        // header (56) + status bar inset
-        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + HEADER_HEIGHT : 0}
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <FlatList
           ref={listRef}
           data={messages}
-          keyExtractor={(item) => item.id}
           renderItem={renderMessage}
-          contentContainerStyle={[
-            styles.listContent,
-          ]}
-          onContentSizeChange={scrollToEnd}    // 👈 auto-scroll when content grows
-          onLayout={scrollToEnd}               // 👈 auto-scroll on first paint
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={{ padding: 16, paddingBottom: 80 }}
+          onContentSizeChange={scrollToBottom}
+          onLayout={scrollToBottom}
           showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          ListFooterComponent={<View style={{ height: 0 }} />}
         />
 
-        {/* Input bar */}
-        <View style={[styles.inputRow, { borderTopColor: '#ccc', }]}>
+        <View style={styles.inputRow}>
           <TextInput
             style={styles.input}
-            placeholder="Message"
-            placeholderTextColor="#888"
+            placeholder="Type a message..."
+            placeholderTextColor="#777"
             value={input}
             onChangeText={setInput}
-            returnKeyType="send"
-            onSubmitEditing={handleSend}
           />
-          <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
-            <Text style={styles.sendText}>Send</Text>
+
+          <TouchableOpacity style={styles.sendBtn} onPress={sendMessage}>
+            <PaperPlaneTilt size={20} weight="fill" color="#fff" />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -167,92 +249,67 @@ const ChatDetailScreen = () => {
   );
 };
 
+/* --------------------------------------
+ * Styles
+ * ------------------------------------ */
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  flex: { flex: 1 },
 
-  headerWrap: {
-    width: '100%',
-    position: 'relative',
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+    borderBottomWidth: 0.4,
+    borderBottomColor: "#ddd",
   },
-  headerRow: {
-    height: HEADER_HEIGHT,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingBottom: 10,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+  backButton: { padding: 8, marginRight: 10 },
+
+  headerTitle: { fontSize: 17, fontWeight: "700", color: "#000" },
+  headerSub: { fontSize: 13, color: "#666", marginTop: 2 },
+
+  messageRow: { flexDirection: "row", gap: 10, marginBottom: 18 },
+
+  avatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 0.25,   // ✅ FIXED
+    justifyContent: "center",
+    alignItems: "center",
   },
 
-  listContent: { padding: 16 },
-  messageContainer: { marginVertical: 4 },
-  myMessageContainer: { alignItems: 'flex-end' },
-  otherMessageContainer: { alignItems: 'flex-start' },
   bubble: {
-    maxWidth: '80%',
-    borderRadius: 16,
-    padding: 10,
-  },
-  myBubble: { borderTopRightRadius: 0 },
-  otherBubble: { borderTopLeftRadius: 0 },
-  time: {
-    fontSize: 11,
-    color: '#ddd',
-    marginTop: 4,
-    alignSelf: 'flex-end',
+    borderRadius: 10,
+    paddingVertical: 11,
+    paddingHorizontal: 14,
   },
 
   inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingTop: 10,
-    borderTopWidth: 0.5,
-    backgroundColor: '#fff',
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 10,
+    backgroundColor: "#fff",
+    borderTopWidth: 0.4,
+    borderTopColor: "#ddd",
   },
   input: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    backgroundColor: "#F1F1F1",
+    borderRadius: 25,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     fontSize: 15,
   },
-  sendButton: {
-    marginLeft: 8,
-    backgroundColor: '#1BAD7A',
-    borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+  sendBtn: {
+    marginLeft: 10,
+    backgroundColor: "#1BAD7A",
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  sendText: { color: '#fff', fontWeight: '600' },
-
-  userInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  avatarWrap: { marginRight: 10 },
-  avatarCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarInitial: { color: '#fff', fontWeight: '700', fontSize: 18 },
-  userText: { flexDirection: 'column' },
-  userName: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  statusRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
-  dotOnline: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#00FF84', marginRight: 5 },
-  userStatus: { color: '#d2f9e4', fontSize: 13 },
 });
 
 export default ChatDetailScreen;
