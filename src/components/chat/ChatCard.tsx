@@ -1,4 +1,3 @@
-// components/chat/ChatCard.tsx
 import React from "react";
 import { View, Image, StyleSheet, TouchableOpacity } from "react-native";
 import { Text } from "@/components";
@@ -12,18 +11,15 @@ export default function ChatCard({ chat, onPress }: any) {
   const partner = chat.chatUser;
   const name = partner?.name || "Unknown";
 
-  // 🔥 Get initials (Aebad → A | Ali Raza → AR)
   const initials = name
     .split(" ")
-    .map((x:any) => x.charAt(0).toUpperCase())
+    .map((x: any) => x.charAt(0).toUpperCase())
     .slice(0, 2)
     .join("");
 
   const hasImage = Boolean(partner?.image);
 
-  // 🔥 Last message content
   const message = chat.lastMessage?.content || "No messages yet";
-
   const time = chat.lastMessage?.createdAt
     ? formatDate(chat.lastMessage.createdAt)
     : "";
@@ -31,6 +27,7 @@ export default function ChatCard({ chat, onPress }: any) {
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
       <View style={styles.container}>
+        {/* AVATAR */}
         <View style={styles.avatarWrap}>
           {hasImage ? (
             <Image source={{ uri: partner.image }} style={styles.avatar} />
@@ -43,6 +40,7 @@ export default function ChatCard({ chat, onPress }: any) {
           )}
         </View>
 
+        {/* NAME + LAST MESSAGE */}
         <View style={styles.middle}>
           <Text numberOfLines={1} variant="body1" color={theme.colors.text}>
             {name}
@@ -53,9 +51,19 @@ export default function ChatCard({ chat, onPress }: any) {
           </Text>
         </View>
 
-        <Text variant="overline" color={theme.colors.textLight}>
-          {time}
-        </Text>
+        {/* TIME + UNREAD */}
+        <View style={{ alignItems: "flex-end" }}>
+          <Text variant="overline" color={theme.colors.textLight}>
+            {time}
+          </Text>
+
+          {/* UNREAD BADGE */}
+          {chat.unreadCount > 0 && (
+            <View style={styles.unreadBubble}>
+              <Text style={styles.unreadText}>{chat.unreadCount}</Text>
+            </View>
+          )}
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -68,6 +76,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     padding: 12,
+    paddingHorizontal: 0,
     borderRadius: 12,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.borderColor,
@@ -101,4 +110,21 @@ const styles = StyleSheet.create({
   },
 
   middle: { flex: 1 },
+
+  unreadBubble: {
+    minWidth: 22,
+    height: 22,
+    paddingHorizontal: 5,
+    borderRadius: 11,
+    backgroundColor: "#FF3B30",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 4,
+  },
+
+  unreadText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "700",
+  },
 });

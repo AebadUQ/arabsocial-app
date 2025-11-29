@@ -57,6 +57,7 @@ import ResetPasswordScreen from "@/screens/auth/ResetPasswordScreen";
 
 import ChatScreen from "@/screens/chat/ChatScreen";
 import ChatDetailScreen from "@/screens/chat/ChatDetail";
+import UserList from "@/screens/chat/UserList";
 
 /* ---------------------------------
  * Assets
@@ -130,6 +131,7 @@ export type GroupsStackParamList = {
   GroupDetail: { id?: string } | undefined;
 
   Chat: undefined;
+  UserListScreen: undefined;
 
   ChatDetail: { roomId?: string } | undefined;
 
@@ -230,7 +232,11 @@ const GroupsStackNav = () => (
   <GroupsStack.Navigator screenOptions={defaultNoHeader}>
     <GroupsStack.Screen name="Chat" component={ChatScreen} />
     <GroupsStack.Screen name="ChatDetail" component={ChatDetailScreen} />
-
+<GroupsStack.Screen
+      name="UserListScreen"
+      component={UserList}
+      options={{ title: "Select User" }}
+    />
     <GroupsStack.Screen name="Groups" component={GroupsScreen} />
     <GroupsStack.Screen name="GroupDetail" component={GroupDetailScreen} />
   </GroupsStack.Navigator>

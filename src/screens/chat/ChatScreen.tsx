@@ -1,6 +1,13 @@
 // screens/ChatScreen.tsx
-import React, { useMemo } from "react";
-import { View, StyleSheet, FlatList, ActivityIndicator } from "react-native";
+import React, { useMemo, useEffect, useState } from "react";
+import {
+  View,
+  StyleSheet,
+  FlatList,
+  ActivityIndicator,
+  TouchableOpacity,
+  TextInput,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../theme/ThemeContext";
 import ChatCard from "@/components/chat/ChatCard";
@@ -8,13 +15,22 @@ import TopBar from "@/components/common/TopBar";
 import { useNavigation } from "@react-navigation/native";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { getAllMyChatRooms } from "@/api/chat";
+import { useSocket } from "@/context/SocketContext";
+import { useAuth } from "@/context/Authcontext";
+import { PlusIcon, MagnifyingGlass as SearchIcon, X as XIcon } from "phosphor-react-native";
+import LinearGradient from "react-native-linear-gradient";
 
 const PAGE_SIZE = 10;
 
 const ChatScreen = () => {
-  const { theme } = useTheme();
   const navigation = useNavigation<any>();
+  const { theme } = useTheme();
+  const socket = useSocket();
+  const auth = useAuth();
 
+  const [search, setSearch] = useState("");
+
+  // LOAD CHAT ROOMS
   const chatQuery = useInfiniteQuery({
     queryKey: ["chatRooms"],
     initialPageParam: 1,
@@ -23,84 +39,171 @@ const ChatScreen = () => {
         page: pageParam,
         limit: PAGE_SIZE,
       });
-
       const rooms = res.data || [];
       const meta = res.meta || { page: 1, lastPage: 1 };
       const nextPage = meta.page < meta.lastPage ? pageParam + 1 : undefined;
-
       return { data: rooms, nextPage };
     },
     getNextPageParam: (lastPage) => lastPage?.nextPage,
   });
 
+  const allRooms = useMemo(
+    () => chatQuery.data?.pages.flatMap((p) => p.data) || [],
+    [chatQuery.data]
+  );
+
+  // 🔍 SEARCH FILTER
+  const filteredRooms = useMemo(() => {
+    if (!search.trim()) return allRooms;
+    return allRooms.filter((room) => {
+      const name = room.chatUser?.name?.toLowerCase() || "";
+      const lastMsg = room?.lastMessage?.content?.toLowerCase() || "";
+      return (
+        name.includes(search.toLowerCase()) ||
+        lastMsg.includes(search.toLowerCase())
+      );
+    });
+  }, [search, allRooms]);
+
+  // REAL-TIME SOCKET UPDATES
+  useEffect(() => {
+    if (!socket) return;
+
+    const refresh = () => chatQuery.refetch();
+    socket.on("chat_list_update", refresh);
+    socket.on("messages_read", refresh);
+    socket.on("new_message", refresh);
+
+    return () => {
+      socket.off("chat_list_update", refresh);
+      socket.off("messages_read", refresh);
+      socket.off("new_message", refresh);
+    };
+  }, [socket]);
+
+  // PAGINATION
   const handleLoadMore = () => {
     if (chatQuery.hasNextPage && !chatQuery.isFetchingNextPage) {
       chatQuery.fetchNextPage();
     }
   };
 
-  const chatRooms = useMemo(() => {
-    return chatQuery.data?.pages.flatMap((p) => p.data) || [];
-  }, [chatQuery.data]);
-
-  const renderFooter = () =>
-    chatQuery.isFetchingNextPage ? (
-      <View style={{ paddingVertical: 20 }}>
-        <ActivityIndicator size="small" />
-      </View>
-    ) : null;
+  const renderChat = ({ item }: any) => (
+    <ChatCard
+      chat={item}
+      onPress={() =>
+        navigation.navigate("ChatDetail", {
+          roomId: item.roomId,
+          room: item,
+        })
+      }
+    />
+  );
 
   if (chatQuery.isLoading) {
     return (
-      <SafeAreaView
-        style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
-      >
+      <SafeAreaView style={styles.centerScreen}>
         <ActivityIndicator size="large" />
       </SafeAreaView>
     );
   }
 
-  const renderChat = ({ item }: any) => (
-    <ChatCard
-      chat={item}
-onPress={() =>
-  navigation.navigate("ChatDetail", {
-    roomId: item.roomId,
-    room: item,
-  })
-}
-    />
-  );
-
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <TopBar />
+
+      {/* 🔍 SEARCH BAR (Same as UserListScreen) */}
+      <View style={styles.searchRow}>
+        <View style={styles.searchBox}>
+          <TextInput
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Search chats..."
+            placeholderTextColor="rgba(0,0,0,0.4)"
+            style={styles.searchInput}
+          />
+
+          {search ? (
+            <TouchableOpacity onPress={() => setSearch("")}>
+              <XIcon size={16} weight="bold" color="#333" />
+            </TouchableOpacity>
+          ) : null}
+
+          <SearchIcon size={18} weight="bold" color="#333" />
+        </View>
+      </View>
+
       <FlatList
-        data={chatRooms}
-        keyExtractor={(item) => String(item.id)}
+        data={filteredRooms}
+        keyExtractor={(item) => String(item.roomId || item.id)}
         renderItem={renderChat}
-        ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.verticalListContent}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.3}
-        ListFooterComponent={renderFooter}
+        ListFooterComponent={
+          chatQuery.isFetchingNextPage ? (
+            <View style={{ paddingVertical: 20 }}>
+              <ActivityIndicator size="small" />
+            </View>
+          ) : null
+        }
       />
+
+      {/* FAB */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => navigation.navigate("UserListScreen")}
+      >
+        <LinearGradient
+          colors={[theme.colors.primary, "#0f8f5f"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.fabInner}
+        >
+          <PlusIcon size={26} color="#fff" weight="bold" />
+        </LinearGradient>
+      </TouchableOpacity>
     </SafeAreaView>
   );
 };
 
+export default ChatScreen;
+
+/* ---------------- STYLES ---------------- */
+
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  verticalListContent: {
-    paddingBottom: 24,
-    paddingHorizontal: 10,
+  centerScreen: { flex: 1, justifyContent: "center", alignItems: "center" },
+
+  /* Search */
+  searchRow: { paddingHorizontal: 20, marginBottom: 12, marginTop: 4 },
+
+  searchBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+    gap: 8,
+    backgroundColor: "#fff",
+    elevation: 4,
   },
-  itemSeparator: {
-    height: 10,
+
+  searchInput: { flex: 1, fontSize: 15 },
+
+  listContent: { paddingHorizontal: 20, paddingBottom: 120 },
+  separator: { height: 10 },
+
+  fab: { position: "absolute", bottom: 25, right: 20, zIndex: 999 },
+
+  fabInner: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 7,
   },
 });
-
-export default ChatScreen;
