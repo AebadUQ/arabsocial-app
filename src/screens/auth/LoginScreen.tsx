@@ -40,10 +40,12 @@ const LoginScreen: React.FC = () => {
 
     try {  
       await login({ email, password } as LoginPayload);  
-navigation.reset({
-  index: 0,
-  routes: [{ name: 'Main' }],
-});
+// navigation.reset({
+//   index: 0,
+//   routes: [{ name: 'Main' }],
+// });
+// navigation.replace("Main");
+
     } catch (error: any) {  
       Alert.alert('Login Failed', error?.response?.data?.message || error.message || 'Something went wrong');  
     }  

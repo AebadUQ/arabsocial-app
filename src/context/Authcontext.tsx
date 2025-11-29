@@ -11,6 +11,7 @@ import {
   registerUser,
   getUserProfile,
   editUserProfile,
+  verifyOtp,
 } from "../api/auth";
 import { RegisterPayload, LoginPayload } from "../api/types";
 
@@ -26,6 +27,7 @@ type AuthContextType = {
   register: (data: RegisterPayload) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (data: any) => Promise<void>;
+  verifyOtpLogin:any
 };
 
 // ✅ Create context
@@ -160,6 +162,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setLoading(false);
     }
   };
+  
+const verifyOtpLogin = async (data: { email: string; otp: string }) => {
+  try {
+    const result = await verifyOtp(data);
+    console.log("ssss",JSON.stringify(result))
+    if (!result?.accessToken) {
+      // IMPORTANT: RETURN false instead of throwing
+      return false; 
+    }
+
+    await AsyncStorage.setItem(TOKEN_KEY, result.accessToken);
+    setToken(result.accessToken);
+
+    const profile = await getUserProfile();
+    setUser(profile);
+    await AsyncStorage.setItem(USER_KEY, JSON.stringify(profile));
+
+    return true; // success
+  } catch (err) {
+    return false; // DO NOT THROW
+  }
+};
+
 
   // ------------------------------------------------------
   // 🔹 Logout
@@ -195,6 +220,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         login,
         register,
         logout,
+        verifyOtpLogin,
         updateProfile,
       }}
     >

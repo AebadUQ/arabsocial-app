@@ -59,12 +59,20 @@ export const uploadProfileImage = async (image: Asset) => {
 };
 export const verifyOtp = async (data: { email: string; otp: string }) => {
   const response = await api.post('/users/verify-otp', data);
-  return response.data;
+
+  const token = response.data?.data?.accessToken;
+  if (token) {
+    await AsyncStorage.setItem('authToken', token); // save token
+  }
+
+  return response.data.data; // return same structure as login
 };
+
 export const forgotPassword = async (email: string) => {
   const response = await api.post('/users/forgot-password', { email });
   return response.data;
 };
+
 export const resetPassword = async (data: {
   email: string;
   otp: string;
@@ -72,5 +80,14 @@ export const resetPassword = async (data: {
   confirmPassword: string;
 }) => {
   const response = await api.post('/users/reset-password', data);
+  return response.data;
+};
+export const resendVerificationOtp = async (email: string) => {
+  const response = await api.post("/users/resend-otp", { email });
+  return response.data;
+};
+
+export const resendForgotPassOtp = async (email: string) => {
+  const response = await api.post("/users/forgot-password/resend-otp", { email });
   return response.data;
 };

@@ -1,11 +1,10 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   StyleSheet,
   TouchableOpacity,
   StatusBar,
   Image,
-  Alert,
   TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -14,22 +13,49 @@ import AuthLogo from '@/assets/images/authlogo.svg';
 import { useTheme } from '@/theme/ThemeContext';
 import { Button, Text } from '@/components';
 import { ArrowLeft } from 'phosphor-react-native';
-import { verifyOtp } from '@/api/auth';
+
+import { useAuth } from "@/context/Authcontext";
+import { resendVerificationOtp } from "@/api/auth";
 
 const OTPScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { theme } = useTheme();
 
-  const email = route.params?.email; // ⭐ Email received from Register
+  const { verifyOtpLogin } = useAuth();
+
+  const email = route.params?.email;
 
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
+
+  const [timer, setTimer] = useState(300); // 5 min = 300 seconds
+  const [canResend, setCanResend] = useState(false);
 
   const inputsRef = Array.from({ length: 6 }).map(() =>
     useRef<TextInput | null>(null)
   );
 
+  // 🔥 TIMER START
+  useEffect(() => {
+    let interval: any;
+    if (timer > 0) {
+      interval = setInterval(() => {
+        setTimer(prev => prev - 1);
+      }, 1000);
+    } else {
+      setCanResend(true);
+    }
+    return () => clearInterval(interval);
+  }, [timer]);
+
+  const formatTime = () => {
+    const min = Math.floor(timer / 60);
+    const sec = timer % 60;
+    return `${min}:${sec < 10 ? "0" + sec : sec}`;
+  };
+
+  // Input handler
   const handleChange = (text: string, index: number) => {
     const newOtp = [...otp];
     newOtp[index] = text;
@@ -42,32 +68,37 @@ const OTPScreen: React.FC = () => {
     }
   };
 
+  // Verify OTP
   const handleVerify = async () => {
     const code = otp.join("");
 
-    if (code.length !== 6) {
-      return;
-    }
-
-    if (!email) {
-      return;
-    }
+    if (code.length !== 6) return;
+    if (!email) return;
 
     try {
       setLoading(true);
-
-      const res = await verifyOtp({ email, otp: code });
-
-
-      navigation.navigate('Login');
-
-    } catch (err: any) {
+      await resendVerificationOtp(email );
+    } catch (err) {
+      setOtp(["", "", "", "", "", ""]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleResend = () => {
+  // 🔥 RESEND OTP FUNCTION
+  const handleResend = async () => {
+    if (!canResend) return;
+
+    try {
+      await resendVerificationOtp(email);
+
+      setTimer(300);      // reset to 5 minutes
+      setCanResend(false);
+      setOtp(["", "", "", "", "", ""]);
+
+    } catch (err) {
+      console.log("Resend OTP failed:", err);
+    }
   };
 
   return (
@@ -82,13 +113,12 @@ const OTPScreen: React.FC = () => {
         />
 
         <SafeAreaView style={styles.safeArea}>
-          {/* Back Button */}
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
             <ArrowLeft size={26} color={theme.colors.textWhite} />
           </TouchableOpacity>
 
           <View style={styles.inner}>
-            {/* Logo */}
+
             <View style={styles.logoContainer}>
               <AuthLogo width={100} height={52} />
             </View>
@@ -134,7 +164,6 @@ const OTPScreen: React.FC = () => {
               ))}
             </View>
 
-            {/* VERIFY BUTTON */}
             <Button
               title={loading ? 'Verifying...' : 'Verify'}
               onPress={handleVerify}
@@ -143,15 +172,19 @@ const OTPScreen: React.FC = () => {
               style={styles.verifyButton}
             />
 
-            {/* RESEND */}
-            <TouchableOpacity onPress={handleResend} activeOpacity={0.8}>
+            {/* RESEND Section */}
+            <TouchableOpacity
+              onPress={handleResend}
+              disabled={!canResend}
+              activeOpacity={canResend ? 0.8 : 1}
+            >
               <Text
                 variant="body2"
-                color={theme.colors.textWhite}
+                color={canResend ? theme.colors.textWhite : "gray"}
                 textAlign="center"
                 style={styles.resendText}
               >
-                Resend Code
+                {canResend ? "Resend Code" : `Resend in ${formatTime()}`}
               </Text>
             </TouchableOpacity>
 
@@ -170,11 +203,7 @@ const styles = StyleSheet.create({
 
   backBtn: { paddingHorizontal: 20, paddingVertical: 10 },
 
-  inner: {
-    flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 10,
-  },
+  inner: { flex: 1, paddingHorizontal: 24, paddingTop: 10 },
 
   logoContainer: { alignItems: 'center', marginTop: 20 },
   title: { marginTop: 20 },
