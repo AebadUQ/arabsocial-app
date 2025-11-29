@@ -32,14 +32,10 @@ import {
 import { useAuth } from '@/context/Authcontext';
 import { updateUserDetailVisibility } from '@/api/auth';
 import Card from '@/components/Card';
-import ImageView from "react-native-image-viewing"; // ⭐ FULLSCREEN VIEWER
-
-// ---------------------------
-// Helpers & constants
-// ---------------------------
+import ImageView from 'react-native-image-viewing';
 
 const safeValue = (value: any): string =>
-  value === null || value === undefined || value === '' ? 'N/A' : String(value);
+  value === null || value === undefined || value === '' ? '-' : String(value);
 
 const DEFAULT_VISIBILITY = {
   email: false,
@@ -57,7 +53,6 @@ const DEFAULT_VISIBILITY = {
 } as const;
 
 type VisibilityKeys = keyof typeof DEFAULT_VISIBILITY;
-type SocialKey = 'facebook' | 'twitter' | 'instagram' | string;
 
 const SOCIAL_ICON_MAP: Record<string, any> = {
   facebook: FacebookLogoIcon,
@@ -65,34 +60,29 @@ const SOCIAL_ICON_MAP: Record<string, any> = {
   instagram: InstagramLogoIcon,
 };
 
-// ---------------------------
-// Screen Component
-// ---------------------------
-
 const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { theme } = useTheme();
   const { user } = useAuth();
 
-  const avatarUri =
-    user?.image || user?.img || 'https://i.pravatar.cc/200?img=12';
+  // ⭐ Avatar Logic
+  const hasImage = user?.image && user.image.trim() !== '';
+  const avatarUri = hasImage ? user.image : null;
 
-  // ⭐ Avatar full-screen viewer state
   const [avatarPreviewVisible, setAvatarPreviewVisible] = useState(false);
 
   const languages = useMemo(
     () =>
       Array.isArray(user?.language_spoken) && user.language_spoken.length > 0
         ? user.language_spoken
-        : ['N/A'],
+        : ['-'],
     [user?.language_spoken]
   );
 
   const details = useMemo(
     () => ({
       email: safeValue(user?.email),
-            name: safeValue(user?.name),
-
+      name: safeValue(user?.name),
       phone: safeValue(user?.phone),
       state: safeValue(user?.state),
       city: safeValue(user?.location || user?.city),
@@ -128,8 +118,6 @@ const ProfileScreen: React.FC = () => {
     }
   };
 
-  const onEditAbout = () => navigation.navigate('ProfileEdit');
-
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: theme.colors.background }]}
@@ -137,30 +125,21 @@ const ProfileScreen: React.FC = () => {
       {/* Header */}
       <View style={[styles.topBar, { backgroundColor: theme.colors.background }]}>
         <View style={styles.topBarLeft}>
-          <TouchableOpacity
-            accessibilityRole="button"
-            onPress={() => navigation.goBack()}
-            style={styles.backBtn}
-          >
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <ArrowLeftIcon size={20} color={theme.colors.text} weight="bold" />
           </TouchableOpacity>
 
-          <Text variant="body1" color={theme.colors.text} >
+          <Text variant="body1" color={theme.colors.text}>
             Profile
           </Text>
         </View>
 
         <TouchableOpacity
-          accessibilityRole="button"
-          onPress={onEditAbout}
+          onPress={() => navigation.navigate('ProfileEdit')}
           style={[styles.editBtn, { backgroundColor: theme.colors.primaryLight }]}
         >
           <NotePencilIcon size={16} color={theme.colors.primary} />
-          <Text
-            variant="caption"
-            color={theme.colors.primary}
-            style={styles.editText}
-          >
+          <Text variant="caption" color={theme.colors.primary} style={styles.editText}>
             Edit Profile
           </Text>
         </TouchableOpacity>
@@ -170,35 +149,35 @@ const ProfileScreen: React.FC = () => {
         contentContainerStyle={[styles.content, { paddingBottom: 24 }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Avatar + Basic Info */}
+        {/* Avatar */}
         <Card>
           <View style={styles.avatarCardContent}>
-            
-            {/* ⭐ Tap avatar → Full screen preview */}
             <TouchableOpacity
               activeOpacity={0.9}
-              onPress={() => setAvatarPreviewVisible(true)}
+              onPress={() => hasImage && setAvatarPreviewVisible(true)}
             >
-              <View
-                style={[
-                  styles.avatarBorder,
-                  { borderColor: theme.colors.primaryLight },
-                ]}
-              >
-                <Image source={{ uri: avatarUri }} style={styles.avatar} />
+              <View style={[styles.avatarBorder, { borderColor: theme.colors.primaryLight }]}>
+                {hasImage ? (
+                  <Image source={{ uri: avatarUri! }} style={styles.avatar} />
+                ) : (
+                  <View style={styles.defaultAvatar}>
+                    <UserIcon size={50} color={theme.colors.primary} />
+                  </View>
+                )}
               </View>
             </TouchableOpacity>
 
-            {/* ⭐ Fullscreen Viewer for Avatar */}
-            <ImageView
-              images={[{ uri: avatarUri }]}
-              visible={avatarPreviewVisible}
-              onRequestClose={() => setAvatarPreviewVisible(false)}
-              swipeToCloseEnabled={true}
-              doubleTapToZoomEnabled={true}
-              backgroundColor="#000"
-              animationType="slide"
-              presentationStyle="overFullScreen" imageIndex={0}            />
+            {/* Fullscreen Preview */}
+            {hasImage && (
+              <ImageView
+                images={[{ uri: avatarUri! }]}
+                visible={avatarPreviewVisible}
+                onRequestClose={() => setAvatarPreviewVisible(false)}
+                swipeToCloseEnabled
+                doubleTapToZoomEnabled
+                imageIndex={0}
+              />
+            )}
 
             <Text variant="h5" style={styles.nameText} color={theme.colors.text}>
               {safeValue(user?.name)}
@@ -212,10 +191,9 @@ const ProfileScreen: React.FC = () => {
             {user?.social_links && (
               <View style={styles.socialRow}>
                 {Object.entries(user.social_links)
-                  .filter(([_, value]) => !!value)
+                  .filter(([_, v]) => !!v)
                   .map(([key, value]) => {
                     const IconComp = SOCIAL_ICON_MAP[key] || ListDashesIcon;
-
                     return (
                       <TouchableOpacity
                         key={key}
@@ -223,7 +201,6 @@ const ProfileScreen: React.FC = () => {
                           styles.socialIconWrap,
                           { borderColor: theme.colors.primaryLight },
                         ]}
-                        onPress={() => console.log('Clicked social:', key, value)}
                       >
                         <IconComp size={20} color={theme.colors.primary} />
                       </TouchableOpacity>
@@ -234,16 +211,14 @@ const ProfileScreen: React.FC = () => {
           </View>
         </Card>
 
-        {/* About */}
+        {/* About Section */}
         <Card>
           <View style={styles.sectionTextWrap}>
             <Text variant="body1" color={theme.colors.text} style={styles.sectionTitle}>
               About me
             </Text>
             <Text variant="body1" color={theme.colors.textLight}>
-              {safeValue(user?.about_me) === 'N/A'
-                ? 'No details provided.'
-                : user?.about_me}
+              {safeValue(user?.about_me) === '-' ? 'No details provided.' : user?.about_me}
             </Text>
           </View>
         </Card>
@@ -258,8 +233,7 @@ const ProfileScreen: React.FC = () => {
 
           <View style={styles.detailsList}>
             <DetailRow Icon={EnvelopeSimpleIcon} label="Email" value={details.email} show={false} />
-                        <DetailRow Icon={UserIcon} label="Name" value={details.name} show={false} />
-
+            <DetailRow Icon={UserIcon} label="Name" value={details.name} show={false} />
             <DetailRow Icon={PhoneIcon} label="Phone" value={details.phone} show={false} />
             <DetailRow
               Icon={MapPinIcon}
@@ -267,6 +241,7 @@ const ProfileScreen: React.FC = () => {
               value={`${details.state} · ${details.city}`}
               show={false}
             />
+
             <DetailRow
               Icon={FlagIcon}
               label="Nationality"
@@ -330,19 +305,16 @@ const ProfileScreen: React.FC = () => {
   );
 };
 
-// ---------------------------
-// DetailRow Component
-// ---------------------------
+/* --------------------------------
+ * Detail Row
+ --------------------------------*/
 type DetailRowProps = {
   label: string;
   value: string;
   Icon?: React.ComponentType<{ size?: number; color?: string; weight?: any }>;
   show?: boolean;
   field?: VisibilityKeys | string;
-  onSwitchChange?: (
-    field: VisibilityKeys | string | undefined,
-    value: boolean
-  ) => void;
+  onSwitchChange?: (field: VisibilityKeys | string | undefined, value: boolean) => void;
   defaultValue?: boolean;
 };
 
@@ -388,13 +360,11 @@ const DetailRow: React.FC<DetailRowProps> = ({
   );
 };
 
-// ---------------------------
-// Styles
-// ---------------------------
+/* --------------------------------
+ * Styles
+ --------------------------------*/
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
 
   topBar: {
     flexDirection: 'row',
@@ -404,19 +374,22 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 10,
   },
+
   topBarLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    columnGap: 10,
+    gap: 10,
   },
+
   backBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
+
   editBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -424,10 +397,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 999,
   },
-  editText: {
-    marginLeft: 6,
-    fontWeight: '500',
-  },
+
+  editText: { marginLeft: 6, fontWeight: '500' },
 
   content: {
     paddingHorizontal: 20,
@@ -438,76 +409,76 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+
   avatarBorder: {
     padding: 4,
     borderWidth: 4,
     borderRadius: 9999,
-    justifyContent: 'center',
-    alignItems: 'center',
     marginBottom: 8,
   },
+
   avatar: {
     width: 100,
     height: 100,
     borderRadius: 60,
-    resizeMode: 'cover',
   },
-  nameText: {
-    textTransform: 'capitalize',
-    marginBottom: 2,
+
+  defaultAvatar: {
+    width: 100,
+    height: 100,
+    borderRadius: 60,
+    backgroundColor: '#EEE',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
+
+  nameText: { marginBottom: 2, textTransform: 'capitalize' },
 
   socialRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    columnGap: 8,
+    gap: 8,
     marginTop: 10,
+    justifyContent: 'center',
   },
+
   socialIconWrap: {
     width: 40,
     height: 40,
     borderRadius: 20,
     backgroundColor: '#fff',
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
   },
 
-  sectionTextWrap: {
-    flex: 1,
-  },
-  sectionTitle: {
-    marginBottom: 4,
-    fontWeight: '600',
-  },
+  sectionTextWrap: { flex: 1 },
+
+  sectionTitle: { marginBottom: 4, fontWeight: '600' },
+
   sectionHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
   },
 
-  detailsList: {
-    paddingTop: 10,
-  },
+  detailsList: { paddingTop: 12 },
 
   row: {
     flexDirection: 'row',
-    columnGap: 12,
     alignItems: 'center',
+    gap: 12,
     paddingVertical: 10,
-    borderBottomWidth: 0.5,
+    borderBottomWidth: 0.6,
   },
+
   detailIconWrap: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  detailTextWrap: {
-    flex: 1,
-    marginLeft: 4,
-  },
+
+  detailTextWrap: { flex: 1 },
 });
 
 export default ProfileScreen;
