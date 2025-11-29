@@ -16,7 +16,6 @@ import { useNavigation } from "@react-navigation/native";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { getAllMyChatRooms } from "@/api/chat";
 import { useSocket } from "@/context/SocketContext";
-import { useAuth } from "@/context/Authcontext";
 import { PlusIcon, MagnifyingGlass as SearchIcon, X as XIcon } from "phosphor-react-native";
 import LinearGradient from "react-native-linear-gradient";
 
@@ -25,12 +24,11 @@ const PAGE_SIZE = 10;
 const ChatScreen = () => {
   const navigation = useNavigation<any>();
   const { theme } = useTheme();
-  const socket = useSocket();
-  const auth = useAuth();
+
+  const { socket, onlineUsers } = useSocket();   // ⭐ Online users
 
   const [search, setSearch] = useState("");
 
-  // LOAD CHAT ROOMS
   const chatQuery = useInfiniteQuery({
     queryKey: ["chatRooms"],
     initialPageParam: 1,
@@ -52,7 +50,7 @@ const ChatScreen = () => {
     [chatQuery.data]
   );
 
-  // 🔍 SEARCH FILTER
+  // 🔍 SEARCH
   const filteredRooms = useMemo(() => {
     if (!search.trim()) return allRooms;
     return allRooms.filter((room) => {
@@ -65,7 +63,7 @@ const ChatScreen = () => {
     });
   }, [search, allRooms]);
 
-  // REAL-TIME SOCKET UPDATES
+  // SOCKET REFRESH
   useEffect(() => {
     if (!socket) return;
 
@@ -81,25 +79,6 @@ const ChatScreen = () => {
     };
   }, [socket]);
 
-  // PAGINATION
-  const handleLoadMore = () => {
-    if (chatQuery.hasNextPage && !chatQuery.isFetchingNextPage) {
-      chatQuery.fetchNextPage();
-    }
-  };
-
-  const renderChat = ({ item }: any) => (
-    <ChatCard
-      chat={item}
-      onPress={() =>
-        navigation.navigate("ChatDetail", {
-          roomId: item.roomId,
-          room: item,
-        })
-      }
-    />
-  );
-
   if (chatQuery.isLoading) {
     return (
       <SafeAreaView style={styles.centerScreen}>
@@ -109,10 +88,12 @@ const ChatScreen = () => {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
       <TopBar />
 
-      {/* 🔍 SEARCH BAR (Same as UserListScreen) */}
+      {/* 🔍 SEARCH BAR */}
       <View style={styles.searchRow}>
         <View style={styles.searchBox}>
           <TextInput
@@ -135,20 +116,28 @@ const ChatScreen = () => {
 
       <FlatList
         data={filteredRooms}
-        keyExtractor={(item) => String(item.roomId || item.id)}
-        renderItem={renderChat}
+        keyExtractor={(item) => String(item.roomId)}
+        renderItem={({ item }) => (
+          <ChatCard
+            chat={item}
+            online={onlineUsers[item.chatUser.id]} // ⭐ ONLINE STATUS HERE
+            onPress={() =>
+              navigation.navigate("ChatDetail", {
+                roomId: item.roomId,
+                room: item,
+              })
+            }
+          />
+        )}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
-        onEndReached={handleLoadMore}
+        onEndReached={() => {
+          if (chatQuery.hasNextPage && !chatQuery.isFetchingNextPage) {
+            chatQuery.fetchNextPage();
+          }
+        }}
         onEndReachedThreshold={0.3}
-        ListFooterComponent={
-          chatQuery.isFetchingNextPage ? (
-            <View style={{ paddingVertical: 20 }}>
-              <ActivityIndicator size="small" />
-            </View>
-          ) : null
-        }
       />
 
       {/* FAB */}
@@ -158,8 +147,6 @@ const ChatScreen = () => {
       >
         <LinearGradient
           colors={[theme.colors.primary, "#0f8f5f"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
           style={styles.fabInner}
         >
           <PlusIcon size={26} color="#fff" weight="bold" />
@@ -172,12 +159,10 @@ const ChatScreen = () => {
 export default ChatScreen;
 
 /* ---------------- STYLES ---------------- */
-
 const styles = StyleSheet.create({
   container: { flex: 1 },
   centerScreen: { flex: 1, justifyContent: "center", alignItems: "center" },
 
-  /* Search */
   searchRow: { paddingHorizontal: 20, marginBottom: 12, marginTop: 4 },
 
   searchBox: {
@@ -194,6 +179,7 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, fontSize: 15 },
 
   listContent: { paddingHorizontal: 20, paddingBottom: 120 },
+
   separator: { height: 10 },
 
   fab: { position: "absolute", bottom: 25, right: 20, zIndex: 999 },

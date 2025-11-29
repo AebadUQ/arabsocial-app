@@ -19,6 +19,7 @@ import { Text } from "@/components";
 import { useTheme } from "@/theme/ThemeContext";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { getAllChatUsers, initialChat } from "@/api/chat";
+import { useSocket } from "@/context/SocketContext";
 
 const PAGE_SIZE = 10;
 const AVATAR_SIZE = 42;
@@ -43,7 +44,8 @@ function computeNextPage(
   if (typeof meta.nextPage === "number") return meta.nextPage;
   if (meta.hasNextPage === true) return pageParam + 1;
   if (meta.hasNextPage === false) return undefined;
-  if (meta.page && meta.totalPages) return meta.page < meta.totalPages ? pageParam + 1 : undefined;
+  if (meta.page && meta.totalPages)
+    return meta.page < meta.totalPages ? pageParam + 1 : undefined;
   return itemsLength === pageSize ? pageParam + 1 : undefined;
 }
 
@@ -52,6 +54,7 @@ function computeNextPage(
 export default function UserListScreen() {
   const navigation = useNavigation<any>();
   const { theme } = useTheme();
+  const { onlineUsers } = useSocket();
 
   const [search, setSearch] = useState("");
   const [selectedUser, setSelectedUser] = useState<any>(null);
@@ -81,7 +84,13 @@ export default function UserListScreen() {
   const users = usersQuery.data?.pages.flatMap((p) => p.data) || [];
 
   const loadMore = () => {
-    if (!usersQuery.hasNextPage || usersQuery.isFetchingNextPage || fetchingMoreRef.current) return;
+    if (
+      !usersQuery.hasNextPage ||
+      usersQuery.isFetchingNextPage ||
+      fetchingMoreRef.current
+    )
+      return;
+
     fetchingMoreRef.current = true;
     usersQuery.fetchNextPage().finally(() => (fetchingMoreRef.current = false));
   };
@@ -89,7 +98,9 @@ export default function UserListScreen() {
   /* ---------------- Select User ---------------- */
 
   const handleSelectUser = (userObj: any) => {
-    setSelectedUser(selectedUser?.chatUser?.id === userObj.chatUser.id ? null : userObj);
+    setSelectedUser(
+      selectedUser?.chatUser?.id === userObj.chatUser.id ? null : userObj
+    );
   };
 
   /* ---------------- Start Chat ---------------- */
@@ -99,7 +110,6 @@ export default function UserListScreen() {
 
     const user = selectedUser.chatUser;
 
-    // Existing room
     if (selectedUser.roomId) {
       queryClient.invalidateQueries({ queryKey: ["chatRooms"] });
       navigation.navigate("ChatDetail", {
@@ -109,12 +119,10 @@ export default function UserListScreen() {
       return;
     }
 
-    // Create new room
     try {
       const res = await initialChat({ user2Id: user.id });
       const newRoomId = res.data.id;
-      
-        console.log("res",res?.data)
+
       queryClient.invalidateQueries({ queryKey: ["chatRooms"] });
       navigation.navigate("ChatDetail", {
         roomId: newRoomId,
@@ -125,19 +133,20 @@ export default function UserListScreen() {
     }
   };
 
-  /* ---------------- RENDER ITEM (ChatCard Style) ---------------- */
+  /* ---------------- RENDER ITEM ---------------- */
 
   const renderItem = ({ item }: any) => {
     const user = item.chatUser;
     const name = user?.name || "Unknown";
+
+    const isOnline = onlineUsers?.[user.id] === true;
+    const isSelected = selectedUser?.chatUser?.id === user.id;
 
     const initials = name
       .split(" ")
       .map((x: any) => x.charAt(0).toUpperCase())
       .slice(0, 2)
       .join("");
-
-    const isSelected = selectedUser?.chatUser?.id === user.id;
 
     return (
       <TouchableOpacity
@@ -148,33 +157,46 @@ export default function UserListScreen() {
           isSelected && { backgroundColor: theme.colors.primaryLight },
         ]}
       >
-        {/* Avatar */}
-        {user.image ? (
-          <Image source={{ uri: user.image }} style={styles.avatar} />
-        ) : (
-          <View
-            style={[styles.initialsCircle, { backgroundColor: theme.colors.primaryLight }]}
-          >
-            <Text style={[styles.initialsText, { color: theme.colors.primary }]}>
-              {initials}
-            </Text>
-          </View>
-        )}
+        {/* Avatar + ONLINE DOT */}
+        <View style={{ position: "relative" }}>
+          {user.image ? (
+            <Image source={{ uri: user.image }} style={styles.avatar} />
+          ) : (
+            <View
+              style={[
+                styles.initialsCircle,
+                { backgroundColor: theme.colors.primaryLight },
+              ]}
+            >
+              <Text
+                style={[styles.initialsText, { color: theme.colors.primary }]}
+              >
+                {initials}
+              </Text>
+            </View>
+          )}
 
+          <View
+            style={[
+              styles.onlineDot,
+              { backgroundColor: isOnline ? "#22C55E" : "#9CA3AF" },
+            ]}
+          />
+        </View>
+
+        {/* Name */}
         <View style={{ flex: 1 }}>
           <Text numberOfLines={1} variant="body1" color={theme.colors.text}>
             {name}
           </Text>
-
-          <Text variant="caption" color={theme.colors.textLight}>
-            Tap to start chat
-          </Text>
         </View>
 
-        {/* Selected icon */}
-        {isSelected && (
+        {/* RIGHT SIDE ICON */}
+        {!isSelected ? (
+          <View style={styles.emptyCircle} />
+        ) : (
           <View style={styles.checkCircle}>
-            <Text style={{ color: "#fff" }}>✓</Text>
+            <Text style={{ color: "#fff", fontWeight: "800" }}>✓</Text>
           </View>
         )}
       </TouchableOpacity>
@@ -185,9 +207,11 @@ export default function UserListScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => navigation.goBack()}
+        >
           <ArrowLeft size={22} color="#fff" weight="bold" />
         </TouchableOpacity>
         <Text style={styles.title}>Select Contact</Text>
@@ -214,7 +238,6 @@ export default function UserListScreen() {
         </View>
       </View>
 
-      {/* List */}
       <FlatList
         data={users}
         keyExtractor={(item) => String(item.chatUser.id)}
@@ -231,7 +254,6 @@ export default function UserListScreen() {
         }
       />
 
-      {/* Floating Send Button (Message text) */}
       {selectedUser && (
         <TouchableOpacity style={styles.fab} onPress={handleStartChat}>
           <View style={styles.fabInner}>
@@ -265,7 +287,6 @@ const styles = StyleSheet.create({
 
   title: { fontSize: 18, fontWeight: "700", marginLeft: 12, color: "#fff" },
 
-  /* Search */
   searchRow: { paddingHorizontal: 20, marginBottom: 12, marginTop: 4 },
 
   searchBox: {
@@ -281,7 +302,6 @@ const styles = StyleSheet.create({
 
   searchInput: { flex: 1, fontSize: 15 },
 
-  /* ChatCard Row */
   cardContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -313,6 +333,25 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 
+  onlineDot: {
+    position: "absolute",
+    bottom: -1,
+    right: -1,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: "#fff",
+  },
+
+  emptyCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: "#9CA3AF",
+  },
+
   checkCircle: {
     width: 22,
     height: 22,
@@ -322,7 +361,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  /* FAB */
   fab: {
     position: "absolute",
     bottom: 25,

@@ -2,10 +2,9 @@ import React from "react";
 import { View, Image, StyleSheet, TouchableOpacity } from "react-native";
 import { Text } from "@/components";
 import { useTheme } from "@/theme/ThemeContext";
-import { theme } from "@/theme/theme";
 import { formatDate } from "@/utils";
 
-export default function ChatCard({ chat, onPress }: any) {
+export default function ChatCard({ chat, online, onPress }: any) {
   const { theme } = useTheme();
 
   const partner = chat.chatUser;
@@ -18,26 +17,39 @@ export default function ChatCard({ chat, onPress }: any) {
     .join("");
 
   const hasImage = Boolean(partner?.image);
-
   const message = chat.lastMessage?.content || "No messages yet";
+
   const time = chat.lastMessage?.createdAt
     ? formatDate(chat.lastMessage.createdAt)
     : "";
 
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
+    <TouchableOpacity onPress={onPress} activeOpacity={0.85}>
       <View style={styles.container}>
-        {/* AVATAR */}
-        <View style={styles.avatarWrap}>
+        {/* AVATAR WRAPPER */}
+        <View style={{ position: "relative" }}>
           {hasImage ? (
             <Image source={{ uri: partner.image }} style={styles.avatar} />
           ) : (
-            <View style={[styles.initialsCircle, { backgroundColor: theme.colors.primaryLight }]}>
+            <View
+              style={[
+                styles.initialsCircle,
+                { backgroundColor: theme.colors.primaryLight },
+              ]}
+            >
               <Text style={[styles.initialsText, { color: theme.colors.primary }]}>
                 {initials}
               </Text>
             </View>
           )}
+
+          {/* 🟢🟤 ONLINE / OFFLINE DOT */}
+          <View
+            style={[
+              styles.statusDot,
+              { backgroundColor: online ? "#00D26A" : "#9E9E9E" }, // green / gray
+            ]}
+          />
         </View>
 
         {/* NAME + LAST MESSAGE */}
@@ -46,18 +58,21 @@ export default function ChatCard({ chat, onPress }: any) {
             {name}
           </Text>
 
-          <Text numberOfLines={1} variant="caption" color={theme.colors.textLight}>
+          <Text
+            numberOfLines={1}
+            variant="caption"
+            color={theme.colors.textLight}
+          >
             {message}
           </Text>
         </View>
 
-        {/* TIME + UNREAD */}
+        {/* TIME + UNREAD BADGE */}
         <View style={{ alignItems: "flex-end" }}>
           <Text variant="overline" color={theme.colors.textLight}>
             {time}
           </Text>
 
-          {/* UNREAD BADGE */}
           {chat.unreadCount > 0 && (
             <View style={styles.unreadBubble}>
               <Text style={styles.unreadText}>{chat.unreadCount}</Text>
@@ -75,19 +90,10 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 12,
-    paddingHorizontal: 0,
-    borderRadius: 12,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderColor,
-  },
-
-  avatarWrap: {
-    width: AVATAR,
-    height: AVATAR,
-    marginRight: 12,
-    justifyContent: "center",
-    alignItems: "center",
+    borderBottomColor: "rgba(0,0,0,0.06)",
+    gap: 12,
   },
 
   avatar: {
@@ -126,5 +132,17 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 12,
     fontWeight: "700",
+  },
+
+  // ⭐ ONLINE / OFFLINE DOT
+  statusDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    position: "absolute",
+    bottom: -2,
+    right: -2,
+    borderWidth: 2,
+    borderColor: "#fff",
   },
 });
