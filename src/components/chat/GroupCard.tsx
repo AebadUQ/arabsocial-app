@@ -1,94 +1,158 @@
-import React from 'react';
-import { View, Image, StyleSheet, TouchableOpacity } from 'react-native';
-import { Text } from '@/components';
-import { useTheme } from '@/theme/ThemeContext';
-import { theme } from '@/theme/theme';
+import React from "react";
+import { View, Image, StyleSheet, TouchableOpacity } from "react-native";
+import { Text } from "@/components";
+import { useTheme } from "@/theme/ThemeContext";
 
-type GroupCardProps = {
-  group: {
-    id: number;
-    name: string;
-    desc: string;
-    image: string;
-    joined?: boolean;
-    showButton?: boolean;
-  };
-  onToggle?: (id: number, joined: boolean) => void;
-};
+interface Props {
+  group: any;
+  onPress?: () => void;
+  onJoin?: () => void;
+}
 
-const GroupCard = ({ group, onToggle }: GroupCardProps) => {
+export default function GroupCard({ group, onPress, onJoin }: Props) {
   const { theme } = useTheme();
-  const { id, name, desc, image, joined, showButton } = group;
 
-  const btnBg = joined ? '#1BAD7A' : '#008F5C';
-  const btnLabel = joined ? 'Joined' : 'Join';
+  const name = group?.name || "Unknown Group";
+  const image = group?.image;
+  const members = group?.membersCount || 0;
+
+  // Status:
+  // accepted | pending | none
+  const status = group?.status;
+
+  const initials = name
+    .split(" ")
+    .map((x: any) => x.charAt(0).toUpperCase())
+    .slice(0, 2)
+    .join("");
+
+  const renderButton = () => {
+    if (status === "joined")
+      return (
+                    <TouchableOpacity style={styles.joinedBtn} onPress={onJoin}>
+
+          <Text style={styles.joinedText}>Joined </Text>
+        </TouchableOpacity>
+      );
+
+    if (status === "pending")
+      return (
+          <TouchableOpacity style={styles.pendingBtn} onPress={onJoin}>
+
+          <Text style={styles.pendingText}>Requested</Text>
+        </TouchableOpacity>
+      );
+
+    return (
+      <TouchableOpacity style={styles.joinBtn} onPress={onJoin}>
+        <Text style={styles.joinText}>Join Now</Text>
+      </TouchableOpacity>
+    );
+  };
 
   return (
-    <TouchableOpacity activeOpacity={0.85}>
+    <TouchableOpacity activeOpacity={0.8} onPress={onPress}>
       <View style={styles.container}>
-        {/* Avatar */}
-        <View style={styles.avatarWrap}>
+        {/* Group Image */}
+        {image ? (
           <Image source={{ uri: image }} style={styles.avatar} />
-        </View>
+        ) : (
+          <View
+            style={[
+              styles.initialsCircle,
+              { backgroundColor: theme.colors.primaryLight },
+            ]}
+          >
+            <Text style={[styles.initialsText, { color: theme.colors.primary }]}>
+              {initials}
+            </Text>
+          </View>
+        )}
 
-        {/* Text content */}
+        {/* Name + Members */}
         <View style={styles.middle}>
-          <Text numberOfLines={1} variant="body1" color={theme.colors.text}>
+          <Text numberOfLines={1} variant="body1">
             {name}
           </Text>
-          <Text numberOfLines={1} variant="caption" color={theme.colors.textLight}>
-            {desc}
+
+          <Text numberOfLines={1} variant="caption" color="#777">
+            {members} members
           </Text>
         </View>
 
-        {/* Right side button */}
-        {showButton && (
-          <TouchableOpacity
-            activeOpacity={0.9}
-            onPress={() => onToggle?.(id, !joined)}
-            style={[styles.btn, { backgroundColor: btnBg }]}
-          >
-            <Text variant="caption" color="#fff">
-              {btnLabel}
-            </Text>
-          </TouchableOpacity>
-        )}
+        {/* Status Button */}
+        {renderButton()}
       </View>
     </TouchableOpacity>
   );
-};
+}
 
 const AVATAR = 42;
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderColor,
+    borderBottomColor: "rgba(0,0,0,0.06)",
+    gap: 12,
   },
-  avatarWrap: {
-    width: AVATAR,
-    height: AVATAR,
-    marginRight: 12,
-  },
+
   avatar: {
     width: AVATAR,
     height: AVATAR,
-    borderRadius: AVATAR / 2,
-  },
-  middle: {
-    flex: 1,
-  },
-  btn: {
-    width: 100,
-    height: 36,
     borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
+  },
+
+  initialsCircle: {
+    width: AVATAR,
+    height: AVATAR,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  initialsText: {
+    fontSize: 16,
+    fontWeight: "700",
+  },
+
+  middle: { flex: 1 },
+
+  joinBtn: {
+    backgroundColor: "#1a8f63",
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+  },
+
+  joinText: {
+    color: "#fff",
+    fontWeight: "600",
+  },
+
+  joinedBtn: {
+    backgroundColor: "#d4ffd4",
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+  },
+
+  joinedText: {
+    color: "#16a34a",
+    fontWeight: "700",
+  },
+
+  pendingBtn: {
+    backgroundColor: "#fff4cc",
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+  },
+
+  pendingText: {
+    color: "#b08200",
+    fontWeight: "700",
   },
 });
-
-export default GroupCard;

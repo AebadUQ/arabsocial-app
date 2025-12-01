@@ -30,7 +30,7 @@ export const setupInterceptors = (logout: () => void) => {
              → otherwise main server (3000)
       ----------------------------------------- */
 
-      if (config.url?.startsWith("/chat")) {
+if (config.url?.startsWith("/chat") || config.url?.startsWith("/group")) {
         config.baseURL = "http://192.168.18.29:3001"; // CHAT SERVER
       } else {
         config.baseURL = "http://192.168.18.29:3000"; // MAIN API SERVER

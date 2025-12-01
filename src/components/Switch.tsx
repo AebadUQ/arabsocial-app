@@ -1,19 +1,23 @@
 import { useTheme } from '@/theme/ThemeContext';
 import React, { useState } from 'react';
-import { TouchableOpacity, View, StyleSheet, Text } from 'react-native';
+import { TouchableOpacity, View, StyleSheet } from 'react-native';
 
 interface SwitchProps {
   initial?: boolean;
+  value?: boolean;
   onToggle?: (value: boolean) => void;
 }
 
-const Switch: React.FC<SwitchProps> = ({ initial = false, onToggle }) => {
-  const [active, setActive] = useState(initial);
-  const {theme} = useTheme(); // assumes you have theme colors
+const Switch: React.FC<SwitchProps> = ({ initial = false, value, onToggle }) => {
+  const { theme } = useTheme();
+  const [internal, setInternal] = useState(initial);
+
+  const active = value !== undefined ? value : internal;
 
   const toggle = () => {
-    setActive(prev => !prev);
-    onToggle?.(!active);
+    const newVal = !active;
+    setInternal(newVal);
+    onToggle?.(newVal);
   };
 
   return (
@@ -21,7 +25,9 @@ const Switch: React.FC<SwitchProps> = ({ initial = false, onToggle }) => {
       onPress={toggle}
       style={[
         styles.container,
-        { backgroundColor: active ? theme.colors.primary : '#ccc' }, // primary or gray
+        {
+          backgroundColor: active ? theme.colors.primary : '#CFCFCF',
+        },
       ]}
     >
       <View
@@ -36,17 +42,16 @@ const Switch: React.FC<SwitchProps> = ({ initial = false, onToggle }) => {
 
 const styles = StyleSheet.create({
   container: {
-    width: 30,
-    height: 18,
-    borderRadius: 14,
-    padding: 5,
-    paddingInline:6,
+    width: 42,
+    height: 24,
+    borderRadius: 20,
+    paddingHorizontal: 4,
     justifyContent: 'center',
   },
   circle: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 16,
+    height: 16,
+    borderRadius: 12,
     backgroundColor: '#fff',
   },
 });
