@@ -90,3 +90,23 @@ export const getGroupMessages = async (
 
   return response.data?.data; // exact backend format
 };
+export const getGroupDetail= async (id:any) => {
+  const response = await api.get(`/group/details/${id}`);
+  return response.data.data;
+};
+export const getGroupMembers = async (
+  groupId: number,
+  params?: { page?: number; limit?: number }
+) => {
+  const { page = 1, limit = 20 } = params || {};
+
+  const queryParams = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  }).toString();
+
+  const response = await api.get(`/group/members/${groupId}?${queryParams}`);
+
+
+  return response.data?.data; // exact backend format
+};

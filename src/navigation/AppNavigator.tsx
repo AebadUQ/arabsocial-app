@@ -60,6 +60,7 @@ import ChatDetailScreen from "@/screens/chat/ChatDetail";
 import UserList from "@/screens/chat/UserList";
 import CreateGroupScreen from "@/screens/chat/CreateGroupScreen";
 import GroupChatScreen from "@/screens/chat/GroupDetailScreen";
+import GroupInfoScreen from "@/screens/chat/GroupInfoScreen";
 
 /* ---------------------------------
  * Assets
@@ -131,6 +132,8 @@ export type BusinessStackParamList = {
 export type GroupsStackParamList = {
   Groups: undefined;
   GroupDetail: { group?: any } | undefined;
+  GroupInfo: { groupId?: any } | undefined;
+
   CreateGroupScreen:undefined;
 
   Chat: undefined;
@@ -244,6 +247,8 @@ const GroupsStackNav = () => (
 
     {/* <GroupsStack.Screen name="Groups" component={GroupsScreen} /> */}
     <GroupsStack.Screen name="GroupDetail" component={GroupChatScreen} />
+        <GroupsStack.Screen name="GroupInfo" component={GroupInfoScreen} />
+
   </GroupsStack.Navigator>
 );
 

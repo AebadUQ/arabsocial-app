@@ -82,9 +82,14 @@ export default function ExploreGroupsTab({ search }: any) {
       <FlatList
         data={allGroups}
         keyExtractor={(i) => String(i.id)}
-        renderItem={({ item }) => (
-          <GroupCard group={item} onJoin={() => handleJoin(item.id)} />
-        )}
+       renderItem={({ item }) => (
+  <GroupCard
+    group={item}
+    onJoin={() => handleJoin(item.id)}
+    onPress={() => navigation.navigate('GroupInfo', { groupId: item?.id })}
+  />
+)}
+
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120 }}
         onEndReached={() => {
           if (groupsQuery.hasNextPage && !groupsQuery.isFetchingNextPage) {

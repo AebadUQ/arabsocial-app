@@ -7,7 +7,7 @@ import axios from "axios";
    🔥 DEFAULT BASE URL (Main Backend 3000)
 ----------------------------------------- */
 const api = axios.create({
-  baseURL: "http://192.168.18.29:3000",
+  baseURL: "http://192.168.18.29:5000",
   // timeout: 10000,
 });
 
@@ -31,9 +31,9 @@ export const setupInterceptors = (logout: () => void) => {
       ----------------------------------------- */
 
 if (config.url?.startsWith("/chat") || config.url?.startsWith("/group")) {
-        config.baseURL = "http://192.168.18.29:3001"; // CHAT SERVER
+        config.baseURL = "http://192.168.18.29:5001"; // CHAT SERVER
       } else {
-        config.baseURL = "http://192.168.18.29:3000"; // MAIN API SERVER
+        config.baseURL = "http://192.168.18.29:5000"; // MAIN API SERVER
       }
 
       return config;

@@ -53,6 +53,22 @@ export const formatEventDate = (date: Date | string): string => {
     year: "numeric",
   });
 };
+export function formatTheDate(dateString: any) {
+  const date = new Date(dateString);
+
+  // Check if the date is valid
+  if (isNaN(date.getTime())) {
+    return 'Invalid Date'; // Return a fallback message in case the date is invalid
+  }
+
+  // Extract day, month, and year
+  const day = date.getDate().toString().padStart(2, '0'); // Ensures two digits (e.g., 05 instead of 5)
+  const month = (date.getMonth() + 1).toString().padStart(2, '0'); // getMonth() returns 0-11, so add 1
+  const year = date.getFullYear();
+
+  // Return the formatted date as DD-MM-YYYY
+  return `${day}-${month}-${year}`;
+}
 
 // Date utilities
 export const formatDate = (date: Date | string): string => {
