@@ -55,11 +55,11 @@ export default function ChatsTab({ search }: any) {
     if (!socket) return;
     const refresh = () => chatQuery.refetch();
 
-    socket.on("chat_list_update", refresh);
+    // socket.on("chat_list_update", refresh);
     socket.on("new_message", refresh);
 
     return () => {
-      socket.off("chat_list_update", refresh);
+    //   socket.off("chat_list_update", refresh);
       socket.off("new_message", refresh);
     };
   }, [socket]);

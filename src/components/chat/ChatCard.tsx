@@ -22,7 +22,7 @@ export default function ChatCard({ chat, online, onPress }: any) {
   const time = chat.lastMessage?.createdAt
     ? formatDate(chat.lastMessage.createdAt)
     : "";
-
+console.log("////------",chat)
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.85}>
       <View style={styles.container}>

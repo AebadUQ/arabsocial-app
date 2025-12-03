@@ -73,8 +73,7 @@ const ChatDetailScreen = () => {
   // ----------------------- FIRST LOAD -----------------------
   useEffect(() => {
     loadMessages(1);
-
-    socket?.emit("mark_read", { groupId });
+    socket?.emit("group_chat:mark_read", { groupId }); // Mark as read when component loads
     queryClient.invalidateQueries({ queryKey: ["chatRooms"] });
   }, [socket]);
 

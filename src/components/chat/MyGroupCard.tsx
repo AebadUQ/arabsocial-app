@@ -2,6 +2,8 @@ import React from "react";
 import { View, Image, StyleSheet, TouchableOpacity } from "react-native";
 import { Text } from "@/components";
 import { useTheme } from "@/theme/ThemeContext";
+import { formatDate } from "@/utils";
+import { theme } from "@/theme/theme";
 
 export default function MyGroupCard({ group, onPress }: any) {
   const { theme } = useTheme();
@@ -15,7 +17,10 @@ export default function MyGroupCard({ group, onPress }: any) {
     .map((x: any) => x.charAt(0).toUpperCase())
     .slice(0, 2)
     .join("");
-
+console.log("group",group)
+const time = group.lastMessage?.createdAt
+    ? formatDate(group.lastMessage.createdAt)
+    : "";
   return (
     <TouchableOpacity activeOpacity={0.85} onPress={onPress}>
       <View style={styles.container}>
@@ -53,6 +58,17 @@ export default function MyGroupCard({ group, onPress }: any) {
         </View>
 
         {/* RIGHT SIDE EMPTY */}
+          <View style={{ alignItems: "flex-end" }}>
+                  <Text variant="overline" color={theme.colors.textLight}>
+                    {time}
+                  </Text>
+        
+                  {group.unreadCount > 0 && (
+                    <View style={styles.unreadBubble}>
+                      <Text style={styles.unreadText}>{group.unreadCount}</Text>
+                    </View>
+                  )}
+              </View>
       </View>
     </TouchableOpacity>
   );
@@ -92,4 +108,21 @@ const styles = StyleSheet.create({
   middle: {
     flex: 1,
   },
+    unreadBubble: {
+    minWidth: 22,
+    height: 22,
+    paddingHorizontal: 5,
+    borderRadius: 11,
+    backgroundColor: theme.colors.primaryLight,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 4,
+  },
+
+  unreadText: {
+    color: theme.colors.primary,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+
 });

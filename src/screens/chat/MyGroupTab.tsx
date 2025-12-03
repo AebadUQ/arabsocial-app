@@ -1,15 +1,20 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect } from "react";
 import { View, FlatList, ActivityIndicator } from "react-native";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { getAllMyGroups } from "@/api/group";
 import { useNavigation } from "@react-navigation/native";
 import MyGroupCard from "@/components/chat/MyGroupCard";
+import { useSocket } from "@/context/SocketContext"; // Assuming you have a SocketContext
+import { useTheme } from "@/theme/ThemeContext";
 
 const PAGE_SIZE = 10;
 
 export default function MyGroupsTab({ search }: any) {
   const navigation = useNavigation<any>();
+  const { socket } = useSocket(); // Assuming socket is provided in your context
+  const { theme } = useTheme(); // For styling
 
+  // React Query Infinite Query to load group data
   const query = useInfiniteQuery({
     queryKey: ["myGroups", search],
     initialPageParam: 1,
@@ -28,15 +33,33 @@ export default function MyGroupsTab({ search }: any) {
     getNextPageParam: (lastPage) => lastPage?.nextPage,
   });
 
+  // All groups fetched using React Query
   const allGroups = useMemo(
     () => query.data?.pages.flatMap((p) => p.data) || [],
     [query.data]
   );
 
-  const handleLeave = async (groupId: number) => {
-    // await leaveGroup(groupId);
-    query.refetch();
-  };
+  // Listen for socket events to update the unread count or last message
+  useEffect(() => {
+    if (!socket) return;
+
+    // Event listener for when a new message is sent in a group
+    socket.on("group_chat:new_group_message", (updatedGroup) => {
+      // Update the unread count or other properties of the group
+      query.refetch();  // Refetch groups data to update the unread count
+    });
+
+    // Event listener for marking messages as read
+    socket.on("group_chat:messages_read", (updatedGroup) => {
+      // Refetch to update unread count after messages are read
+      query.refetch();
+    });
+
+    return () => {
+      socket.off("group_chat:new_group_message");
+      socket.off("group_chat:messages_read");
+    };
+  }, [socket]);
 
   if (query.isLoading)
     return (
@@ -52,7 +75,6 @@ export default function MyGroupsTab({ search }: any) {
       renderItem={({ item }) => (
         <MyGroupCard
           group={item}
-          onLeave={() => handleLeave(item.id)}
           onPress={() => navigation.navigate("GroupDetail", { group: item })}
         />
       )}
