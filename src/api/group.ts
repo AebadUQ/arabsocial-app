@@ -73,3 +73,20 @@ export const uploadGroupImage = async (image: Asset) => {
 
   return response.data as { url: string };
 };
+export const getGroupMessages = async (
+  groupId: number,
+  params?: { page?: number; limit?: number }
+) => {
+  const { page = 1, limit = 20 } = params || {};
+
+  const queryParams = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  }).toString();
+
+  const response = await api.get(`/group/messages/${groupId}?${queryParams}`);
+
+  console.log("Chat room messages:", response.data);
+
+  return response.data?.data; // exact backend format
+};

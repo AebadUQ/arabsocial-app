@@ -53,7 +53,7 @@ export default function MyGroupsTab({ search }: any) {
         <MyGroupCard
           group={item}
           onLeave={() => handleLeave(item.id)}
-          onPress={() => navigation.navigate("GroupDetail", { id: item.id })}
+          onPress={() => navigation.navigate("GroupDetail", { group: item })}
         />
       )}
       contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 80 }}

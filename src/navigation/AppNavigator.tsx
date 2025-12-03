@@ -29,7 +29,7 @@ import SettingsScreen from "@/screens/SettingsScreen";
 import NotificationsScreen from "@/screens/NotificationScreen";
 import EventDetailScreen from "@/screens/events/EventDetail";
 import AddEventScreen from "@/screens/events/AddEvent";
-import GroupDetailScreen from "@/screens/GroupDetailScreen";
+import GroupDetailScreen from "@/screens/chat/GroupDetailScreen";
 import ProfileScreen from "@/screens/profile/ProfileScreen";
 import ProfileEditScreen from "@/screens/profile/ProfileEditScreen";
 import PublicProfileScreen from "@/screens/profile/PublicProfileScreen";
@@ -59,6 +59,7 @@ import ChatScreen from "@/screens/chat/ChatScreen";
 import ChatDetailScreen from "@/screens/chat/ChatDetail";
 import UserList from "@/screens/chat/UserList";
 import CreateGroupScreen from "@/screens/chat/CreateGroupScreen";
+import GroupChatScreen from "@/screens/chat/GroupDetailScreen";
 
 /* ---------------------------------
  * Assets
@@ -129,7 +130,7 @@ export type BusinessStackParamList = {
 // Groups tab stack
 export type GroupsStackParamList = {
   Groups: undefined;
-  GroupDetail: { id?: string } | undefined;
+  GroupDetail: { group?: any } | undefined;
   CreateGroupScreen:undefined;
 
   Chat: undefined;
@@ -242,7 +243,7 @@ const GroupsStackNav = () => (
         <GroupsStack.Screen name="CreateGroupScreen" component={CreateGroupScreen} />
 
     {/* <GroupsStack.Screen name="Groups" component={GroupsScreen} /> */}
-    <GroupsStack.Screen name="GroupDetail" component={GroupDetailScreen} />
+    <GroupsStack.Screen name="GroupDetail" component={GroupChatScreen} />
   </GroupsStack.Navigator>
 );
 
