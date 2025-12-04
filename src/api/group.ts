@@ -92,6 +92,7 @@ export const getGroupMessages = async (
 };
 export const getGroupDetail= async (id:any) => {
   const response = await api.get(`/group/details/${id}`);
+  console.log("response",JSON.stringify(response?.data.data))
   return response.data.data;
 };
 export const getGroupMembers = async (
@@ -109,4 +110,41 @@ export const getGroupMembers = async (
 
 
   return response.data?.data; // exact backend format
+};
+
+export const getGroupMembersPendingRequest = async (
+  groupId: number,
+  params?: { page?: number; limit?: number }
+) => {
+  const { page = 1, limit = 20 } = params || {};
+
+  const queryParams = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  }).toString();
+
+  const response = await api.get(`/group/requests/${groupId}?${queryParams}`);
+
+
+  return response.data?.data; // exact backend format
+};
+export const acceptRequest = async (requestId: string) => {
+  try {
+    const response = await api.post(`/group/request/${requestId}/accept`);
+    return response.data;
+  } catch (error) {
+    console.error("Error accepting request:", error);
+    throw error;
+  }
+};
+
+// Reject request with groupId
+export const rejectRequest = async (groupId: string) => {
+  try {
+    const response = await api.post(`/group/request/${groupId}/reject`);
+    return response.data;
+  } catch (error) {
+    console.error("Error rejecting request:", error);
+    throw error;
+  }
 };

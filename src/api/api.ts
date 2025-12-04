@@ -82,7 +82,7 @@ if (config.url?.startsWith("/chat") || config.url?.startsWith("/group")) {
       }
 
       let message = "Something went wrong";
-
+      console.log("rrrr",error)
       if (error.response && error.response.data) {
         const data = error.response.data;
 

@@ -57,7 +57,7 @@ export default function ExploreGroupsTab({ search }: any) {
 
     queryClient.setQueryData(["exploreGroups", search], (oldData: any) => {
       if (!oldData) return oldData;
-
+        console.log("newStatus",newStatus)
       return {
         pageParams: oldData.pageParams,
         pages: oldData.pages.map((page: any) => ({

@@ -56,7 +56,7 @@ export const formatEventDate = (date: Date | string): string => {
 export function formatTheDate(dateString: any) {
   const date = new Date(dateString);
 
-  // Check if the date is valid
+  // Check if the date is invalid
   if (isNaN(date.getTime())) {
     return 'Invalid Date'; // Return a fallback message in case the date is invalid
   }
@@ -69,6 +69,7 @@ export function formatTheDate(dateString: any) {
   // Return the formatted date as DD-MM-YYYY
   return `${day}-${month}-${year}`;
 }
+
 
 // Date utilities
 export const formatDate = (date: Date | string): string => {

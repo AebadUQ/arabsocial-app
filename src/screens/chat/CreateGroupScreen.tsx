@@ -13,15 +13,19 @@ import { Text } from "@/components";
 import { useTheme } from "@/theme/ThemeContext";
 import InputField from "@/components/Input";
 import LinearGradient from "react-native-linear-gradient";
-import Card from "@/components/Card";
 import BottomSheetSelect from "@/components/BottomSheetSelect";
 import Switch from "@/components/Switch";
 
-import { ArrowLeftIcon } from "phosphor-react-native";
+import {
+  ArrowLeft as ArrowLeftIcon,
+  UploadSimple as UploadSimpleIcon,
+} from "phosphor-react-native";
+
 import { Country, State } from "country-state-city";
 import { launchImageLibrary, Asset } from "react-native-image-picker";
 
-import { uploadGroupImage, createGroup } from "@/api/group"; // ★ USE THIS
+import { uploadGroupImage, createGroup } from "@/api/group";
+import { theme } from "@/theme/theme";
 
 export default function CreateGroupScreen() {
   const navigation = useNavigation<any>();
@@ -39,10 +43,8 @@ export default function CreateGroupScreen() {
   const [state, setState] = useState<string>("");
   const [nationality, setNationality] = useState("");
 
-  // PRIVACY
   const [isPublic, setIsPublic] = useState(true);
 
-  // RESTRICTIONS
   const [restrictCountry, setRestrictCountry] = useState(false);
   const [restrictState, setRestrictState] = useState(false);
   const [restrictNationality, setRestrictNationality] = useState(false);
@@ -50,7 +52,7 @@ export default function CreateGroupScreen() {
   const [uploading, setUploading] = useState(false);
   const [loadingSubmit, setLoadingSubmit] = useState(false);
 
-  // PICK IMAGE + UPLOAD
+  // PICK IMAGE (Event style)
   const pickImage = async () => {
     try {
       const res = await launchImageLibrary({
@@ -64,11 +66,9 @@ export default function CreateGroupScreen() {
       if (!asset?.uri) return;
 
       setUploading(true);
-
-      // UPLOAD GROUP IMAGE
       const uploaded = await uploadGroupImage(asset);
-
       setImage(uploaded.url);
+
     } catch (err) {
       console.log("UPLOAD ERROR:", err);
     } finally {
@@ -88,7 +88,7 @@ export default function CreateGroupScreen() {
       const sList = State.getStatesOfCountry(cObj?.isoCode || "").map((s) => s.name);
       setStates(sList);
 
-      // @ts-ignore
+      //@ts-ignore
       setNationality(cObj?.demonym || `${country} Citizen`);
     }
   }, [country]);
@@ -111,13 +111,9 @@ export default function CreateGroupScreen() {
         restrictNationality,
       };
 
-      console.log("CREATE GROUP PAYLOAD:", payload);
-
-      const res = await createGroup(payload);
-
-      console.log("GROUP CREATED:", res);
-
+      await createGroup(payload);
       navigation.goBack();
+
     } catch (err) {
       console.log("CREATE GROUP ERROR:", err);
     } finally {
@@ -128,7 +124,7 @@ export default function CreateGroupScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
 
-      {/* Back Arrow */}
+      {/* Back Button */}
       <View style={styles.overlayRow}>
         <TouchableOpacity style={styles.circleBtn} onPress={() => navigation.goBack()}>
           <ArrowLeftIcon size={22} color="#fff" weight="bold" />
@@ -136,40 +132,57 @@ export default function CreateGroupScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 100 }}
+        contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 130 }}
         showsVerticalScrollIndicator={false}
       >
 
-        {/* IMAGE */}
-        <Card>
-          <View style={{ alignItems: "center", marginBottom: 16 }}>
-            <TouchableOpacity activeOpacity={0.8} onPress={pickImage}>
-              <View style={[styles.avatarBorder, { borderColor: theme.colors.primaryLight }]}>
-                <Image
-                  source={{ uri: image || "https://i.pravatar.cc/200?img=65" }}
-                  style={styles.avatar}
-                />
+        {/* IMAGE UPLOAD */}
+        <View style={styles.sectionWrap}>
+          <TouchableOpacity activeOpacity={0.9} style={styles.uploadBox} onPress={pickImage}>
+            {image ? (
+              <>
+                <Image source={{ uri: image }} style={styles.bannerImg} />
 
                 {uploading && (
-                  <View style={styles.avatarOverlay}>
+                  <View style={styles.bannerOverlay}>
                     <ActivityIndicator color="#fff" />
-                    <Text style={styles.avatarOverlayText}>Uploading...</Text>
+                    <Text style={styles.bannerOverlayText}>Uploading...</Text>
                   </View>
                 )}
-              </View>
-            </TouchableOpacity>
-          </View>
 
+                <View style={styles.changeHintWrap}>
+                  <Text style={styles.changeHintText}>Tap to change</Text>
+                </View>
+              </>
+            ) : (
+              <View style={styles.uploadInner}>
+                <View style={{ backgroundColor: theme.colors.primaryShade, padding: 10, borderRadius: 20 }}>
+                  <UploadSimpleIcon size={24} color={theme.colors.primary} />
+                </View>
+                <Text variant="body1" color={theme.colors.textLight}>
+                  Upload group cover image
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* GROUP INFO */}
+        <View style={styles.sectionWrap}>
           <InputField
             label="Group Name"
+            labelColor={theme.colors.textLight}
             placeholder="Enter group name"
             value={groupName}
             onChangeText={setGroupName}
             inputStyle={{ backgroundColor: "#fff" }}
           />
 
+          <View style={styles.fieldGap} />
+
           <InputField
             label="Description"
+            labelColor={theme.colors.textLight}
             placeholder="Tell what your group is about"
             value={description}
             onChangeText={setDescription}
@@ -177,12 +190,13 @@ export default function CreateGroupScreen() {
             numberOfLines={4}
             inputStyle={{ backgroundColor: "#fff" }}
           />
-        </Card>
+        </View>
 
         {/* COUNTRY / STATE */}
-        <Card>
+        <View style={styles.sectionWrap}>
           <BottomSheetSelect
             label="Country"
+            labelColor={theme.colors.textLight}
             value={country}
             options={countries}
             onChange={setCountry}
@@ -191,85 +205,77 @@ export default function CreateGroupScreen() {
           />
 
           {country ? (
-            <BottomSheetSelect
-              label="State / Region"
-              value={state}
-              options={states}
-              onChange={setState}
-              placeholder="Select State"
-              fieldStyle={{ backgroundColor: "#fff" }}
-            />
+            <>
+              <View style={styles.fieldGap} />
+              <BottomSheetSelect
+                label="State / Region"
+                labelColor={theme.colors.textLight}
+                value={state}
+                options={states}
+                onChange={setState}
+                placeholder="Select State"
+                fieldStyle={{ backgroundColor: "#fff" }}
+              />
+            </>
           ) : null}
+
+          <View style={styles.fieldGap} />
 
           <InputField
             label="Nationality"
+            labelColor={theme.colors.textLight}
             value={nationality}
             onChangeText={setNationality}
             inputStyle={{ backgroundColor: "#fff" }}
           />
-        </Card>
+        </View>
 
         {/* PRIVACY */}
-        <Card style={styles.cardSoft}>
+        <View style={styles.sectionWrap}>
           <Text style={styles.sectionTitle}>Privacy Settings</Text>
 
-          <View
-            style={[
-              styles.optionBlock,
-              { backgroundColor: isPublic ? "#E3F6EE" : "#F4F4F4" },
-            ]}
-          >
+          <View style={[styles.optionBlock, { backgroundColor: isPublic ? "#E3F6EE" : "white" }]}>
             <View>
               <Text style={styles.optionTitle}>Public Group</Text>
               <Text style={styles.optionSub}>Anyone can find and join</Text>
             </View>
-
             <Switch value={isPublic} onToggle={setIsPublic} />
           </View>
 
-          <View
-            style={[
-              styles.optionBlock,
-              { backgroundColor: !isPublic ? "#E3F6EE" : "#F4F4F4" },
-            ]}
-          >
+          <View style={[styles.optionBlock, { backgroundColor: !isPublic ? "#E3F6EE" : "white" }]}>
             <View>
               <Text style={styles.optionTitle}>Private Group</Text>
               <Text style={styles.optionSub}>Members need approval to join</Text>
             </View>
-
             <Switch value={!isPublic} onToggle={(v) => setIsPublic(!v)} />
           </View>
-        </Card>
+        </View>
 
         {/* RESTRICTIONS */}
-        <Card style={styles.cardSoft}>
+        <View style={styles.sectionWrap}>
           <Text style={styles.sectionTitle}>Restrictions</Text>
 
-          <View style={styles.optionBlock}>
+          <View style={styles.optionBlockTwo}>
             <Text style={styles.optionTitle}>Restrict Country</Text>
             <Switch value={restrictCountry} onToggle={setRestrictCountry} />
           </View>
 
-          <View style={styles.optionBlock}>
+          <View style={styles.optionBlockTwo}>
             <Text style={styles.optionTitle}>Restrict State</Text>
             <Switch value={restrictState} onToggle={setRestrictState} />
           </View>
 
-          <View style={styles.optionBlock}>
+          <View style={styles.optionBlockTwo}>
             <Text style={styles.optionTitle}>Restrict Nationality</Text>
             <Switch value={restrictNationality} onToggle={setRestrictNationality} />
           </View>
-        </Card>
+        </View>
       </ScrollView>
 
       {/* BUTTON */}
       <View style={[styles.ctaWrap, { paddingBottom: insets.bottom }]}>
         <TouchableOpacity activeOpacity={0.9} onPress={onSubmit} disabled={loadingSubmit}>
-          <LinearGradient
-            colors={[theme.colors.primary, theme.colors.primary]}
-            style={styles.ctaBtn}
-          >
+          <LinearGradient colors={[theme.colors.primary, theme.colors.primary]} style={styles.ctaBtn}>
             {loadingSubmit ? (
               <ActivityIndicator color="#fff" />
             ) : (
@@ -278,6 +284,7 @@ export default function CreateGroupScreen() {
           </LinearGradient>
         </TouchableOpacity>
       </View>
+
     </SafeAreaView>
   );
 }
@@ -286,6 +293,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
 
   overlayRow: { padding: 10 },
+
   circleBtn: {
     width: 44,
     height: 44,
@@ -295,40 +303,98 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  avatarBorder: {
-    padding: 4,
-    borderWidth: 4,
-    borderRadius: 999,
-  },
-
-  avatar: { width: 100, height: 100, borderRadius: 60 },
-
-  avatarOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: "center",
+  /* IMAGE UPLOAD */
+  uploadBox: {
+    height: 180,
+    borderWidth: 0.5,
+    borderRadius: 12,
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primaryShade,
     alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.45)",
-  },
-  avatarOverlayText: { color: "#fff", marginTop: 4, fontSize: 12 },
-
-  cardSoft: {
-    padding: 18,
-    borderRadius: 20,
-    backgroundColor: "#F2F8F6",
+    justifyContent: "center",
+    overflow: "hidden",
   },
 
-  sectionTitle: { fontSize: 16, fontWeight: "700", marginBottom: 14 },
+  uploadInner: {
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+
+  bannerImg: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 12,
+    resizeMode: "cover",
+  },
+
+  bannerOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  bannerOverlayText: {
+    color: "#fff",
+    marginTop: 6,
+    fontSize: 12,
+    fontWeight: "500",
+  },
+
+  changeHintWrap: {
+    position: "absolute",
+    bottom: 6,
+    right: 6,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+
+  changeHintText: {
+    color: "#fff",
+    fontSize: 12,
+  },
+
+  /* SPACING SYSTEM */
+  sectionWrap: {
+    marginBottom: 28,
+  },
+
+  fieldGap: {
+    height: 16,
+  },
+
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 14,
+    color: "#333",
+  },
 
   optionBlock: {
     padding: 16,
-    borderRadius: 16,
-    marginBottom: 10,
+    borderRadius: 14,
+    marginBottom: 14,
+    backgroundColor: "#F4F4F4",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+    optionBlockTwo: {
+    padding: 16,
+    borderRadius: 14,
+    marginBottom: 14,
+    backgroundColor: "white",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
 
   optionTitle: { fontSize: 15, fontWeight: "600", color: "#333" },
+
   optionSub: { fontSize: 12, color: "#777", marginTop: 2 },
 
   ctaWrap: {
@@ -339,6 +405,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     backgroundColor: "#fff",
   },
+
   ctaBtn: {
     height: 56,
     borderRadius: 999,
