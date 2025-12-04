@@ -148,3 +148,15 @@ export const rejectRequest = async (groupId: string) => {
     throw error;
   }
 };
+export const updateGroup=async (
+  groupId: string | number,
+  data: Record<string, any> | FormData
+)=>{
+    const response = await api.put(`/group/${groupId}`,data);
+    return response.data.data
+}
+
+export const leaveGroup = async (  groupId: any ) => {
+  const response = await api.post(`/group/${groupId}/leave`);
+  return response.data;
+};

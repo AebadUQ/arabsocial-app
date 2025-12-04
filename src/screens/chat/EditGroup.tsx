@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   ScrollView,
@@ -8,39 +8,33 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import { Text } from "@/components";
 import { useTheme } from "@/theme/ThemeContext";
 import InputField from "@/components/Input";
 import LinearGradient from "react-native-linear-gradient";
 import BottomSheetSelect from "@/components/BottomSheetSelect";
 import Switch from "@/components/Switch";
-
 import {
   ArrowLeft as ArrowLeftIcon,
   UploadSimple as UploadSimpleIcon,
 } from "phosphor-react-native";
-
 import { Country, State } from "country-state-city";
 import { launchImageLibrary, Asset } from "react-native-image-picker";
-
-import { uploadGroupImage, createGroup } from "@/api/group";
+import { uploadGroupImage, getGroupDetail, updateGroup } from "@/api/group";
 import { theme } from "@/theme/theme";
-import { useQueryClient } from "@tanstack/react-query";
 
-export default function CreateGroupScreen() {
+export default function EditGroupScreen() {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
-  const queryClient = useQueryClient();
+  const groupId = route?.params?.groupId;
 
-  // FORM STATE
+  // ----------- FORM -----------
   const [groupName, setGroupName] = useState("");
   const [description, setDescription] = useState("");
   const [image, setImage] = useState<string>("");
-
-  const [countries, setCountries] = useState<string[]>([]);
-  const [states, setStates] = useState<string[]>([]);
   const [country, setCountry] = useState<string>("");
   const [state, setState] = useState<string>("");
   const [nationality, setNationality] = useState("");
@@ -50,20 +44,78 @@ export default function CreateGroupScreen() {
   const [restrictState, setRestrictState] = useState(false);
   const [restrictNationality, setRestrictNationality] = useState(false);
 
+  const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [loadingSubmit, setLoadingSubmit] = useState(false);
 
-  // VALIDATION ERRORS
+  // ----------- ERRORS -----------
   const [errors, setErrors] = useState({
     groupName: "",
     description: "",
-    image: "",
     country: "",
     state: "",
     nationality: "",
+    image: "",
   });
 
-  // PICK IMAGE
+  // ----------- COUNTRY / STATE HOOKS ----------
+  const allCountries = useMemo(() => Country.getAllCountries(), []);
+  const [countries, setCountries] = useState<string[]>([]);
+  const [statesList, setStatesList] = useState<string[]>([]);
+
+  useEffect(() => {
+    setCountries(allCountries.map((c) => c.name));
+  }, []);
+
+  useEffect(() => {
+    if (country) {
+      const selected = allCountries.find((x) => x.name === country);
+      const nextStates = State.getStatesOfCountry(selected?.isoCode || "").map(
+        (s) => s.name
+      );
+      setStatesList(nextStates);
+
+      if (state && !nextStates.includes(state)) {
+        setState("");
+      }
+
+      // Auto nationality
+      // @ts-ignore
+      setNationality(selected?.demonym || `${country} Citizen`);
+    } else {
+      setStatesList([]);
+      setState("");
+    }
+  }, [country]);
+
+  // -------- FETCH GROUP DATA --------
+  const fetchGroup = async () => {
+    try {
+      const res = await getGroupDetail(groupId);
+
+      setGroupName(res.name);
+      setDescription(res.description);
+      setImage(res.image);
+      setCountry(res.country ?? "");
+      setState(res.state ?? "");
+      setNationality(res.nationality ?? "");
+
+      setIsPublic(res.isPublic);
+      setRestrictCountry(res.restrictCountry);
+      setRestrictState(res.restrictState);
+      setRestrictNationality(res.restrictNationality);
+    } catch (err) {
+      console.log("Fetch error", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchGroup();
+  }, []);
+
+  // -------- IMAGE PICKER --------
   const pickImage = async () => {
     try {
       const res = await launchImageLibrary({
@@ -72,57 +124,37 @@ export default function CreateGroupScreen() {
       });
 
       if (res.didCancel) return;
-
       const asset = res.assets?.[0] as Asset;
       if (!asset?.uri) return;
 
       setUploading(true);
-      const uploaded = await uploadGroupImage(asset);
-      setImage(uploaded.url);
+      const upload = await uploadGroupImage(asset);
+      setImage(upload.url);
       setErrors((prev) => ({ ...prev, image: "" }));
     } catch (err) {
-      console.log("UPLOAD ERROR:", err);
+      console.log("UPLOAD ERROR", err);
     } finally {
       setUploading(false);
     }
   };
 
-  // LOAD COUNTRIES
-  useEffect(() => {
-    const list = Country.getAllCountries().map((c) => c.name);
-    setCountries(list);
-  }, []);
-
-  useEffect(() => {
-    if (country) {
-      const cObj = Country.getAllCountries().find((c) => c.name === country);
-      const sList = State.getStatesOfCountry(cObj?.isoCode || "").map(
-        (s) => s.name
-      );
-      setStates(sList);
-
-      //@ts-ignore
-      setNationality(cObj?.demonym || `${country} Citizen`);
-      setErrors((prev) => ({ ...prev, country: "" }));
-    }
-  }, [country]);
-
-  // VALIDATION FUNCTION
+  // ---------- VALIDATION ----------
   const validate = () => {
     let newErrors: any = {};
 
-    if (!image) newErrors.image = "Group image is required";
     if (!groupName.trim()) newErrors.groupName = "Group name is required";
     if (!description.trim()) newErrors.description = "Description is required";
     if (!country.trim()) newErrors.country = "Country is required";
     if (!state.trim()) newErrors.state = "State is required";
     if (!nationality.trim()) newErrors.nationality = "Nationality is required";
+    if (!image.trim()) newErrors.image = "Image is required";
 
     setErrors(newErrors);
+
     return Object.keys(newErrors).length === 0;
   };
 
-  // SUBMIT
+  // ---------- SUBMIT ----------
   const onSubmit = async () => {
     if (!validate()) return;
 
@@ -142,45 +174,39 @@ export default function CreateGroupScreen() {
         restrictNationality,
       };
 
-      await createGroup(payload);
-
-      queryClient.invalidateQueries({ queryKey: ["exploreGroups"] });
-
+      await updateGroup(groupId, payload);
       navigation.goBack();
     } catch (err) {
-      console.log("CREATE GROUP ERROR:", err);
+      console.log("UPDATE GROUP ERROR:", err);
     } finally {
       setLoadingSubmit(false);
     }
   };
 
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.center}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+      </SafeAreaView>
+    );
+  }
+
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* BACK BUTTON */}
       <View style={styles.overlayRow}>
-        <TouchableOpacity
-          style={styles.circleBtn}
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity style={styles.circleBtn} onPress={() => navigation.goBack()}>
           <ArrowLeftIcon size={22} color="#fff" weight="bold" />
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        contentContainerStyle={{
-          padding: 20,
-          paddingBottom: insets.bottom + 130,
-        }}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 130 }}>
+        
         {/* IMAGE UPLOAD */}
         <TouchableOpacity style={styles.uploadBox} onPress={pickImage}>
           {image ? (
             <>
               <Image source={{ uri: image }} style={styles.bannerImg} />
-
               {uploading && (
                 <View style={styles.bannerOverlay}>
                   <ActivityIndicator color="#fff" />
@@ -190,15 +216,7 @@ export default function CreateGroupScreen() {
             </>
           ) : (
             <View style={styles.uploadInner}>
-              <View
-                style={{
-                  backgroundColor: theme.colors.primaryShade,
-                  padding: 10,
-                  borderRadius: 20,
-                }}
-              >
-                <UploadSimpleIcon size={24} color={theme.colors.primary} />
-              </View>
+              <UploadSimpleIcon size={24} color={theme.colors.primary} />
               <Text variant="body1" color={theme.colors.textLight}>
                 Upload group image
               </Text>
@@ -209,12 +227,8 @@ export default function CreateGroupScreen() {
         {errors.image && <Text style={styles.error}>{errors.image}</Text>}
 
         {/* GROUP NAME */}
-
-        <View style={{display:'flex',gap:10}}>
-
         <InputField
           label="Group Name"
-          labelColor={theme.colors.textLight}
           value={groupName}
           onChangeText={(t) => {
             setGroupName(t);
@@ -222,32 +236,24 @@ export default function CreateGroupScreen() {
           }}
           inputStyle={{ backgroundColor: "#fff" }}
         />
-        {errors.groupName && (
-          <Text style={styles.error}>{errors.groupName}</Text>
-        )}
+        {errors.groupName && <Text style={styles.error}>{errors.groupName}</Text>}
 
         {/* DESCRIPTION */}
         <InputField
           label="Description"
-                    labelColor={theme.colors.textLight}
-
           value={description}
           multiline
-          numberOfLines={4}
           onChangeText={(t) => {
             setDescription(t);
             if (errors.description) setErrors({ ...errors, description: "" });
           }}
+          numberOfLines={4}
           inputStyle={{ backgroundColor: "#fff" }}
         />
-        {errors.description && (
-          <Text style={styles.error}>{errors.description}</Text>
-        )}
+        {errors.description && <Text style={styles.error}>{errors.description}</Text>}
 
         {/* COUNTRY */}
         <BottomSheetSelect
-                  labelColor={theme.colors.textLight}
-
           label="Country"
           value={country}
           options={countries}
@@ -264,11 +270,9 @@ export default function CreateGroupScreen() {
         {country ? (
           <>
             <BottomSheetSelect
-                      labelColor={theme.colors.textLight}
-
-              label="State / Region"
+              label="State"
               value={state}
-              options={states}
+              options={statesList}
               onChange={(v) => {
                 setState(v);
                 if (errors.state) setErrors({ ...errors, state: "" });
@@ -282,48 +286,26 @@ export default function CreateGroupScreen() {
 
         {/* NATIONALITY */}
         <InputField
-                  labelColor={theme.colors.textLight}
-
           label="Nationality"
           value={nationality}
           onChangeText={(t) => {
             setNationality(t);
-            if (errors.nationality)
-              setErrors({ ...errors, nationality: "" });
+            if (errors.nationality) setErrors({ ...errors, nationality: "" });
           }}
           inputStyle={{ backgroundColor: "#fff" }}
         />
-        {errors.nationality && (
-          <Text style={styles.error}>{errors.nationality}</Text>
-        )}
-        </View>
+        {errors.nationality && <Text style={styles.error}>{errors.nationality}</Text>}
 
         {/* PRIVACY */}
         <Text style={styles.sectionTitle}>Privacy Settings</Text>
 
-        <View
-          style={[
-            styles.optionBlock,
-            { backgroundColor: isPublic ? "#E3F6EE" : "white" },
-          ]}
-        >
-          <View>
-            <Text style={styles.optionTitle}>Public Group</Text>
-            <Text style={styles.optionSub}>Anyone can find and join</Text>
-          </View>
+        <View style={[styles.optionBlock, { backgroundColor: isPublic ? "#E3F6EE" : "#fff" }]}>
+          <Text style={styles.optionTitle}>Public Group</Text>
           <Switch value={isPublic} onToggle={setIsPublic} />
         </View>
 
-        <View
-          style={[
-            styles.optionBlock,
-            { backgroundColor: !isPublic ? "#E3F6EE" : "white" },
-          ]}
-        >
-          <View>
-            <Text style={styles.optionTitle}>Private Group</Text>
-            <Text style={styles.optionSub}>Members need approval</Text>
-          </View>
+        <View style={[styles.optionBlock, { backgroundColor: !isPublic ? "#E3F6EE" : "#fff" }]}>
+          <Text style={styles.optionTitle}>Private Group</Text>
           <Switch value={!isPublic} onToggle={() => setIsPublic(!isPublic)} />
         </View>
 
@@ -332,10 +314,7 @@ export default function CreateGroupScreen() {
 
         <View style={styles.optionBlockTwo}>
           <Text style={styles.optionTitle}>Restrict Country</Text>
-          <Switch
-            value={restrictCountry}
-            onToggle={setRestrictCountry}
-          />
+          <Switch value={restrictCountry} onToggle={setRestrictCountry} />
         </View>
 
         <View style={styles.optionBlockTwo}>
@@ -345,26 +324,18 @@ export default function CreateGroupScreen() {
 
         <View style={styles.optionBlockTwo}>
           <Text style={styles.optionTitle}>Restrict Nationality</Text>
-          <Switch
-            value={restrictNationality}
-            onToggle={setRestrictNationality}
-          />
+          <Switch value={restrictNationality} onToggle={setRestrictNationality} />
         </View>
       </ScrollView>
 
       {/* SUBMIT BUTTON */}
-      <View style={[styles.ctaWrap, { paddingBottom: insets.bottom - 40 }]}>
+      <View style={[styles.ctaWrap, { paddingBottom: insets.bottom }]}>
         <TouchableOpacity onPress={onSubmit} disabled={loadingSubmit}>
-          <LinearGradient
-            colors={[theme.colors.primary, theme.colors.primary]}
-            style={styles.ctaBtn}
-          >
+          <LinearGradient colors={[theme.colors.primary, theme.colors.primary]} style={styles.ctaBtn}>
             {loadingSubmit ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={{ color: "#fff", fontWeight: "700" }}>
-                Create Group
-              </Text>
+              <Text style={{ color: "#fff", fontWeight: "700" }}>Update Group</Text>
             )}
           </LinearGradient>
         </TouchableOpacity>
@@ -373,13 +344,11 @@ export default function CreateGroupScreen() {
   );
 }
 
-// ---------------- STYLES -----------------
-
+/* ------------------ STYLES ------------------ */
 const styles = StyleSheet.create({
   container: { flex: 1 },
-
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
   overlayRow: { padding: 10 },
-
   circleBtn: {
     width: 44,
     height: 44,
@@ -388,7 +357,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-
   uploadBox: {
     height: 180,
     borderRadius: 14,
@@ -398,27 +366,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     overflow: "hidden",
-    marginBottom:10
   },
-
-  uploadInner: { alignItems: "center", gap: 8 },
-
+  uploadInner: { alignItems: "center", gap: 6 },
   bannerImg: { width: "100%", height: "100%", resizeMode: "cover" },
-
   bannerOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: "rgba(0,0,0,0.45)",
     justifyContent: "center",
     alignItems: "center",
   },
-
   bannerOverlayText: { color: "#fff", marginTop: 6 },
-
-  sectionWrap: { marginBottom: 28 },
-  fieldGap: { height: 16 },
-
-  sectionTitle: { fontSize: 16, fontWeight: "700", marginBottom: 16,marginTop:20 },
-
+  sectionTitle: { fontSize: 16, fontWeight: "700", marginBottom: 14 },
   optionBlock: {
     padding: 16,
     borderRadius: 14,
@@ -427,27 +385,22 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-
   optionBlockTwo: {
     padding: 16,
     borderRadius: 14,
+    backgroundColor: "#fff",
     marginBottom: 14,
-    backgroundColor: "white",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-
   optionTitle: { fontSize: 15, fontWeight: "600" },
-  optionSub: { fontSize: 12, color: "#777", marginTop: 2 },
-
   error: {
     color: "red",
-    fontSize: 13,
     marginTop: 4,
     marginBottom: 10,
+    fontSize: 13,
   },
-
   ctaWrap: {
     position: "absolute",
     left: 0,
@@ -455,9 +408,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     paddingHorizontal: 20,
     backgroundColor: "#fff",
-    paddingTop:10,
   },
-
   ctaBtn: {
     height: 56,
     borderRadius: 999,

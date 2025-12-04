@@ -61,6 +61,7 @@ import UserList from "@/screens/chat/UserList";
 import CreateGroupScreen from "@/screens/chat/CreateGroupScreen";
 import GroupChatScreen from "@/screens/chat/GroupDetailScreen";
 import GroupInfoScreen from "@/screens/chat/GroupInfoScreen";
+import EditGroupScreen from "@/screens/chat/EditGroup";
 
 /* ---------------------------------
  * Assets
@@ -133,6 +134,7 @@ export type GroupsStackParamList = {
   Groups: undefined;
   GroupDetail: { group?: any } | undefined;
   GroupInfo: { groupId?: any } | undefined;
+  EditGroup: { groupId?: any } | undefined;
 
   CreateGroupScreen:undefined;
 
@@ -238,6 +240,8 @@ const GroupsStackNav = () => (
   <GroupsStack.Navigator screenOptions={defaultNoHeader}>
     <GroupsStack.Screen name="Chat" component={ChatScreen} />
     <GroupsStack.Screen name="ChatDetail" component={ChatDetailScreen} />
+        <GroupsStack.Screen name="EditGroup" component={EditGroupScreen} />
+
 <GroupsStack.Screen
       name="UserListScreen"
       component={UserList}

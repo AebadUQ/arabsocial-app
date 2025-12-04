@@ -19,6 +19,7 @@ import { useTheme } from "@/theme/ThemeContext";
 
 import LinearGradient from "react-native-linear-gradient";
 import { PlusIcon } from "phosphor-react-native";
+import { useAuth } from "@/context/Authcontext";
 
 const PAGE_SIZE = 10;
 
@@ -26,7 +27,7 @@ export default function ExploreGroupsTab({ search }: any) {
   const queryClient = useQueryClient();
   const { theme } = useTheme();
   const navigation = useNavigation<any>();
-
+const {user} = useAuth()
   const groupsQuery = useInfiniteQuery({
     queryKey: ["exploreGroups", search],
     initialPageParam: 1,
@@ -84,6 +85,7 @@ export default function ExploreGroupsTab({ search }: any) {
         keyExtractor={(i) => String(i.id)}
        renderItem={({ item }) => (
   <GroupCard
+  user={user}
     group={item}
     onJoin={() => handleJoin(item.id)}
     onPress={() => navigation.navigate('GroupInfo', { groupId: item?.id })}

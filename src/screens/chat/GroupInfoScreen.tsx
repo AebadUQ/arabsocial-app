@@ -20,6 +20,9 @@ import {
   XIcon,
   MapPinIcon,
   UsersIcon,
+  GearSix,
+  GearSixIcon,
+  CrownIcon,
 } from "phosphor-react-native";
 import { Text } from "@/components";
 import { useTheme } from "@/theme/ThemeContext";
@@ -31,10 +34,12 @@ import {
   acceptRequest,
   rejectRequest,
   getGroupMembersPendingRequest,
+  leaveGroup,
 } from "@/api/group";
 import { formatTheDate } from "@/utils";
 import Card from "@/components/Card";
 import { theme } from "@/theme/theme";
+import { useQueryClient } from "@tanstack/react-query";
 
 const CTA_HEIGHT = 56;
 
@@ -44,6 +49,7 @@ const GroupInfoScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const groupId = route?.params?.groupId;
 
@@ -68,8 +74,10 @@ const GroupInfoScreen: React.FC = () => {
       const res = await getGroupDetail(groupId);
       setGroup(res);
       fetchGroupMembers();
-      if(owner?.id === user?.id){
-
+        console.log("oid",owner?.id)
+        console.log("s",user?.id)
+      if(res?.owner?.id == user?.id){
+        console.log("heeee")
       fetchPendingRequests();
       }
 
@@ -78,7 +86,7 @@ const GroupInfoScreen: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [groupId]);
+  }, [groupId,user?.id]);
 
   const fetchGroupMembers = async () => {
     try {
@@ -126,22 +134,68 @@ const GroupInfoScreen: React.FC = () => {
       fetchGroupMembers();
     }
   };
+const handleLeaveGroup = async () => {
+  try {
+    await leaveGroup(groupId);
 
-  const handleJoin = async () => {
-    try {
-      const res = await requestToJoin(groupId);
-      const newStatus = res?.data?.status;
+    // ❌ Local status update
+    setGroup((prev: any) => ({
+      ...prev,
+      status: null, // now user is not a member
+    }));
 
-      if (newStatus) {
-        setGroup((prevGroup: any) => ({
-          ...prevGroup,
-          status: newStatus,
-        }));
-      }
-    } catch (error) {
-      console.error("Error joining group:", error);
+    // ♻️ Invalidate relevant queries
+    queryClient.invalidateQueries({ queryKey: ["exploreGroups"] });
+    queryClient.invalidateQueries({ queryKey: ["groupDetail", groupId] });
+    queryClient.invalidateQueries({ queryKey: ["groupMembers", groupId] });
+
+    // 🚀 Navigate back to Chat Screen
+    navigation.navigate("Chat");
+  } catch (error) {
+    console.log("Error leaving group:", error);
+  }
+};
+
+//   const handleJoin = async () => {
+//     try {
+//       const res = await requestToJoin(groupId);
+//       const newStatus = res?.data?.status;
+
+//       if (newStatus) {
+//         setGroup((prevGroup: any) => ({
+//           ...prevGroup,
+//           status: newStatus,
+//         }));
+//       }
+//     } catch (error) {
+//       console.error("Error joining group:", error);
+//     }
+//   };
+const handleJoin = async () => {
+  try {
+    const res = await requestToJoin(groupId);
+    const newStatus = res?.data?.status;
+
+    if (newStatus) {
+      setGroup((prevGroup: any) => ({
+        ...prevGroup,
+        status: newStatus,
+
+      }));
     }
-  };
+
+    // 🚀 If user is instantly auto-approved
+    if (newStatus === "joined") {
+      await fetchGroupMembers();   // 🔥 list refresh
+    }
+          queryClient.invalidateQueries({ queryKey: ["exploreGroups"] });
+
+
+  } catch (error) {
+    console.error("Error joining group:", error);
+  }
+};
+
 
   const handleAccept = async (requestId: string) => {
     try {
@@ -177,7 +231,7 @@ const GroupInfoScreen: React.FC = () => {
 
   const { name, description, image, state, isPublic, createdAt, owner, status } =
     group;
-
+console.log("saasdsa",JSON.stringify(group))
   const bannerSource = { uri: image };
 
   const renderInitials = (name: string) => {
@@ -209,14 +263,26 @@ const GroupInfoScreen: React.FC = () => {
         }
       >
         {/* Back Button */}
-        <View style={styles.topBar}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.iconCircle}
-          >
-            <ArrowLeft size={20} color={theme.colors.text} weight="bold" />
-          </TouchableOpacity>
-        </View>
+       <View style={styles.topBar}>
+  {/* BACK BUTTON */}
+  <TouchableOpacity
+    onPress={() => navigation.goBack()}
+    style={styles.iconCircle}
+  >
+    <ArrowLeft size={20} color={theme.colors.text} weight="bold" />
+  </TouchableOpacity>
+
+  {/* SETTINGS ICON — only owner can see */}
+  {owner?.id === user?.id && (
+    <TouchableOpacity
+      onPress={() => navigation.navigate("EditGroup", { groupId })}
+      style={styles.iconCircle}
+    >
+      <GearSixIcon size={20} color={theme.colors.textLight} weight="bold" />
+    </TouchableOpacity>
+  )}
+</View>
+
 
         {/* Banner */}
         <View style={styles.bannerWrap}>
@@ -250,6 +316,7 @@ const GroupInfoScreen: React.FC = () => {
             </View>
 
             {/* Join Button */}
+            { owner?.id !== user?.id &&
             <TouchableOpacity
               style={styles.joinBtn}
               activeOpacity={0.8}
@@ -267,7 +334,7 @@ const GroupInfoScreen: React.FC = () => {
                     : "Join Group"}
                 </Text>
               </LinearGradient>
-            </TouchableOpacity>
+            </TouchableOpacity>}
 
             <Text
               variant="caption"
@@ -418,6 +485,53 @@ const GroupInfoScreen: React.FC = () => {
               </View>
             )}
           </Card>
+         <Card>
+  <Text variant="body1" color={theme.colors.text}>
+    Group Restrictions
+  </Text>
+
+  <View style={{ marginTop: 10, gap: 6 }}>
+    {/* Country Restriction */}
+    {group?.restrictCountry ? (
+      <Text variant="body2" color={theme.colors.textLight}>
+        • Country restricted to: <Text style={{ fontWeight: "600", color: theme.colors.text }}>
+          {group?.country}
+        </Text>
+      </Text>
+    ) : (
+      <Text variant="body2" color={theme.colors.textLight}>
+        • No country restriction
+      </Text>
+    )}
+
+    {/* State Restriction */}
+    {group?.restrictState ? (
+      <Text variant="body2" color={theme.colors.textLight}>
+        • State restricted to: <Text style={{ fontWeight: "600", color: theme.colors.text }}>
+          {group?.state}
+        </Text>
+      </Text>
+    ) : (
+      <Text variant="body2" color={theme.colors.textLight}>
+        • No state restriction
+      </Text>
+    )}
+
+    {/* Nationality Restriction */}
+    {group?.restrictNationality ? (
+      <Text variant="body2" color={theme.colors.textLight}>
+        • Nationality restricted to: <Text style={{ fontWeight: "600", color: theme.colors.text }}>
+          {group?.nationality}
+        </Text>
+      </Text>
+    ) : (
+      <Text variant="body2" color={theme.colors.textLight}>
+        • No nationality restriction
+      </Text>
+    )}
+  </View>
+</Card>
+
         </View>
 
         {/* MEMBERS */}
@@ -442,7 +556,44 @@ const GroupInfoScreen: React.FC = () => {
                 <Text variant="body1" color={theme.colors.text}>
                   Members
                 </Text>
+ <TouchableOpacity
+                    style={styles.memberCard}
+                    onPress={() =>
+                      navigation.navigate("PublicProfile", {
+                        userId: owner?.id,
+                      })
+                    }
+                  >
+                    <View style={styles.memberAvatar}>
+                      <Text style={styles.memberInitials}>
+                        {renderInitials(owner?.name)}
+                      </Text>
+                    </View>
 
+                    <View style={styles.memberInfo}>
+                      <Text variant="body1" color={theme.colors.text}>
+                        {owner?.name}
+                      </Text>
+
+                      <View
+                        style={[
+                          styles.badge,
+                          {
+                            backgroundColor: theme.colors.primary,
+                            alignSelf: "flex-start",
+                            marginTop: 2,
+                          },
+                        ]}
+                      >
+                      <View style={{display:'flex',flexDirection:'row',gap:6,alignItems:'center'}}>
+                        <CrownIcon size={14} color={theme.colors.textWhite}/>
+                          <Text variant="caption" color={theme.colors.textWhite}>
+                          Admin
+                        </Text>
+                      </View>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
                 {members.map((member, index) => (
                   <TouchableOpacity
                     key={index}
@@ -497,6 +648,21 @@ const GroupInfoScreen: React.FC = () => {
                 )}
               </Card>
             </View>
+                {owner?.id != user?.id && 
+            <TouchableOpacity
+              style={styles.joinBtn}
+              activeOpacity={0.8}
+              onPress={handleLeaveGroup}
+            >
+              <LinearGradient
+                colors={[theme.colors.errorLight,theme.colors.errorLight]}
+                style={styles.joinBtnInner}
+              >
+                <Text style={[styles.joinBtnText,{color:theme.colors.error}]}>
+                 Leave Group
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>}
           </>
         )}
       </ScrollView>
@@ -542,11 +708,13 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { paddingHorizontal: 16 },
   topBar: {
-    paddingTop: 12,
-    paddingBottom: 12,
-    flexDirection: "row",
-    alignItems: "center",
-  },
+  paddingTop: 12,
+  paddingBottom: 12,
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+},
+
   iconCircle: {
     width: 40,
     height: 40,
