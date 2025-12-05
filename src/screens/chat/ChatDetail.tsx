@@ -40,9 +40,11 @@ const ChatDetailScreen = () => {
   const route: any = useRoute();
   const roomId = route.params?.roomId;
   const room = route.params?.room;
+console.log("rrr",JSON.stringify(room))
+console.log("rrr",JSON.stringify(route.params.targetUser))
 
-  const partner = room?.chatUser;
-  const title = partner?.name || "Chat";
+  const partner = room?.chatUser || route?.params?.targetUser;
+  const title = partner?.name || route.params.targetUser?.name || "Chat";
   console.log(":partner",JSON.stringify(partner))
   // ----------------------- STATES -----------------------
   const [messages, setMessages] = useState<any[]>([]);
@@ -246,6 +248,7 @@ const ChatDetailScreen = () => {
         </TouchableOpacity>
 
         {/* Avatar + Name + Status */}
+          
         <View style={{ flexDirection: "row", alignItems: "center" }}>
           {/* AVATAR WRAPPER */}
           <View style={{ position: "relative", marginRight: 10 }}>
@@ -285,7 +288,7 @@ const ChatDetailScreen = () => {
                 width: 12,
                 height: 12,
                 borderRadius: 6,
-                backgroundColor: onlineUsers?.[partner?.id] ? "#00D26A" : "#9E9E9E",
+                backgroundColor: onlineUsers?.[partner?.id ] ? "#00D26A" : "#9E9E9E",
                 borderWidth: 2,
                 borderColor: "#fff",
               }}

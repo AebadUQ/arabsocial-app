@@ -25,7 +25,7 @@ export const SocketProvider = ({
     if (!token) return;
 
     // 🔥 Create socket instance
-    const s: Socket = io("http://192.168.18.29:3001", {
+    const s: Socket = io("http://192.168.18.29:5001", {
       transports: ["websocket"],
       auth: { token },
     });

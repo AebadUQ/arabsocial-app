@@ -23,9 +23,12 @@ import { Country, State } from "country-state-city";
 import { launchImageLibrary, Asset } from "react-native-image-picker";
 import { uploadGroupImage, getGroupDetail, updateGroup } from "@/api/group";
 import { theme } from "@/theme/theme";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function EditGroupScreen() {
   const navigation = useNavigation<any>();
+    const queryClient = useQueryClient();
+
   const route = useRoute<any>();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
@@ -175,7 +178,9 @@ export default function EditGroupScreen() {
       };
 
       await updateGroup(groupId, payload);
-      navigation.goBack();
+    queryClient.invalidateQueries({ queryKey: ["exploreGroups"] });
+
+      navigation.navigate('Chat');
     } catch (err) {
       console.log("UPDATE GROUP ERROR:", err);
     } finally {

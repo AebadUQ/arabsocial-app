@@ -121,12 +121,15 @@ export default function UserListScreen() {
 
     try {
       const res = await initialChat({ user2Id: user.id });
+      const room = res?.data
       const newRoomId = res.data.id;
+
 
       queryClient.invalidateQueries({ queryKey: ["chatRooms"] });
       navigation.navigate("ChatDetail", {
         roomId: newRoomId,
         targetUser: user,
+        room:room
       });
     } catch (err) {
       console.log("Room create error:", err);

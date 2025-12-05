@@ -2,6 +2,7 @@ import React from "react";
 import { View, Image, StyleSheet, TouchableOpacity } from "react-native";
 import { Text } from "@/components";
 import { useTheme } from "@/theme/ThemeContext";
+import { theme } from "@/theme/theme";
 
 interface Props {
   group: any;
@@ -133,11 +134,11 @@ const styles = StyleSheet.create({
     borderBottomColor: "rgba(0,0,0,0.06)",
     gap: 12,
   },
-  avatar: { width: AVATAR, height: AVATAR, borderRadius: 8 },
+  avatar: { width: AVATAR, height: AVATAR, borderRadius: 999 },
   initialsCircle: {
     width: AVATAR,
     height: AVATAR,
-    borderRadius: 8,
+    borderRadius: 999,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -145,28 +146,28 @@ const styles = StyleSheet.create({
   middle: { flex: 1 },
 
   joinBtn: {
-    backgroundColor: "#1a8f63",
+    // backgroundColor: "#1a8f63",
     paddingVertical: 6,
     paddingHorizontal: 14,
     borderRadius: 8,
   },
-  joinText: { color: "#fff", fontWeight: "600" },
+  joinText: { color: theme.colors.primary, fontWeight: "500" },
 
   joinedBtn: {
-    backgroundColor: "#d4ffd4",
+    backgroundColor: theme.colors.primary,
     paddingVertical: 6,
     paddingHorizontal: 14,
-    borderRadius: 8,
+    borderRadius: 999,
   },
-  joinedText: { color: "#16a34a", fontWeight: "700" },
+  joinedText: { color:theme.colors.textWhite, fontWeight: "500" },
 
   pendingBtn: {
-    backgroundColor: "#fff4cc",
+    backgroundColor: theme.colors.primaryLight,
     paddingVertical: 6,
     paddingHorizontal: 14,
-    borderRadius: 8,
+    borderRadius: 999,
   },
-  pendingText: { color: "#b08200", fontWeight: "700" },
+  pendingText: { color:theme.colors.primary, fontWeight: "500" },
 
   // ❌ Restricted button
   disabledBtn: {

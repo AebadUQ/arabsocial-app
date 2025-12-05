@@ -76,7 +76,7 @@ const GroupInfoScreen: React.FC = () => {
       fetchGroupMembers();
         console.log("oid",owner?.id)
         console.log("s",user?.id)
-      if(res?.owner?.id == user?.id){
+      if(res?.owner?.id == user?.id && !isPublic){
         console.log("heeee")
       fetchPendingRequests();
       }
@@ -346,7 +346,7 @@ console.log("saasdsa",JSON.stringify(group))
           </View>
 
           {/* PENDING REQUESTS */}
-          {owner?.id === user?.id && 
+          {owner?.id === user?.id  && !isPublic && 
           <Card>
             <View
               style={{

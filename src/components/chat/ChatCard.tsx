@@ -3,6 +3,7 @@ import { View, Image, StyleSheet, TouchableOpacity } from "react-native";
 import { Text } from "@/components";
 import { useTheme } from "@/theme/ThemeContext";
 import { formatDate } from "@/utils";
+import { theme } from "@/theme/theme";
 
 export default function ChatCard({ chat, online, onPress }: any) {
   const { theme } = useTheme();
@@ -122,14 +123,14 @@ const styles = StyleSheet.create({
     height: 22,
     paddingHorizontal: 5,
     borderRadius: 11,
-    backgroundColor: "#FF3B30",
+    backgroundColor: theme.colors.primaryLight,
     justifyContent: "center",
     alignItems: "center",
     marginTop: 4,
   },
 
   unreadText: {
-    color: "#fff",
+    color: theme.colors.primary,
     fontSize: 12,
     fontWeight: "700",
   },

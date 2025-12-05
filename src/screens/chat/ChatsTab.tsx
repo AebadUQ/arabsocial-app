@@ -56,6 +56,7 @@ export default function ChatsTab({ search }: any) {
     const refresh = () => chatQuery.refetch();
 
     // socket.on("chat_list_update", refresh);
+    
     socket.on("new_message", refresh);
 
     return () => {
