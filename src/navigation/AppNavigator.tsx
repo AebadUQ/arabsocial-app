@@ -1,5 +1,5 @@
 // src/navigation/AppNavigator.tsx
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import {
@@ -71,6 +71,8 @@ import PrivacyPolicyScreen from "@/screens/settings/PrivacyPolicy";
 import TermsConditonScreen from "@/screens/settings/TermsConditon";
 import ContactSupportScreen from "@/screens/settings/ContactSupport";
 import ChangePasswordScreen from "@/screens/auth/ChangePasswordScreen";
+import CompleteProfileModal from "@/components/modal/CompleteProfile";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 /* ---------------------------------
  * Assets
@@ -99,6 +101,7 @@ export type RootStackParamList = {
   Notifications: undefined;
   PublicProfile: { userId: string };
 ChangePassword: undefined;
+  ProfileEdit: undefined;
 
 };
 
@@ -452,16 +455,18 @@ const RootDrawer = () => (
 /* ---------------------------------
  * Auth stack (unauthenticated flow)
  * --------------------------------- */
-const AuthStackNav = () => (
-  <AuthStackNavStack.Navigator screenOptions={defaultNoHeader}>
+const AuthStackNav = ({ initialRouteName }: { initialRouteName: keyof AuthStackParamList }) => (
+  <AuthStackNavStack.Navigator
+    screenOptions={defaultNoHeader}
+    initialRouteName={initialRouteName}
+  >
     <AuthStackNavStack.Screen name="GetStarted" component={GetStartedScreen} />
     <AuthStackNavStack.Screen name="Login" component={LoginScreen} />
     <AuthStackNavStack.Screen name="Register" component={RegisterScreen} />
     <AuthStackNavStack.Screen name="OTP" component={OTPScreen} />
-<AuthStackNavStack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+    <AuthStackNavStack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
     <AuthStackNavStack.Screen name="VerifyOtp" component={VerifyOtpScreen} />
     <AuthStackNavStack.Screen name="ResetPassword" component={ResetPasswordScreen} />
-
   </AuthStackNavStack.Navigator>
 );
 
@@ -469,44 +474,49 @@ const AuthStackNav = () => (
  * App Navigator: Switch based on auth state
  * --------------------------------- */
 const AppNavigator: React.FC = () => {
-  const { token, loading } = useAuth();
+  const { user, token, loading, isProfileIncomplete } = useAuth();
 
-  if (loading) {
-    return null;
+  const [visible, setvisible] = useState(false);
+  const [hasSeenOnboarding, setHasSeenOnboarding] = useState<boolean | null>(null);
+
+  // Load onboarding flag only once
+  useEffect(() => {
+    const loadFlag = async () => {
+      const flag = await AsyncStorage.getItem("hasSeenOnboarding");
+      setHasSeenOnboarding(flag === "true");
+    };
+    loadFlag();
+  }, []);
+
+  // profile modal logic
+  useEffect(() => {
+    if (user && isProfileIncomplete(user)) setvisible(true);
+    else setvisible(false);
+  }, [user]);
+
+  if (loading || hasSeenOnboarding === null) {
+    return null; // wait for storage
   }
 
   return (
     <NavigationContainer>
       {token ? (
         <RootStack.Navigator screenOptions={defaultNoHeader}>
-          {/* whole app shell (drawer + tabs) */}
           <RootStack.Screen name="Main" component={RootDrawer} />
-
-          {/* notifications modal-like */}
-          <RootStack.Screen
-            name="Notifications"
-            component={NotificationsScreen}
-            options={{
-              presentation: "transparentModal",
-              animation: "none",
-              headerShown: false,
-            }}
-          />
-
-          {/* global public profile */}
-          <RootStack.Screen
-            name="PublicProfile"
-            component={PublicProfileScreen}
-            options={{ headerShown: false }}
-          />
-            <RootStack.Screen name="ChangePassword" component={ChangePasswordScreen} />
-
+          <RootStack.Screen name="Notifications" component={NotificationsScreen} />
+          <RootStack.Screen name="PublicProfile" component={PublicProfileScreen} />
+          <RootStack.Screen name="ChangePassword" component={ChangePasswordScreen} />
+          <RootStack.Screen name="ProfileEdit" component={ProfileEditScreen} />
         </RootStack.Navigator>
       ) : (
-        <AuthStackNav />
+        
+        <AuthStackNav initialRouteName={hasSeenOnboarding ? "Login" : "GetStarted"} />
       )}
+
+      <CompleteProfileModal visible={visible} setVisible={setvisible} />
     </NavigationContainer>
   );
 };
+
 
 export default AppNavigator;

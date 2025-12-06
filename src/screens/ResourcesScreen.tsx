@@ -46,7 +46,7 @@ const ResourcesScreen: React.FC = () => {
       url: "https://www.tiktok.com/@arabsocial",
     },
     {
-      label: "Website",
+      label: "About Us",
       Icon: ShareNetwork,
       url: "https://arabsocials.com",
     },
@@ -116,8 +116,7 @@ const ResourcesScreen: React.FC = () => {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {/* WhatsApp Highlight Card */}
-        <TouchableOpacity
+        {/* <TouchableOpacity
           activeOpacity={0.9}
           onPress={handleWhatsAppPress}
           style={styles.whatsappWrapper}
@@ -129,7 +128,6 @@ const ResourcesScreen: React.FC = () => {
             style={styles.whatsappCard}
           >
             <View style={styles.whatsappInner}>
-              {/* Top row: icon + arrow */}
               <View style={styles.whatsappHeaderRow}>
                 <View style={styles.whatsappIconWrap}>
                   <WhatsappLogo size={32} color="#fff" weight="regular" />
@@ -140,7 +138,6 @@ const ResourcesScreen: React.FC = () => {
                 </View>
               </View>
 
-              {/* Title + subtitle */}
               <View style={styles.whatsappTextBlock}>
                 <Text variant="h5" color="#fff" style={styles.whatsappTitle}>
                   Join Our WhatsApp Groups
@@ -155,10 +152,8 @@ const ResourcesScreen: React.FC = () => {
                 </Text>
               </View>
 
-              {/* Divider */}
               <View style={styles.whatsappDivider} />
 
-              {/* Meta row */}
               <View style={styles.whatsappMetaRow}>
                 <View style={styles.whatsappMetaItem}>
                   <Users size={18} color="#fff" />
@@ -175,7 +170,7 @@ const ResourcesScreen: React.FC = () => {
               </View>
             </View>
           </LinearGradient>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
         <Text
           variant="body1"

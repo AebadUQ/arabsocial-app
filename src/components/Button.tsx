@@ -31,7 +31,7 @@ const Button: React.FC<ButtonProps> = ({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: theme.colors.primary,
-    borderRadius: 8,
+    borderRadius: 999,
     paddingVertical: 12,
     opacity: disabled || loading ? 0.6 : 1,
     width: fullWidth ? '100%' : undefined,

@@ -19,17 +19,20 @@ import { RegisterPayload, LoginPayload } from "../api/types";
 const TOKEN_KEY = "authToken";
 const USER_KEY = "authUser";
 
-// ✅ Type definition
 type AuthContextType = {
   user: any | null;
   token: string | null;
   loading: boolean;
+
   login: (data: LoginPayload) => Promise<void>;
   register: (data: RegisterPayload) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (data: any) => Promise<void>;
-  verifyOtpLogin:any
-  deleteAccount:any
+
+  verifyOtpLogin: (data: { email: string; otp: string }) => Promise<boolean>;
+  deleteAccount: () => Promise<void>;
+
+  isProfileIncomplete: (user?: any) => boolean; // optional helper
 };
 
 // ✅ Create context
@@ -104,6 +107,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     initAuth();
   }, []);
+const isProfileIncomplete = (user: any) => {
+  if (!user) return true;
+
+  return (
+    !user.name ||
+    !user.country ||
+    !user.state ||
+    !user.profession ||
+    !user.nationality ||
+    !user.education ||
+    !user.marital_status ||
+
+
+    !user.about_me ||
+    // !user.age ||
+
+
+    !user.gender
+  );
+};
 
   // ------------------------------------------------------
   // 🔹 Login
@@ -240,8 +263,9 @@ const deleteAccount = async () => {
         logout,
         verifyOtpLogin,
         updateProfile,
-        deleteAccount
-        
+        deleteAccount,
+            isProfileIncomplete: () => isProfileIncomplete(user)
+
         
       }}
     >

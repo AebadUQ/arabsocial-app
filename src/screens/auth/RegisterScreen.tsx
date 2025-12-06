@@ -107,7 +107,7 @@ const RegisterScreen = () => {
                 textAlign="center"
                 style={styles.title}
               >
-                Register
+                Create Your Account?
               </Text>
 
               <Text
@@ -116,12 +116,12 @@ const RegisterScreen = () => {
                 textAlign="center"
                 style={styles.subtitle}
               >
-                Create your account to continue.
-              </Text>
+Please enter your account details to continue.              </Text>
 
               {/* Inputs */}
               <View style={styles.inputContainer}>
                 <InputField
+                label="Full Name*"
                   placeholder="Name"
                   value={name}
                   onChangeText={setName}
@@ -129,6 +129,7 @@ const RegisterScreen = () => {
                 />
 
                 <InputField
+                label="Email Address"
                   placeholder="Email"
                   value={email}
                   onChangeText={setEmail}
@@ -138,6 +139,15 @@ const RegisterScreen = () => {
                 />
 
                 {/* ⭐ Phone Input (safe inside ScrollView) */}
+               <View>
+                 <Text
+                          style={[
+                            
+                            {marginBottom:6,  color: theme.colors.textWhite},
+                          ]}
+                        >
+                          Phone Number
+                        </Text>
                 <PhoneInput
                   ref={phoneInputRef}
                   defaultValue={phone}
@@ -158,8 +168,10 @@ const RegisterScreen = () => {
                 {errors.phone && (
                   <RNText style={styles.errorText}>{errors.phone}</RNText>
                 )}
+               </View>
 
                 <InputField
+                label="Password*"
                   placeholder="Password"
                   value={password}
                   onChangeText={setPassword}
@@ -206,7 +218,7 @@ const RegisterScreen = () => {
                     style={styles.loginText}
                     onPress={() =>{
                       //@ts-ignore
-                      
+                      navigation.navigate('Login')
                     }}
                   >
                     Login
@@ -225,22 +237,26 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   vectorBackground: { ...StyleSheet.absoluteFillObject },
   inner: { paddingHorizontal: 24, paddingTop: 16 },
-  logoContainer: { alignItems: "center", marginVertical: 20 },
-  title: { marginTop: 16 },
+  logoContainer: { alignItems: "center", marginVertical: 0 },
+  title: { marginTop: 0 },
   subtitle: { marginVertical: 12 },
-  inputContainer: { gap: 16 },
+  inputContainer: { gap: 16,marginBottom:30,marginTop:10 },
   phoneContainer: {
     width: "100%",
     height: 56,
-    borderRadius: 10,
     borderWidth: 1,
     borderColor: "#ddd",
-    backgroundColor: "#fff",
+    backgroundColor:'white',
+    borderRadius:999
   },
   phoneTextContainer: {
-    backgroundColor: "#fff",
     borderTopRightRadius: 10,
     borderBottomRightRadius: 10,
+        borderRadius:999,
+            backgroundColor:'transparent',
+            overflow:'hidden'
+
+
   },
   errorText: {
     color: "red",
@@ -262,8 +278,8 @@ const styles = StyleSheet.create({
   socialContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 20,
-    gap: 12,
+    marginVertical: 10,
+    gap: 10,
   },
   line: { flex: 1, height: 1, backgroundColor: "#ccc" },
   loginRedirect: { alignItems: "center", marginTop: 10, marginBottom: 40 },

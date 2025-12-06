@@ -70,6 +70,7 @@ const LoginScreen: React.FC = () => {
 
             <View style={styles.inputContainer}>  
               <InputField  
+              label='Email Address*'
                 placeholder="Email"  
                 value={email}  
                 onChangeText={setEmail}  
@@ -81,6 +82,7 @@ const LoginScreen: React.FC = () => {
                 error={errors.email}  
               />  
               <InputField  
+              label='Password*'
                 placeholder="Password"  
                 value={password}  
                 onChangeText={setPassword}  

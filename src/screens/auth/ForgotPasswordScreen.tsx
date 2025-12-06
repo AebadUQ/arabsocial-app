@@ -51,7 +51,7 @@ const ForgotPasswordScreen = () => {
 
         {/* 🔙 Back Button */}
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <ArrowLeft size={26} color={theme.colors.textWhite} />
+          <ArrowLeft size={20} color={theme.colors.textWhite} />
         </TouchableOpacity>
 
         <View style={styles.inner}>
@@ -74,11 +74,12 @@ const ForgotPasswordScreen = () => {
           </Text>
 
           <InputField
+          label="Email Address*"
             placeholder="Email"
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
-            containerStyle={{ marginBottom: 10 }}
+            containerStyle={{ marginBottom: 20 }}
             error={error}
           />
 
@@ -94,10 +95,16 @@ const styles = StyleSheet.create({
   bg: { ...StyleSheet.absoluteFillObject },
 
   backBtn: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    zIndex: 10,
-  },
+  width: 42,
+  height: 42,
+  borderRadius: 21,
+  backgroundColor: "rgba(255,255,255,0.25)", // light white with transparency
+  justifyContent: "center",
+  alignItems: "center",
+  marginLeft: 16,
+  marginTop: 10,
+},
+
 
   inner: {
     flex: 1,

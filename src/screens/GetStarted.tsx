@@ -5,12 +5,15 @@ import { useTheme } from '../theme/ThemeContext';
 import { Button } from '../components';
 import { useNavigation } from '@react-navigation/native';
 import Logo from '../assets/images/logo.svg';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const GetStartedScreen: React.FC = () => {
   const { theme } = useTheme();
   const navigation = useNavigation();
 
-  const handleGetStarted = () => {
+  const handleGetStarted = async() => {
+      await AsyncStorage.setItem("hasSeenOnboarding", "true");
+
     // @ts-ignore
     navigation.navigate && navigation.navigate('Login');
   };

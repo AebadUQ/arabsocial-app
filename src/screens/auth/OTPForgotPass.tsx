@@ -28,7 +28,7 @@ const VerifyOtpScreen: React.FC = () => {
 
   const [loading, setLoading] = useState(false);
 
-  const [timer, setTimer] = useState(3); // 5 min = 300 seconds
+  const [timer, setTimer] = useState(300); // 5 min = 300 seconds
   const [canResend, setCanResend] = useState(false);
 
   const inputsRef = Array.from({ length: 6 }).map(() =>
@@ -105,7 +105,7 @@ const VerifyOtpScreen: React.FC = () => {
       await resendForgotPassOtp(email);
 
 
-      setTimer(3); // restart timer
+      setTimer(300);      // reset to 5 minutes
       setCanResend(false);
       setOtp(["", "", "", "", "", ""]);
 
@@ -219,7 +219,16 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   vectorBackground: { ...StyleSheet.absoluteFillObject },
 
-  backBtn: { paddingHorizontal: 20, paddingVertical: 10 },
+  backBtn: {
+  width: 42,
+  height: 42,
+  borderRadius: 21,
+  backgroundColor: "rgba(255,255,255,0.25)", // light white with transparency
+  justifyContent: "center",
+  alignItems: "center",
+  marginLeft: 16,
+  marginTop: 10,
+},
 
   inner: { flex: 1, paddingHorizontal: 24, paddingTop: 10 },
 

@@ -1,3 +1,4 @@
+// src/components/modal/CompleteProfileModal.tsx
 import { theme } from '@/theme/theme';
 import React from 'react';
 import {
@@ -8,52 +9,85 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import Text from '../Text';
+import LinearGradient from 'react-native-linear-gradient';
+import { useNavigation } from '@react-navigation/native';
+
 type Props = {
+  name?: string;
   visible: boolean;
-  onClose: () => void;
-  onProceed: () => void;
-  title: string;
+  setVisible: (v: boolean) => void;  // parent will send setter
 };
 
 const CompleteProfileModal: React.FC<Props> = ({
+  name = "Complete Your Profile",
   visible,
-  onClose,
-  onProceed,
-  title,
+  setVisible,
 }) => {
+
+  const navigation = useNavigation<any>();
+
+  // 👉 Close modal only
+  const handleClose = () => {
+    setVisible(false);
+  };
+
+  // 👉 Go to profile edit AND close modal
+  const handleProceed = () => {
+    setVisible(false);
+    navigation.navigate("ProfileEdit");
+  };
+
   return (
     <Modal
       visible={visible}
       transparent
       animationType="fade"
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
     >
       <View style={styles.backdrop}>
         <View style={styles.modalBox}>
+          
           <Image
             source={require('@/assets/images/no-profile.png')}
             style={styles.avatar}
             resizeMode="contain"
           />
 
-          <Text variant='h5' fontWeight='bold'>{`${title}`}</Text>
-
-          <Text variant='body1' style={styles.description} color={theme.colors.textLight}>
-            Set up your profile now to unlock connections and opportunities.
+          <Text variant="h5" fontWeight="bold">
+            {name}
           </Text>
 
-          <View style={styles.btnRow}>
-            <TouchableOpacity style={styles.skipBtn} onPress={onClose}>
-              <Text variant='caption'  style={styles.skipTxt}>Skip</Text>
-            </TouchableOpacity>
+          <Text
+            variant="body1"
+            style={styles.description}
+            color={theme.colors.textLight}
+          >
+            Complete your profile to unlock meaningful connections and exciting opportunities.
+          </Text>
 
-            <TouchableOpacity
-              style={[styles.proceedBtn, { borderColor: theme.colors.primary, backgroundColor: theme.colors.primary }]}
-              onPress={onProceed}
-            >
-              <Text variant='caption' style={styles.proceedTxt}>Proceed</Text>
+          {/* Main Proceed Button */}
+          <View style={styles.shadowWrap}>
+            <TouchableOpacity activeOpacity={0.9} onPress={handleProceed}>
+              <LinearGradient
+                colors={["#1BAD7A", "#1BAD7A"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.gradientBtn}
+              >
+                <Text variant='body1' color={theme.colors.textWhite} fontWeight='bold'>
+                  Let’s do now
+                </Text>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
+
+          {/* Close (Later) */}
+          <TouchableOpacity style={{ marginTop: 14 }} onPress={handleClose}>
+            <Text variant="caption" color={theme.colors.textLight}>
+              Maybe later
+            </Text>
+          </TouchableOpacity>
+
         </View>
       </View>
     </Modal>
@@ -63,57 +97,43 @@ const CompleteProfileModal: React.FC<Props> = ({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
   },
   modalBox: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 16,
     padding: 32,
-    width: '100%',
+    width: "100%",
     maxWidth: 340,
-    alignItems: 'center',
+    alignItems: "center",
   },
   avatar: {
-    width: 80,
-    height: 80,
+    width: 100,
+    height: 100,
     marginBottom: 8,
   },
-  
   description: {
-    textAlign: 'center',
-    marginVertical: 20,
+    textAlign: "center",
+    marginVertical: 16,
   },
-  btnRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    gap: 12,
+  shadowWrap: {
+    width: "100%",
+    marginTop: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 14,
+    elevation: 8,
   },
-  skipBtn: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#191D21',
-    borderRadius: 8,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  skipTxt: {
-    fontWeight: '600',
-    color: '#191D21',
-  },
-  proceedBtn: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  proceedTxt: {
-    fontWeight: '600',
-    color: '#fff',
+  gradientBtn: {
+    height: 50,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
   },
 });
 
