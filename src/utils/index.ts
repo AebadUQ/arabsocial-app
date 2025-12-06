@@ -142,3 +142,4 @@ export const debounce = <T extends (...args: any[]) => any>(
     timeout = setTimeout(() => func(...args), wait);
   };
 };
+export const urlRegex = /((https?:\/\/|www\.)\S+|\b[a-zA-Z0-9-]+\.[a-zA-Z]{2,}\b)/gi;

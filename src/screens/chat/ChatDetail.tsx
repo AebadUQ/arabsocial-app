@@ -23,6 +23,8 @@ import { getChatRoomMessage } from "@/api/chat";
 import { useAuth } from "@/context/Authcontext";
 import { useSocket } from "@/context/SocketContext";
 import { useQueryClient } from "@tanstack/react-query";
+import { showSnack } from "@/components/common/CustomSnackbar";
+import { urlRegex } from "@/utils";
 
 const PAGE_SIZE = 10;
 
@@ -155,20 +157,28 @@ console.log("rrr",JSON.stringify(route.params.targetUser))
   }, [socket]);
 
   // ----------------------- SEND MESSAGE -----------------------
-  const sendMessage = () => {
-    if (!input.trim() || !socket) return;
 
-    socket.emit("send_message", {
-      roomId,
-      senderId: currentUserId,
-      messageType: "text",
-      content: input.trim(),
-    });
+const sendMessage = () => {
+  if (!input.trim() || !socket) return;
 
-    setInput("");
+  // 🔒 Block links inside messages
+  if (urlRegex.test(input)) {
+      showSnack('Links are not allowed', "error");
+    return;
+  }
 
-    socket.emit("stop_typing", { roomId, userId: currentUserId });
-  };
+  socket.emit("send_message", {
+    roomId,
+    senderId: currentUserId,
+    messageType: "text",
+    content: input.trim(),
+  });
+
+  setInput("");
+
+  socket.emit("stop_typing", { roomId, userId: currentUserId });
+};
+
 
   const handleInput = (text: string) => {
     setInput(text);

@@ -25,7 +25,6 @@ import MembersScreen from "@/screens/members/MembersScreen";
 import BusinessScreen from "@/screens/business/BusinessScreen";
 import BusinessDetailScreen from "@/screens/business/BusinessDetail";
 import GroupsScreen from "@/screens/chat/ChatScreen";
-import SettingsScreen from "@/screens/SettingsScreen";
 import NotificationsScreen from "@/screens/NotificationScreen";
 import EventDetailScreen from "@/screens/events/EventDetail";
 import AddEventScreen from "@/screens/events/AddEvent";
@@ -38,6 +37,12 @@ import EditBusinessScreen from "@/screens/business/EditBusiness";
 import CreateJobScreen from "@/screens/business/CreateJob";
 import JobDetailScreen from "@/screens/business/JobDetails";
 import EditJobScreen from "@/screens/business/EditJob";
+
+
+// settings
+import SettingsScreen from "@/screens/settings/SettingsScreen";
+import HelpScreen from "@/screens/settings/HelpScreen";
+
 
 // 👉 Add your Resources screen import
 // Adjust the path/name if your file is named differently (e.g., "@/screens/Resources")
@@ -62,6 +67,10 @@ import CreateGroupScreen from "@/screens/chat/CreateGroupScreen";
 import GroupChatScreen from "@/screens/chat/GroupDetailScreen";
 import GroupInfoScreen from "@/screens/chat/GroupInfoScreen";
 import EditGroupScreen from "@/screens/chat/EditGroup";
+import PrivacyPolicyScreen from "@/screens/settings/PrivacyPolicy";
+import TermsConditonScreen from "@/screens/settings/TermsConditon";
+import ContactSupportScreen from "@/screens/settings/ContactSupport";
+import ChangePasswordScreen from "@/screens/auth/ChangePasswordScreen";
 
 /* ---------------------------------
  * Assets
@@ -89,6 +98,8 @@ export type RootStackParamList = {
   Main: undefined; // Drawer containing tabs etc.
   Notifications: undefined;
   PublicProfile: { userId: string };
+ChangePassword: undefined;
+
 };
 
 // Auth stack (login/register flow BEFORE token)
@@ -101,6 +112,7 @@ ForgotPassword: undefined;
 
   VerifyOtp: { email: string };
   ResetPassword: { email: string };
+
 };
 
 // Events tab stack
@@ -148,6 +160,16 @@ export type GroupsStackParamList = {
 // Settings tab stack
 export type SettingsStackParamList = {
   Settings: undefined;
+  Help:undefined;
+  ContactSupport:undefined;
+  PrivacyPolicy:undefined;
+
+  TermsConditions:undefined;
+  ChangePassword:undefined
+
+
+
+
 };
 
 // ✅ Resources stack
@@ -262,6 +284,12 @@ const GroupsStackNav = () => (
 const SettingsStackNav = () => (
   <SettingsStack.Navigator screenOptions={defaultNoHeader}>
     <SettingsStack.Screen name="Settings" component={SettingsScreen} />
+    <SettingsStack.Screen name="Help" component={HelpScreen} />
+    <SettingsStack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+    <SettingsStack.Screen name="TermsConditions" component={TermsConditonScreen} />
+    <SettingsStack.Screen name="ContactSupport" component={ContactSupportScreen} />
+
+
   </SettingsStack.Navigator>
 );
 
@@ -471,6 +499,8 @@ const AppNavigator: React.FC = () => {
             component={PublicProfileScreen}
             options={{ headerShown: false }}
           />
+            <RootStack.Screen name="ChangePassword" component={ChangePasswordScreen} />
+
         </RootStack.Navigator>
       ) : (
         <AuthStackNav />

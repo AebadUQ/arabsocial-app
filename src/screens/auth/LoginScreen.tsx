@@ -47,7 +47,7 @@ const LoginScreen: React.FC = () => {
 // navigation.replace("Main");
 
     } catch (error: any) {  
-      Alert.alert('Login Failed', error?.response?.data?.message || error.message || 'Something went wrong');  
+      // Alert.alert('Login Failed', error?.response?.data?.message || error.message || 'Something went wrong');  
     }  
   };
 

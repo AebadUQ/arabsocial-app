@@ -91,3 +91,15 @@ export const resendForgotPassOtp = async (email: string) => {
   const response = await api.post("/users/forgot-password/resend-otp", { email });
   return response.data;
 };
+export const deleteUserAccount = async () => {
+  const response = await api.delete("/users/delete-account");
+  return response.data;
+};
+export const changePassword = async (data: {
+  oldPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}) => {
+  const res = await api.patch("/users/change-password", data);
+  return res.data;
+};

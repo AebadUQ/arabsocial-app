@@ -8,7 +8,6 @@ import MembersScreen from '../screens/members/MembersScreen'
 import BusinessScreen from '../screens/business/BusinessScreen';
 import GroupScreen from '../screens/chat/ChatScreen'
 import ProfileScreen from '../screens/profile/ProfileScreen';
-import SettingsScreen from '../screens/SettingsScreen';
 
 const Tab = createBottomTabNavigator();
 

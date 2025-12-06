@@ -15,7 +15,7 @@ import { Button, Text } from '@/components';
 import { ArrowLeft } from 'phosphor-react-native';
 
 import { useAuth } from "@/context/Authcontext";
-import { resendVerificationOtp } from "@/api/auth";
+import { resendVerificationOtp, verifyOtp } from "@/api/auth";
 
 const OTPScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -77,7 +77,8 @@ const OTPScreen: React.FC = () => {
 
     try {
       setLoading(true);
-      await resendVerificationOtp(email );
+      await verifyOtp({email,otp:code} );
+      navigation.navigate('Login')
     } catch (err) {
       setOtp(["", "", "", "", "", ""]);
     } finally {

@@ -22,6 +22,8 @@ import { useTheme } from "@/theme/ThemeContext";
 import { useAuth } from "@/context/Authcontext";
 import { useSocket } from "@/context/SocketContext";
 import { useQueryClient } from "@tanstack/react-query";
+import { urlRegex } from "@/utils";
+import { showSnack } from "@/components/common/CustomSnackbar";
 
 const PAGE_SIZE = 10;
 
@@ -148,7 +150,10 @@ const ChatDetailScreen = () => {
   // ----------------------- SEND MESSAGE -----------------------
   const sendMessage = () => {
     if (!input.trim() || !socket) return;
-
+ if (urlRegex.test(input)) {
+      showSnack('Links are not allowed', "error");
+    return;
+  }
     socket.emit("group_chat:send_message", {
       groupId,
       senderId: currentUserId,

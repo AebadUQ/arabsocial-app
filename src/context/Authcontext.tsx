@@ -12,6 +12,7 @@ import {
   getUserProfile,
   editUserProfile,
   verifyOtp,
+  deleteUserAccount,
 } from "../api/auth";
 import { RegisterPayload, LoginPayload } from "../api/types";
 
@@ -28,6 +29,7 @@ type AuthContextType = {
   logout: () => Promise<void>;
   updateProfile: (data: any) => Promise<void>;
   verifyOtpLogin:any
+  deleteAccount:any
 };
 
 // ✅ Create context
@@ -121,7 +123,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setUser(profile);
       await AsyncStorage.setItem(USER_KEY, JSON.stringify(profile));
     } catch (err) {
-      console.error("Login failed:", err);
+      // console.error("Login failed:", err);
       // throw so UI can show error
       throw err;
     } finally {
@@ -202,6 +204,22 @@ const verifyOtpLogin = async (data: { email: string; otp: string }) => {
       setLoading(false);
     }
   };
+// 🔹 Delete Account
+const deleteAccount = async () => {
+  setLoading(true);
+  try {
+    await deleteUserAccount();       // Backend API call
+    await AsyncStorage.removeItem(TOKEN_KEY);
+    await AsyncStorage.removeItem(USER_KEY);
+    setUser(null);
+    setToken(null);
+  } catch (err) {
+    console.error("Delete account failed:", err);
+    throw err;
+  } finally {
+    setLoading(false);
+  }
+};
 
   // ------------------------------------------------------
   // 🔹 Render
@@ -222,6 +240,9 @@ const verifyOtpLogin = async (data: { email: string; otp: string }) => {
         logout,
         verifyOtpLogin,
         updateProfile,
+        deleteAccount
+        
+        
       }}
     >
       {children}
