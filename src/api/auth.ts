@@ -52,7 +52,7 @@ export const uploadProfileImage = async (image: Asset) => {
       "Content-Type": "multipart/form-data",
     },
   });
-
+  console.log("upload profile iamge console",response)
   // backend se aa raha:
   // { "url": "https://storage.googleapis.com/..." }
   return response.data as { url: string };

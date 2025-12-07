@@ -3,7 +3,7 @@
 export const MARITAL_OPTIONS = [
   "Single",
   "Married",
-  "Prefer not to say",
+  // "Prefer not to say",
 ];
 
 export const GENDER_OPTIONS = [

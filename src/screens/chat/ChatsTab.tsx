@@ -22,7 +22,7 @@ export default function ChatsTab({ search }: any) {
   const navigation = useNavigation<any>();
   const { socket, onlineUsers } = useSocket();
   const { theme } = useTheme();
-
+console.log("onlineUsers",JSON.stringify(onlineUsers))
   const chatQuery = useInfiniteQuery({
     queryKey: ["chatRooms"],
     initialPageParam: 1,
@@ -71,7 +71,7 @@ export default function ChatsTab({ search }: any) {
         <ActivityIndicator size="large" />
       </View>
     );
-
+console.log("filteredRooms",JSON.stringify(filteredRooms))
   return (
     <>
       <FlatList

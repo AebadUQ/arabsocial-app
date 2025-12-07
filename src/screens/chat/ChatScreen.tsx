@@ -9,9 +9,11 @@ import ChatsTab from "./ChatsTab";
 import ExploreGroupsTab from "./ExploreGroupsTab";
 import MyGroupsTab from "./MyGroupTab";
 import TabsHeader from "@/components/chat/TabsHeader";
+import { useNavigation } from "@react-navigation/native";
 
 export default function ChatScreen() {
   const { theme } = useTheme();
+  const navigation = useNavigation<any>();
 
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<
@@ -25,7 +27,7 @@ export default function ChatScreen() {
         { backgroundColor: theme.colors.background },
       ]}
     >
-      <TopBar />
+      <TopBar onMenuPress={() => navigation.openDrawer()} showCenterLogo />
 
       {/* 🔍 SEARCH BAR */}
       <View style={styles.searchRow}>

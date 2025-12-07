@@ -4,7 +4,7 @@ import { io } from "socket.io-client";
 let socket;
 
 export const initSocket = (token) => {
-  socket = io("http://192.168.18.29:5001", {
+  socket = io("https://chat.aebad.site", {
     transports: ["websocket"],
     auth: { token },
   });

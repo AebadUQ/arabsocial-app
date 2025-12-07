@@ -7,7 +7,7 @@ import { theme } from "@/theme/theme";
 
 export default function ChatCard({ chat, online, onPress }: any) {
   const { theme } = useTheme();
-
+console.log("chatchat",JSON.stringify(chat))
   const partner = chat.chatUser;
   const name = partner?.name || "Unknown";
 
@@ -23,7 +23,7 @@ export default function ChatCard({ chat, online, onPress }: any) {
   const time = chat.lastMessage?.createdAt
     ? formatDate(chat.lastMessage.createdAt)
     : "";
-console.log("////------",chat)
+console.log("////------",JSON.stringify(partner))
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.85}>
       <View style={styles.container}>

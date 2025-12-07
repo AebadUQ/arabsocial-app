@@ -275,6 +275,7 @@ const ProfileEditScreen: React.FC = () => {
             <View style={styles.cardFieldsGap}>
               <InputField
                 label="Full Name"
+                labelColor={theme.colors.textLight}
                 value={form.name}
                 onChangeText={(v) => handleChange("name", v)}
                 placeholder="Enter Full Name"
@@ -283,6 +284,7 @@ const ProfileEditScreen: React.FC = () => {
 
               <BottomSheetSelect
                 label="Profession"
+                labelColor={theme.colors.textLight}
                 value={form.profession}
                 onChange={(v) => handleChange("profession", v)}
                 options={PROFESSION_OPTIONS}
@@ -298,8 +300,8 @@ const ProfileEditScreen: React.FC = () => {
             <Text style={styles.sectionTitle}>About Me</Text>
 
             <InputField
-              label="About Me"
               value={form.about_me}
+              
               onChangeText={(v) => handleChange("about_me", v)}
               multiline
               numberOfLines={4}
@@ -313,10 +315,11 @@ const ProfileEditScreen: React.FC = () => {
             <Text style={styles.sectionTitle}>Personal Details</Text>
 
             <View style={styles.cardFieldsGap}>
-              <InputField label="Email" value={user?.email} readOnly />
-              <InputField label="Phone" value={user?.phone} readOnly />
+              <InputField labelColor={theme.colors.textLight} label="Email Address*" value={user?.email} readOnly />
+              <InputField labelColor={theme.colors.textLight} label="Phone" value={user?.phone} readOnly />
 
               <BottomSheetSelect
+              labelColor={theme.colors.textLight}
                 label="Country"
                 value={selectedCountry}
                 onChange={(v) => setSelectedCountry(v)}
@@ -328,6 +331,7 @@ const ProfileEditScreen: React.FC = () => {
 
               {selectedCountry ? (
                 <BottomSheetSelect
+                labelColor={theme.colors.textLight}
                   label="City / State"
                   value={selectedState}
                   onChange={(v) => setSelectedState(v)}
@@ -340,6 +344,7 @@ const ProfileEditScreen: React.FC = () => {
 
               <InputField
                 label="Nationality"
+                labelColor={theme.colors.textLight}
                 value={form.nationality}
                 onChangeText={(v) => handleChange("nationality", v)}
                 error={errors.nationality}
@@ -347,6 +352,7 @@ const ProfileEditScreen: React.FC = () => {
 
               <BottomSheetSelect
                 label="Gender"
+                labelColor={theme.colors.textLight}
                 value={form.gender}
                 onChange={(v) => handleChange("gender", v)}
                 options={GENDER_OPTIONS}
@@ -355,6 +361,7 @@ const ProfileEditScreen: React.FC = () => {
 
               <BottomSheetSelect
                 label="Religion"
+                labelColor={theme.colors.textLight}
                 value={form.religion}
                 onChange={(v) => handleChange("religion", v)}
                 options={RELIGION_OPTIONS}
@@ -362,6 +369,7 @@ const ProfileEditScreen: React.FC = () => {
 
               <BottomSheetSelect
                 label="Education"
+                labelColor={theme.colors.textLight}
                 value={form.education}
                 onChange={(v) => handleChange("education", v)}
                 options={EDUCATION_OPTIONS}
@@ -370,6 +378,7 @@ const ProfileEditScreen: React.FC = () => {
 
               <BottomSheetSelect
                 label="Languages Spoken"
+                labelColor={theme.colors.textLight}
                 value={form.language_spoken}
                 onChange={(v) => handleChange("language_spoken", v)}
                 options={LANGUAGE_OPTIONS}
@@ -377,12 +386,14 @@ const ProfileEditScreen: React.FC = () => {
 
               <InputField
                 label="Height"
+                labelColor={theme.colors.textLight}
                 value={form.height}
                 onChangeText={(v) => handleChange("height", v)}
               />
 
               <BottomSheetSelect
                 label="Marital Status"
+                labelColor={theme.colors.textLight}
                 value={form.marital_status}
                 onChange={(v) => handleChange("marital_status", v)}
                 options={MARITAL_OPTIONS}
@@ -391,6 +402,7 @@ const ProfileEditScreen: React.FC = () => {
 
               <InputField
                 label="Age"
+                labelColor={theme.colors.textLight}
                 value={form.age}
                 onChangeText={(v) => handleChange("age", v)}
                 keyboardType="numeric"
@@ -406,18 +418,21 @@ const ProfileEditScreen: React.FC = () => {
             <View style={styles.cardFieldsGap}>
               <InputField
                 label="Facebook"
+                labelColor={theme.colors.textLight}
                 value={socialLinks.facebook}
                 onChangeText={(v) => handleSocialChange("facebook", v)}
               />
 
               <InputField
                 label="Instagram"
+                labelColor={theme.colors.textLight}
                 value={socialLinks.instagram}
                 onChangeText={(v) => handleSocialChange("instagram", v)}
               />
 
               <InputField
                 label="Twitter"
+                labelColor={theme.colors.textLight}
                 value={socialLinks.twitter}
                 onChangeText={(v) => handleSocialChange("twitter", v)}
               />

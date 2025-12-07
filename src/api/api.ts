@@ -3,12 +3,16 @@ import { showSnack } from "@/components/common/CustomSnackbar";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 
+// https://api.aebad.site/
 /* ---------------------------------------
    🔥 DEFAULT BASE URL (Main Backend 3000)
 ----------------------------------------- */
 const api = axios.create({
-  baseURL: "http://192.168.18.29:5000",
-  // timeout: 10000,
+  baseURL: "https://api.aebad.site",
+
+  // baseURL: "http://192.168.18.29:5000",
+
+  timeout: 10000,
 });
 
 export const setupInterceptors = (logout: () => void) => {
@@ -31,9 +35,13 @@ export const setupInterceptors = (logout: () => void) => {
       ----------------------------------------- */
 
 if (config.url?.startsWith("/chat") || config.url?.startsWith("/group")) {
-        config.baseURL = "http://192.168.18.29:5001"; // CHAT SERVER
+        // config.baseURL = "http://192.168.18.29:5001"; // CHAT SERVER
+        config.baseURL = "https://chat.aebad.site"; 
+
       } else {
-        config.baseURL = "http://192.168.18.29:5000"; // MAIN API SERVER
+        config.baseURL = "https://api.aebad.site"; // MAIN API SERVER
+
+        // config.baseURL = "http://192.168.18.29:5000"; // MAIN API SERVER
       }
 
       return config;

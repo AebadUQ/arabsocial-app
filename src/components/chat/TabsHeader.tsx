@@ -1,3 +1,4 @@
+import { theme } from "@/theme/theme";
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 
@@ -68,12 +69,12 @@ const styles = StyleSheet.create({
   },
 
   activeTabText: {
-    color: "#1a8f63",
+    color: theme.colors.textWhite,
     fontWeight: "700",
   },
 
   activePill: {
-    backgroundColor: "#d9f2e7",
+    backgroundColor: theme.colors.primary,
     borderRadius: 20,
   },
 });

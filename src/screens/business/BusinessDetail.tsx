@@ -434,7 +434,7 @@ const BusinessDetail: React.FC = () => {
                 >
                   <EnvelopeSimple size={16} color={theme.colors.primary} />
                   <Text variant="caption" style={styles.socialText}>
-                    Email
+                    Email 
                   </Text>
                 </TouchableOpacity>
               )}

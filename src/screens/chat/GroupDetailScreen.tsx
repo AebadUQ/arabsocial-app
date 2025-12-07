@@ -69,7 +69,7 @@ const ChatDetailScreen = () => {
     time: msg.createdAt || new Date().toISOString(),
     sender: msg.senderId === currentUserId ? "me" : "other",
     senderName: msg.sender?.name || "Unknown User", // Assuming sender's name is available in the message
-    senderAvatar: msg.sender?.avatar || "default_avatar_url", // Adding avatar link
+    senderAvatar: msg.sender?.image ||msg.sender?.avatar || "default_avatar_url", // Adding avatar link
   });
 
   // ----------------------- FIRST LOAD -----------------------
@@ -130,7 +130,7 @@ const ChatDetailScreen = () => {
     socket.emit("join_group", { groupId });
 
     socket.on("group_chat:new_group_message", (msg) => {
-      console.log("new msg",msg)
+      console.log("new msg",JSON.stringify(msg))
       setMessages((prev) => [...prev, mapMessage(msg)]);
       setTimeout(() => {
         listRef.current?.scrollToEnd({ animated: true });
@@ -192,7 +192,6 @@ const ChatDetailScreen = () => {
     }
 
     return (
-      <View>
         
 
         <View
@@ -240,7 +239,6 @@ const ChatDetailScreen = () => {
             </Text>
           </View>
         </View>
-      </View>
     );
   };
 
