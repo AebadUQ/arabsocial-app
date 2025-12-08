@@ -43,7 +43,7 @@ export default function FeaturedBusinessCard({ item, onPress }: Props) {
       <View style={styles.imageWrap}>
         {/* Static event image for now */}
         <Image
-          source={item?.business_logo}
+          source={{uri:item?.business_logo}}
 
           style={styles.image}
           resizeMode="cover"

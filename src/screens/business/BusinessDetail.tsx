@@ -198,7 +198,14 @@ const BusinessDetail: React.FC = () => {
   const title = business.name ?? "Business";
 
   // abhi ke liye fixed banner
-  const bannerSource = require("@/assets/images/business.jpg");
+  const bannerSource: string =
+  typeof business?.business_logo === "string" &&
+  business.business_logo.trim() !== "" &&
+  business.business_logo.trim().toLowerCase() !== "null"
+    ? business.business_logo.trim()
+    : "https://via.placeholder.com/600x400?text=No+Image";
+
+  // const bannerSource = business?.business_logo;
 
   const chips: string[] = [
     business.categories?.[0] ?? "",
@@ -259,7 +266,7 @@ const BusinessDetail: React.FC = () => {
         {/* Banner */}
         <View style={styles.bannerWrap}>
           <Image
-            source={bannerSource}
+  source={{uri:bannerSource}}
             style={styles.banner}
             resizeMode="cover"
           />

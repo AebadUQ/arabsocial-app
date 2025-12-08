@@ -6,7 +6,7 @@ import axios from "axios";
 /* ---------------------------------------
    🔥 SWITCH: LIVE OR LOCAL
 ----------------------------------------- */
-const LIVE = false;
+const LIVE = true;
 
 /* ---------------------------------------
    🔥 BASE URLS
