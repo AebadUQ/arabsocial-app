@@ -114,7 +114,7 @@ const {user} = useAuth()
 
           <PlusIcon size={22} color="#fff" weight="bold"  style={{marginLeft:20}}/>
 
-          <Text style={[styles.fabText,{marginRight:20}]}>Create Group</Text>
+          <Text style={[styles.fabText,{marginRight:20}]}>Request Group</Text>
 
         </LinearGradient>
       </TouchableOpacity>

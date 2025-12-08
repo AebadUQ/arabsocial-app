@@ -231,8 +231,10 @@ const CommentsSheet = forwardRef<CommentsSheetHandle, Props>(
 
     // typing lock (avoid sheet pan while typing)
     const [isComposing, setIsComposing] = useState(false);
+        // full height nhi tuo uncomment this
 
-    const snapPoints = useMemo(() => ["40%", "80%"], []);
+    // const snapPoints = useMemo(() => ["40%", "80%"], []);
+    const snapPoints = useMemo(() => ["100%"], []);
 
     const renderBackdrop = useCallback(
       (props: any) => (
@@ -977,6 +979,10 @@ const CommentsSheet = forwardRef<CommentsSheetHandle, Props>(
       <BottomSheetModal
         ref={sheetRef}
         index={0}
+        // full height nhi tuo uncomment this
+
+        // index={0}
+
         snapPoints={snapPoints}
         enableDynamicSizing={false}
         enablePanDownToClose
@@ -986,7 +992,10 @@ const CommentsSheet = forwardRef<CommentsSheetHandle, Props>(
         keyboardBlurBehavior="none"
         android_keyboardInputMode="adjustResize"
         backdropComponent={renderBackdrop}
-        topInset={insets.top + 20}
+        // full height nhi tuo uncomment this
+        // topInset={insets.top +20}
+
+        topInset={insets.top }
         handleIndicatorStyle={{
           backgroundColor: theme.colors.primary,
         }}

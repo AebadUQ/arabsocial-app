@@ -11,15 +11,15 @@ export default function TabsHeader({ activeTab, setActiveTab }: Props) {
   return (
     <View style={styles.tabsRow}>
       {/* CHATS TAB */}
-      <TouchableOpacity onPress={() => setActiveTab("chats")}>
+     <TouchableOpacity onPress={() => setActiveTab("mygroups")}>
         <Text
           style={[
             styles.tabText,
-            activeTab === "chats" && styles.activeTabText,
-            activeTab === "chats" && styles.activePill,
+            activeTab === "mygroups" && styles.activeTabText,
+            activeTab === "mygroups" && styles.activePill,
           ]}
         >
-          Chats
+          My Groups
         </Text>
       </TouchableOpacity>
 
@@ -37,15 +37,17 @@ export default function TabsHeader({ activeTab, setActiveTab }: Props) {
       </TouchableOpacity>
 
       {/* MY GROUPS TAB */}
-      <TouchableOpacity onPress={() => setActiveTab("mygroups")}>
+     
+
+        <TouchableOpacity onPress={() => setActiveTab("chats")}>
         <Text
           style={[
             styles.tabText,
-            activeTab === "mygroups" && styles.activeTabText,
-            activeTab === "mygroups" && styles.activePill,
+            activeTab === "chats" && styles.activeTabText,
+            activeTab === "chats" && styles.activePill,
           ]}
         >
-          My Groups
+          Chats
         </Text>
       </TouchableOpacity>
     </View>

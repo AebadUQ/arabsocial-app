@@ -147,9 +147,9 @@ export default function EditGroupScreen() {
 
     if (!groupName.trim()) newErrors.groupName = "Group name is required";
     if (!description.trim()) newErrors.description = "Description is required";
-    if (!country.trim()) newErrors.country = "Country is required";
-    if (!state.trim()) newErrors.state = "State is required";
-    if (!nationality.trim()) newErrors.nationality = "Nationality is required";
+    // if (!country.trim()) newErrors.country = "Country is required";
+    // if (!state.trim()) newErrors.state = "State is required";
+    // if (!nationality.trim()) newErrors.nationality = "Nationality is required";
     if (!image.trim()) newErrors.image = "Image is required";
 
     setErrors(newErrors);
@@ -257,8 +257,7 @@ export default function EditGroupScreen() {
         />
         {errors.description && <Text style={styles.error}>{errors.description}</Text>}
 
-        {/* COUNTRY */}
-        <BottomSheetSelect
+        {/* <BottomSheetSelect
           label="Country"
           value={country}
           options={countries}
@@ -271,7 +270,6 @@ export default function EditGroupScreen() {
         />
         {errors.country && <Text style={styles.error}>{errors.country}</Text>}
 
-        {/* STATE */}
         {country ? (
           <>
             <BottomSheetSelect
@@ -287,10 +285,9 @@ export default function EditGroupScreen() {
             />
             {errors.state && <Text style={styles.error}>{errors.state}</Text>}
           </>
-        ) : null}
+        ) : null} */}
 
-        {/* NATIONALITY */}
-        <InputField
+        {/* <InputField
           label="Nationality"
           value={nationality}
           onChangeText={(t) => {
@@ -301,7 +298,6 @@ export default function EditGroupScreen() {
         />
         {errors.nationality && <Text style={styles.error}>{errors.nationality}</Text>}
 
-        {/* PRIVACY */}
         <Text style={styles.sectionTitle}>Privacy Settings</Text>
 
         <View style={[styles.optionBlock, { backgroundColor: isPublic ? "#E3F6EE" : "#fff" }]}>
@@ -314,7 +310,6 @@ export default function EditGroupScreen() {
           <Switch value={!isPublic} onToggle={() => setIsPublic(!isPublic)} />
         </View>
 
-        {/* RESTRICTIONS */}
         <Text style={styles.sectionTitle}>Restrictions</Text>
 
         <View style={styles.optionBlockTwo}>
@@ -330,10 +325,9 @@ export default function EditGroupScreen() {
         <View style={styles.optionBlockTwo}>
           <Text style={styles.optionTitle}>Restrict Nationality</Text>
           <Switch value={restrictNationality} onToggle={setRestrictNationality} />
-        </View>
+        </View> */}
       </ScrollView>
 
-      {/* SUBMIT BUTTON */}
       <View style={[styles.ctaWrap, { paddingBottom: insets.bottom }]}>
         <TouchableOpacity onPress={onSubmit} disabled={loadingSubmit}>
           <LinearGradient colors={[theme.colors.primary, theme.colors.primary]} style={styles.ctaBtn}>

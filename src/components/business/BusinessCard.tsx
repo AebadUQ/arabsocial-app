@@ -151,7 +151,7 @@ export default function BusinessCard({ item }: { item: ApiBusiness }) {
                 color={theme.colors.textLight}
                 numberOfLines={1}
               >
-                N/A
+                -
               </Text>
             )}
           </View>

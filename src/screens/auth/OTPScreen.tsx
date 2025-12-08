@@ -77,7 +77,7 @@ const OTPScreen: React.FC = () => {
 
     try {
       setLoading(true);
-      await verifyOtp({email,otp:code} );
+      await verifyOtpLogin({email,otp:code} );
       navigation.navigate('Login')
     } catch (err) {
       setOtp(["", "", "", "", "", ""]);

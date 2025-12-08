@@ -113,10 +113,10 @@ export default function CreateGroupScreen() {
 
     if (!image) newErrors.image = "Group image is required";
     if (!groupName.trim()) newErrors.groupName = "Group name is required";
-    if (!description.trim()) newErrors.description = "Description is required";
-    if (!country.trim()) newErrors.country = "Country is required";
-    if (!state.trim()) newErrors.state = "State is required";
-    if (!nationality.trim()) newErrors.nationality = "Nationality is required";
+    // if (!description.trim()) newErrors.description = "Description is required";
+    // if (!country.trim()) newErrors.country = "Country is required";
+    // if (!state.trim()) newErrors.state = "State is required";
+    // if (!nationality.trim()) newErrors.nationality = "Nationality is required";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -226,7 +226,6 @@ export default function CreateGroupScreen() {
           <Text style={styles.error}>{errors.groupName}</Text>
         )}
 
-        {/* DESCRIPTION */}
         <InputField
           label="Description"
                     labelColor={theme.colors.textLight}
@@ -243,8 +242,7 @@ export default function CreateGroupScreen() {
         {errors.description && (
           <Text style={styles.error}>{errors.description}</Text>
         )}
-
-        {/* COUNTRY */}
+{/* 
         <BottomSheetSelect
                   labelColor={theme.colors.textLight}
 
@@ -260,7 +258,6 @@ export default function CreateGroupScreen() {
         />
         {errors.country && <Text style={styles.error}>{errors.country}</Text>}
 
-        {/* STATE */}
         {country ? (
           <>
             <BottomSheetSelect
@@ -280,7 +277,6 @@ export default function CreateGroupScreen() {
           </>
         ) : null}
 
-        {/* NATIONALITY */}
         <InputField
                   labelColor={theme.colors.textLight}
 
@@ -295,11 +291,10 @@ export default function CreateGroupScreen() {
         />
         {errors.nationality && (
           <Text style={styles.error}>{errors.nationality}</Text>
-        )}
+        )} */}
         </View>
 
-        {/* PRIVACY */}
-        <Text style={styles.sectionTitle}>Privacy Settings</Text>
+        {/* <Text style={styles.sectionTitle}>Privacy Settings</Text>
 
         <View
           style={[
@@ -325,9 +320,8 @@ export default function CreateGroupScreen() {
             <Text style={styles.optionSub}>Members need approval</Text>
           </View>
           <Switch value={!isPublic} onToggle={() => setIsPublic(!isPublic)} />
-        </View>
-
-        {/* RESTRICTIONS */}
+        </View> */}
+{/* 
         <Text style={styles.sectionTitle}>Restrictions</Text>
 
         <View style={styles.optionBlockTwo}>
@@ -349,7 +343,7 @@ export default function CreateGroupScreen() {
             value={restrictNationality}
             onToggle={setRestrictNationality}
           />
-        </View>
+        </View> */}
       </ScrollView>
 
       {/* SUBMIT BUTTON */}
@@ -363,7 +357,7 @@ export default function CreateGroupScreen() {
               <ActivityIndicator color="#fff" />
             ) : (
               <Text style={{ color: "#fff", fontWeight: "700" }}>
-                Create Group
+                Request Group
               </Text>
             )}
           </LinearGradient>

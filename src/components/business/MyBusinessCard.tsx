@@ -122,7 +122,7 @@ export default function MyBusinessCard({ item, onPressCard, onPressManage }: Pro
               numberOfLines={1}
               style={[styles.locText, { color: theme.colors.textLight }]}
             >
-              {location || "N/A"}
+              {location || "-"}
             </Text>
           </View>
         </View>

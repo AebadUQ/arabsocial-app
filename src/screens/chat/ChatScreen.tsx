@@ -18,7 +18,7 @@ export default function ChatScreen() {
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<
     "chats" | "explore" | "mygroups"
-  >("chats");
+  >("mygroups");
 
   return (
     <SafeAreaView
@@ -27,7 +27,7 @@ export default function ChatScreen() {
         { backgroundColor: theme.colors.background },
       ]}
     >
-      <TopBar onMenuPress={() => navigation.openDrawer()} showCenterLogo />
+      <TopBar onMenuPress={() => navigation.openDrawer()}  />
 
       {/* 🔍 SEARCH BAR */}
       <View style={styles.searchRow}>

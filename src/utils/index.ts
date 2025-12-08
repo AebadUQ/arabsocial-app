@@ -143,3 +143,24 @@ export const debounce = <T extends (...args: any[]) => any>(
   };
 };
 export const urlRegex = /((https?:\/\/|www\.)\S+|\b[a-zA-Z0-9-]+\.[a-zA-Z]{2,}\b)/gi;
+export const getInitials = (name?: string): string => {
+  if (!name) return "U";
+
+  const cleaned = name.trim();
+  if (!cleaned) return "U";
+
+  const parts = cleaned.split(/\s+/); // always returns at least 1 element
+
+  // Safe extract first letter
+  const first = parts[0]?.charAt(0)?.toUpperCase();
+
+  // Safe extract last letter
+  const last = parts.length > 1 
+    ? parts[parts.length - 1]?.charAt(0)?.toUpperCase()
+    : null;
+
+  // If only one name → return first letter
+  if (!last) return first || "U";
+
+  return `${first}${last}`;
+};

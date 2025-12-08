@@ -29,7 +29,7 @@ type Props = {
 const StateFilterSheet: React.FC<Props> = ({
   visible,
   onClose,
-  initialCountryName = "United States", // DEFAULT COUNTRY UPDATED
+  initialCountryName = "",
   initialCities = [],
   onApply,
 }) => {
@@ -51,34 +51,19 @@ const StateFilterSheet: React.FC<Props> = ({
     [allCountries]
   );
 
-  // ---------- FIXED MATCH LOGIC ----------
-  const initialCountry =
-    mappedCountries.find(
-      (c) => c.name.toLowerCase() === initialCountryName.toLowerCase()
-    ) ||
-    mappedCountries.find((c) =>
-      c.name.toLowerCase().includes(initialCountryName.toLowerCase())
-    ) ||
-    mappedCountries.find((c) => c.code === "US") ||
-    null;
+  // ⭐ Initially NO country selected
+  const [selectedCountry, setSelectedCountry] = useState<{ code: string; name: string } | null>(null);
+  const [selectedCountryName, setSelectedCountryName] = useState("");
 
-  const [selectedCountry, setSelectedCountry] = useState<{
-    code: string;
-    name: string;
-  } | null>(initialCountry);
-
-  const [selectedCountryName, setSelectedCountryName] = useState<string>(
-    initialCountry?.name || ""
-  );
+  // ⭐ Initially NO cities
   const [selected, setSelected] = useState<string[]>(initialCities);
+
   const [countryQuery, setCountryQuery] = useState("");
   const [cityQuery, setCityQuery] = useState("");
 
   const countryCities = useMemo(() => {
     if (!selectedCountry?.code) return [];
-    return (City.getCitiesOfCountry(selectedCountry.code) ?? []).map(
-      (c) => c.name
-    );
+    return (City.getCitiesOfCountry(selectedCountry.code) ?? []).map((c) => c.name);
   }, [selectedCountry]);
 
   const filteredCountries = useMemo(() => {
@@ -96,21 +81,14 @@ const StateFilterSheet: React.FC<Props> = ({
   }, [cityQuery, countryCities]);
 
   const toggleCity = (name: string) =>
-    setSelected((prev) =>
-      prev.includes(name)
-        ? prev.filter((n) => n !== name)
-        : [...prev, name]
-    );
+    setSelected((prev) => (prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]));
 
   const allShownSelected =
-    filteredCities.length > 0 &&
-    filteredCities.every((c) => selected.includes(c));
+    filteredCities.length > 0 && filteredCities.every((c) => selected.includes(c));
 
   const toggleAllShown = () => {
     if (allShownSelected) {
-      setSelected((prev) =>
-        prev.filter((c) => !filteredCities.includes(c))
-      );
+      setSelected((prev) => prev.filter((c) => !filteredCities.includes(c)));
     } else {
       setSelected((prev) => Array.from(new Set([...prev, ...filteredCities])));
     }
@@ -125,7 +103,7 @@ const StateFilterSheet: React.FC<Props> = ({
     setCountryOpen(false);
   };
 
-  // ---------- ANIMATIONS ----------
+  // ⭐ Animations
   useEffect(() => {
     Animated.timing(countryAnim, {
       toValue: countryOpen ? 1 : 0,
@@ -157,7 +135,8 @@ const StateFilterSheet: React.FC<Props> = ({
   return (
     <CustomBottomSheet visible={visible} onClose={onClose}>
       <View style={styles.wrap}>
-        {/* ---------- COUNTRY SELECTOR ---------- */}
+        
+        {/* COUNTRY HEADER */}
         {!countryOpen && (
           <TouchableOpacity
             activeOpacity={0.85}
@@ -165,19 +144,16 @@ const StateFilterSheet: React.FC<Props> = ({
               setCountryOpen(true);
               setCityOpen(false);
             }}
-            style={[
-              styles.headerRow,
-              { borderColor: theme.colors.borderColor },
-            ]}
+            style={[styles.headerRow, { borderColor: theme.colors.borderColor }]}
           >
-            <Text variant="body1">
-              {selectedCountryName || "Select Country"}
-            </Text>
+            <Text variant="body1">{selectedCountryName || "Select Country"}</Text>
             <CaretDownIcon size={18} color={theme.colors.text} />
           </TouchableOpacity>
         )}
 
+        {/* COUNTRY DROPDOWN */}
         <Animated.View
+          pointerEvents={countryOpen ? "auto" : "none"}
           style={[
             styles.dropdown,
             {
@@ -189,12 +165,7 @@ const StateFilterSheet: React.FC<Props> = ({
         >
           {countryOpen && (
             <>
-              <View
-                style={[
-                  styles.searchRow,
-                  { borderColor: theme.colors.borderColor },
-                ]}
-              >
+              <View style={[styles.searchRow, { borderColor: theme.colors.borderColor }]}>
                 <TextInput
                   value={countryQuery}
                   onChangeText={setCountryQuery}
@@ -202,16 +173,10 @@ const StateFilterSheet: React.FC<Props> = ({
                   placeholderTextColor={theme.colors.textLight}
                   style={[styles.searchInput, { color: theme.colors.text }]}
                 />
-                <MagnifyingGlassIcon
-                  size={18}
-                  color={theme.colors.textLight}
-                />
+                <MagnifyingGlassIcon size={18} color={theme.colors.textLight} />
               </View>
 
-              <ScrollView
-                keyboardShouldPersistTaps="handled"
-                contentContainerStyle={{ paddingVertical: 6 }}
-              >
+              <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingVertical: 6 }}>
                 {filteredCountries.map((c) => {
                   const active = c.name === selectedCountryName;
                   return (
@@ -226,19 +191,16 @@ const StateFilterSheet: React.FC<Props> = ({
                           styles.checkbox,
                           {
                             borderColor: theme.colors.borderColor,
-                            backgroundColor: active
-                              ? theme.colors.primary
-                              : "transparent",
+                            backgroundColor: active ? theme.colors.primary : "transparent",
                           },
                         ]}
                       >
                         {active && <CheckIcon size={14} color="#fff" />}
                       </View>
+
                       <Text
                         style={{
-                          color: active
-                            ? theme.colors.primaryDark
-                            : theme.colors.text,
+                          color: active ? theme.colors.primaryDark : theme.colors.text,
                           fontWeight: active ? "600" : "400",
                         }}
                       >
@@ -252,29 +214,27 @@ const StateFilterSheet: React.FC<Props> = ({
           )}
         </Animated.View>
 
-        {/* ---------- CITY SELECTOR ---------- */}
+        {/* CITY HEADER */}
         {!cityOpen && (
           <TouchableOpacity
             activeOpacity={0.85}
             onPress={() => {
+              if (!selectedCountry) return;
               setCityOpen(true);
               setCountryOpen(false);
             }}
-            style={[
-              styles.headerRow,
-              { borderColor: theme.colors.borderColor },
-            ]}
+            style={[styles.headerRow, { borderColor: theme.colors.borderColor }]}
           >
             <Text style={{ color: theme.colors.text, fontWeight: "600" }}>
-              {selected.length > 0
-                ? `${selected.length} selected`
-                : "Select Cities"}
+              {selected.length > 0 ? `${selected.length} selected` : "Select Cities"}
             </Text>
             <CaretDownIcon size={18} color={theme.colors.text} />
           </TouchableOpacity>
         )}
 
+        {/* CITY DROPDOWN */}
         <Animated.View
+          pointerEvents={cityOpen ? "auto" : "none"}
           style={[
             styles.dropdown,
             {
@@ -286,12 +246,7 @@ const StateFilterSheet: React.FC<Props> = ({
         >
           {cityOpen && (
             <>
-              <View
-                style={[
-                  styles.searchRow,
-                  { borderColor: theme.colors.borderColor },
-                ]}
-              >
+              <View style={[styles.searchRow, { borderColor: theme.colors.borderColor }]}>
                 <TextInput
                   value={cityQuery}
                   onChangeText={setCityQuery}
@@ -299,41 +254,28 @@ const StateFilterSheet: React.FC<Props> = ({
                   placeholderTextColor={theme.colors.textLight}
                   style={[styles.searchInput, { color: theme.colors.text }]}
                 />
-                <MagnifyingGlassIcon
-                  size={18}
-                  color={theme.colors.textLight}
-                />
+                <MagnifyingGlassIcon size={18} color={theme.colors.textLight} />
               </View>
 
-              <TouchableOpacity
-                onPress={toggleAllShown}
-                style={styles.selectAllRow}
-                activeOpacity={0.8}
-              >
+              {/* Select All */}
+              <TouchableOpacity onPress={toggleAllShown} style={styles.selectAllRow} activeOpacity={0.8}>
                 <View
                   style={[
                     styles.checkbox,
                     {
                       borderColor: theme.colors.borderColor,
-                      backgroundColor: allShownSelected
-                        ? theme.colors.primary
-                        : "transparent",
+                      backgroundColor: allShownSelected ? theme.colors.primary : "transparent",
                     },
                   ]}
                 >
-                  {allShownSelected && (
-                    <CheckIcon size={14} color="#fff" />
-                  )}
+                  {allShownSelected && <CheckIcon size={14} color="#fff" />}
                 </View>
                 <Text style={{ color: theme.colors.textLight }}>
                   Select all ({filteredCities.length})
                 </Text>
               </TouchableOpacity>
 
-              <ScrollView
-                contentContainerStyle={{ paddingBottom: 8 }}
-                keyboardShouldPersistTaps="handled"
-              >
+              <ScrollView contentContainerStyle={{ paddingBottom: 8 }} keyboardShouldPersistTaps="handled">
                 {filteredCities.map((c, index) => {
                   const checked = selected.includes(c);
                   return (
@@ -348,21 +290,16 @@ const StateFilterSheet: React.FC<Props> = ({
                           styles.checkbox,
                           {
                             borderColor: theme.colors.borderColor,
-                            backgroundColor: checked
-                              ? theme.colors.primary
-                              : "transparent",
+                            backgroundColor: checked ? theme.colors.primary : "transparent",
                           },
                         ]}
                       >
-                        {checked && (
-                          <CheckIcon size={14} color="#fff" />
-                        )}
+                        {checked && <CheckIcon size={14} color="#fff" />}
                       </View>
+
                       <Text
                         style={{
-                          color: checked
-                            ? theme.colors.primaryDark
-                            : theme.colors.textLight,
+                          color: checked ? theme.colors.primaryDark : theme.colors.textLight,
                         }}
                       >
                         {c}
@@ -375,17 +312,14 @@ const StateFilterSheet: React.FC<Props> = ({
           )}
         </Animated.View>
 
-        {/* ---------- FOOTER ---------- */}
+        {/* FOOTER */}
         <View style={styles.footer}>
           <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
             <Text style={{ color: theme.colors.text }}>Cancel</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[
-              styles.applyBtn,
-              { backgroundColor: theme.colors.primary },
-            ]}
+            style={[styles.applyBtn, { backgroundColor: theme.colors.primary }]}
             onPress={() =>
               onApply({
                 countryName: selectedCountryName,
@@ -393,9 +327,7 @@ const StateFilterSheet: React.FC<Props> = ({
               })
             }
           >
-            <Text style={{ color: "#fff", fontWeight: "700" }}>
-              Apply
-            </Text>
+            <Text style={{ color: "#fff", fontWeight: "700" }}>Apply</Text>
           </TouchableOpacity>
         </View>
       </View>

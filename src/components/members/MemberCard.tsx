@@ -130,7 +130,7 @@ const MemberCard: React.FC<MemberCardProps> = ({
           color={textLight}
           style={styles.sub}
         >
-          {item.country || "N/A"}
+          {item.country || "-"}
         </Text>
 
         {showAcceptRejectRow ? (
@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
   },
   userImage: {
     width: "100%",
-    height: 110,
+    height: 140,
   },
   content: {
     paddingHorizontal: 12,

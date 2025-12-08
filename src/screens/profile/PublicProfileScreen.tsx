@@ -37,21 +37,37 @@ import { getPublicUserProfile } from "@/api/auth";
 import { showSnack } from "@/components/common/CustomSnackbar";
 import { toggleBlockUser } from "@/api/members";
 
-// ----------------------------------------------------------------------
-// Helpers
-// ----------------------------------------------------------------------
+// --------------------------------------------------
+// UTIL — Initials
+// --------------------------------------------------
+export const getInitials = (name?: string): string => {
+  if (!name) return "U";
+
+  const cleaned = name.trim();
+  if (!cleaned) return "U";
+
+  const parts = cleaned.split(/\s+/);
+
+  const first = parts[0]?.charAt(0)?.toUpperCase();
+  const last =
+    parts.length > 1 ? parts[parts.length - 1]?.charAt(0)?.toUpperCase() : null;
+
+  if (!last) return first || "U";
+
+  return `${first}${last}`;
+};
 
 const safeValue = (value: any) =>
-  value === null || value === undefined || value === "" ? "N/A" : value;
+  value === null || value === undefined || value === "" ? "-" : value;
 
 function maybeShow(visible: boolean | undefined, value: any): string | null {
   if (!visible) return null;
   return safeValue(value);
 }
 
-// ----------------------------------------------------------------------
-// Screen
-// ----------------------------------------------------------------------
+// --------------------------------------------------
+// SCREEN
+// --------------------------------------------------
 
 const PublicProfileScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -63,10 +79,8 @@ const PublicProfileScreen: React.FC = () => {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // ⭐ Avatar preview
   const [avatarPreviewVisible, setAvatarPreviewVisible] = useState(false);
 
-  // ⭐ Block state
   const [isBlocked, setIsBlocked] = useState(false);
   const [loadingBlock, setLoadingBlock] = useState(false);
 
@@ -75,8 +89,6 @@ const PublicProfileScreen: React.FC = () => {
       setLoading(true);
       const res = await getPublicUserProfile(Number(userId));
       setData(res);
-
-      // Backend initially returns: isBlockedByMe
       setIsBlocked(res?.isBlockedByMe ?? false);
     } catch (err) {
       console.error("Failed to load public profile", err);
@@ -89,20 +101,12 @@ const PublicProfileScreen: React.FC = () => {
     fetchProfile();
   }, [fetchProfile]);
 
-  // ----------------------------------------------------------------------
-  // ⭐ UPDATED BLOCK / UNBLOCK HANDLER BASED ON YOUR RESPONSE
-  // ----------------------------------------------------------------------
-
   const onBlockPress = async () => {
     try {
       setLoadingBlock(true);
 
-      // API returns nested "data" object
       const res = await toggleBlockUser(Number(userId));
-
-      // New correct value:
       const newState = res?.data?.isBlocked ?? false;
-
       setIsBlocked(newState);
 
       showSnack(
@@ -111,40 +115,30 @@ const PublicProfileScreen: React.FC = () => {
         "success"
       );
     } catch (err) {
-      console.log("Block user error:", err);
       showSnack("Failed to update block status", "error");
     } finally {
       setLoadingBlock(false);
     }
   };
 
-  // ----------------------------------------------------------------------
-  // Loading UI
-  // ----------------------------------------------------------------------
+  // --------------------------------------------------
+  // LOADER
+  // --------------------------------------------------
 
   if (loading) {
     return (
-      <SafeAreaView
-        style={[styles.container, { alignItems: "center", justifyContent: "center" }]}
-      >
+      <SafeAreaView style={[styles.container, styles.center]}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
       </SafeAreaView>
     );
   }
 
-  // ----------------------------------------------------------------------
-  // Error UI
-  // ----------------------------------------------------------------------
-
   if (!data) {
     return (
-      <SafeAreaView
-        style={[styles.container, { alignItems: "center", justifyContent: "center" }]}
-      >
+      <SafeAreaView style={[styles.container, styles.center]}>
         <Text variant="body1" color={theme.colors.text}>
           Failed to load profile.
         </Text>
-
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={[styles.retryBtn, { backgroundColor: theme.colors.primary }]}
@@ -157,12 +151,12 @@ const PublicProfileScreen: React.FC = () => {
     );
   }
 
-  // ----------------------------------------------------------------------
-  // Extract data
-  // ----------------------------------------------------------------------
-
+  // --------------------------------------------------
+  // EXTRACT
+  // --------------------------------------------------
   const vs = data.visibility_settings || {};
-  const avatarUri = data.image || data.img || "https://i.pravatar.cc/200?img=12";
+  const avatarUri = data.image || data.img || null;
+  const initials = getInitials(data?.name);
 
   const languagesArr =
     Array.isArray(data.language_spoken) && data.language_spoken.length > 0
@@ -174,19 +168,13 @@ const PublicProfileScreen: React.FC = () => {
       key: "email",
       icon: EnvelopeSimpleIcon,
       label: "Email",
-      val:  data.email,
+      val: data.email,
     },
-     {
+    {
       key: "name",
       icon: UserIcon,
       label: "Name",
       val: data.name,
-    },
-    {
-      key: "phone",
-      icon: PhoneIcon,
-      label: "Phone",
-      val: data.phone,
     },
     {
       key: "phone",
@@ -200,9 +188,7 @@ const PublicProfileScreen: React.FC = () => {
       label: "State · City",
       val: maybeShow(
         vs.state || vs.city,
-        `${safeValue(data.state)} · ${safeValue(
-          data.location || data.country
-        )}`
+        `${safeValue(data.state)} · ${safeValue(data.location || data.country)}`
       ),
     },
     {
@@ -245,31 +231,30 @@ const PublicProfileScreen: React.FC = () => {
       key: "language_spoken",
       icon: TranslateIcon,
       label: "Languages",
-      val: maybeShow(
-        vs.language_spoken ?? vs.language,
-        languagesArr.length > 0 ? languagesArr.join(", ") : "N/A"
-      ),
+      val:
+        maybeShow(
+          vs.language_spoken ?? vs.language,
+          languagesArr.length > 0 ? languagesArr.join(", ") : "-"
+        ) || "-",
     },
   ];
 
   const detailRows = detailRowsRaw.filter((r) => r.val !== null);
 
   const aboutText =
-    vs.about_me && safeValue(data.about_me) !== "N/A" ? data.about_me : null;
+    vs.about_me && safeValue(data.about_me) !== "-" ? data.about_me : null;
 
   const professionText =
-    vs.profession && safeValue(data.profession) !== "N/A"
+    vs.profession && safeValue(data.profession) !== "-"
       ? data.profession
       : null;
 
   const usernameText =
-    vs.username && safeValue(data.username) !== "N/A"
-      ? data.username
-      : null;
+    vs.username && safeValue(data.username) !== "-" ? data.username : null;
 
   const dobText =
     vs.dob &&
-    (safeValue(data.dob) !== "N/A" || safeValue(data.age) !== "N/A")
+    (safeValue(data.dob) !== "-" || safeValue(data.age) !== "-")
       ? data.age
         ? `${data.age} yrs`
         : data.dob
@@ -280,14 +265,12 @@ const PublicProfileScreen: React.FC = () => {
       ? Object.entries(data.social_links).filter(([_, v]) => !!v)
       : [];
 
-  // ----------------------------------------------------------------------
+  // --------------------------------------------------
   // UI
-  // ----------------------------------------------------------------------
+  // --------------------------------------------------
 
   return (
-    <SafeAreaView
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Header */}
       <View style={[styles.topBar]}>
         <View style={styles.topBarLeft}>
@@ -304,12 +287,12 @@ const PublicProfileScreen: React.FC = () => {
       </View>
 
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 24 }]}>
-        {/* Avatar */}
+        {/* AVATAR */}
         <Card>
           <View style={styles.avatarCardContent}>
             <TouchableOpacity
               activeOpacity={0.9}
-              onPress={() => setAvatarPreviewVisible(true)}
+              onPress={() => avatarUri && setAvatarPreviewVisible(true)}
             >
               <View
                 style={[
@@ -317,21 +300,39 @@ const PublicProfileScreen: React.FC = () => {
                   { borderColor: theme.colors.primaryLight },
                 ]}
               >
-                <Image source={{ uri: avatarUri }} style={styles.avatar} />
+                {avatarUri ? (
+                  <Image source={{ uri: avatarUri }} style={styles.avatar} />
+                ) : (
+                  <View
+                    style={styles.initialsBubble}
+                  >
+                    <Text
+                      variant="h4"
+                      style={{
+                        color: theme.colors.primary,
+                        fontWeight: "700",
+                      }}
+                    >
+                      {initials}
+                    </Text>
+                  </View>
+                )}
               </View>
             </TouchableOpacity>
 
-            <ImageView
-              images={[{ uri: avatarUri }]}
-              visible={avatarPreviewVisible}
-              onRequestClose={() => setAvatarPreviewVisible(false)}
-              swipeToCloseEnabled
-              doubleTapToZoomEnabled
-              animationType="slide"
-              presentationStyle="overFullScreen"
-              backgroundColor="#000"
-              imageIndex={0}
-            />
+            {avatarUri && (
+              <ImageView
+                images={[{ uri: avatarUri }]}
+                visible={avatarPreviewVisible}
+                onRequestClose={() => setAvatarPreviewVisible(false)}
+                swipeToCloseEnabled
+                doubleTapToZoomEnabled
+                animationType="slide"
+                presentationStyle="overFullScreen"
+                backgroundColor="#000"
+                imageIndex={0}
+              />
+            )}
 
             <Text variant="h5" style={styles.nameText}>
               {safeValue(data.name)}
@@ -355,7 +356,6 @@ const PublicProfileScreen: React.FC = () => {
               </Text>
             )}
 
-            {/* Social Icons */}
             {socialsEntries.length > 0 && (
               <View style={styles.socialRow}>
                 {socialsEntries.map(([key]) => {
@@ -379,7 +379,7 @@ const PublicProfileScreen: React.FC = () => {
           </View>
         </Card>
 
-        {/* About */}
+        {/* ABOUT */}
         {aboutText && (
           <Card>
             <View style={styles.sectionTextWrap}>
@@ -393,7 +393,7 @@ const PublicProfileScreen: React.FC = () => {
           </Card>
         )}
 
-        {/* Details */}
+        {/* DETAILS */}
         {detailRows.length > 0 && (
           <Card>
             <View style={styles.sectionHeaderRow}>
@@ -437,7 +437,7 @@ const PublicProfileScreen: React.FC = () => {
           </Card>
         )}
 
-        {/* ⭐ BLOCK BUTTON */}
+        {/* BLOCK BUTTON */}
         <View style={{ marginTop: 10 }}>
           <TouchableOpacity
             onPress={onBlockPress}
@@ -467,12 +467,14 @@ const PublicProfileScreen: React.FC = () => {
   );
 };
 
-// ----------------------------------------------------------------------
-// Styles
-// ----------------------------------------------------------------------
+// --------------------------------------------------
+// STYLES
+// --------------------------------------------------
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+
+  center: { alignItems: "center", justifyContent: "center" },
 
   topBar: {
     flexDirection: "row",
@@ -519,6 +521,15 @@ const styles = StyleSheet.create({
   },
 
   avatar: { width: 110, height: 110, borderRadius: 60 },
+
+  initialsBubble: {
+    width: 110,
+    height: 110,
+    borderRadius: 60,
+    backgroundColor: "#E8F5F1",
+    alignItems: "center",
+    justifyContent: "center",
+  },
 
   nameText: {
     textTransform: "capitalize",

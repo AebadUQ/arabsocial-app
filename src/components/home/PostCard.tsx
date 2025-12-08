@@ -239,7 +239,7 @@ const PostCard: React.FC<Props> = ({
               style={styles.userLocation}
               numberOfLines={1}
             >
-              {post.author?.country || "N/A"}
+              {post.author?.country || "-"}
             </Text>
           </View>
         </View>

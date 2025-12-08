@@ -31,7 +31,7 @@ const PAGE_SIZE = 10;
 const ChatDetailScreen = () => {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
 
   const auth = useAuth();
   const { socket, onlineUsers } = useSocket(); // ⭐ Get online users globally
@@ -259,7 +259,13 @@ const sendMessage = () => {
 
         {/* Avatar + Name + Status */}
           
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
+<TouchableOpacity
+  style={{ flexDirection: "row", alignItems: "center" }}
+  onPress={() =>
+    navigation.navigate("PublicProfile", { userId: currentUserId })
+  }
+>
+
           {/* AVATAR WRAPPER */}
           <View style={{ position: "relative", marginRight: 10 }}>
             {/* IMAGE */}
@@ -317,7 +323,7 @@ const sendMessage = () => {
               <Text style={styles.headerSub}>Offline</Text>
             )}
           </View>
-        </View>
+        </TouchableOpacity>
       </View>
 
       {/* CHAT LIST */}

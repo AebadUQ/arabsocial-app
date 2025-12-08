@@ -148,23 +148,32 @@ Please enter your account details to continue.              </Text>
                         >
                           Phone Number
                         </Text>
-                <PhoneInput
-                  ref={phoneInputRef}
-                  defaultValue={phone}
-                  defaultCode="US"
-                  layout="first"
-                  onChangeFormattedText={setPhone}
-                  containerStyle={styles.phoneContainer}
-                  textContainerStyle={styles.phoneTextContainer}
-                  codeTextStyle={{ color: "#000" }}
-                  textInputStyle={{ color: "#000" }}
-                  textInputProps={{
-                    autoComplete: "tel",
-                    keyboardType: "phone-pad",
-                    textContentType: "telephoneNumber",
-                    importantForAutofill: "yes",
-                  }}
-                />
+             <PhoneInput
+  ref={phoneInputRef}
+  defaultValue={phone}
+  defaultCode="US"
+  layout="first"
+  onChangeFormattedText={setPhone}
+  containerStyle={styles.phoneContainer}
+
+  textContainerStyle={{
+    ...styles.phoneTextContainer,
+    backgroundColor: "#fff",  // ⭐ Without this, Android hides your text
+    paddingVertical: 0,
+  }}
+
+  codeTextStyle={{
+    color: "#000",
+    fontSize: 16,             // ⭐ Mandatory for text color to apply on Android
+  }}
+
+  textInputStyle={{
+    color: "#000",
+    fontSize: 16,             // ⭐ Mandatory
+    paddingVertical: 0,
+  }}
+/>
+
                 {errors.phone && (
                   <RNText style={styles.errorText}>{errors.phone}</RNText>
                 )}
@@ -243,6 +252,8 @@ const styles = StyleSheet.create({
   inputContainer: { gap: 16,marginBottom:30,marginTop:10 },
   phoneContainer: {
     width: "100%",
+    overflow:'hidden',
+
     height: 56,
     borderWidth: 1,
     borderColor: "#ddd",
