@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "354972363312",
+    "project_id": "arabsocials-69a7a",
+    "storage_bucket": "arabsocials-69a7a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:354972363312:android:57252f5316fd898b33dbf5",
+        "android_client_info": {
+          "package_name": "com.arabsocial"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA82dotAguxqEKVqEGhNCxWp7dZpfrhG5I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
