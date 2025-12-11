@@ -34,6 +34,9 @@
 	<key>NSCameraUsageDescription</key>
 	<string>Arabsocials needs access to your camera.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Arabsocials needs access to your location to provide location-based services and features.</string>
+
+	<key>NSLocationWhenInUseUsageDescription</key>
 	<string></string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>This app needs permission to save photos.</string>
@@ -51,6 +54,8 @@
 		<string>Manrope-Regular.ttf</string>
 		<string>Manrope-SemiBold.ttf</string>
 	</array>
+	<key>UIBackgroundModes</key>
+	<array/>
 	<key>UILaunchStoryboardName</key>
 	<string></string>
 	<key>UIRequiredDeviceCapabilities</key>
